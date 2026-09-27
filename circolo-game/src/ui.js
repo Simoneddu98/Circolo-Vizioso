@@ -31,7 +31,7 @@ export class UI {
   }
 
   // Telefono: legenda dei comandi touch al posto di quella per tastiera, e invito a girare il telefono in orizzontale
-  showTouchLegend(legend, rotate) {
+  showTouchLegend(legend, rotate, note = null) {
     const c = this.el.controls;
     const h = c.querySelector('h2');
     c.innerHTML = '';
@@ -43,6 +43,12 @@ export class UI {
       row.querySelector('.key').textContent = k;
       row.append(d);
       c.append(row);
+    }
+    if (note) {                                   // iPhone: a tutto schermo solo dalla schermata Home
+      const n = document.createElement('p');
+      n.className = 'ios-note';
+      n.textContent = note;
+      c.after(n);
     }
     const r = document.createElement('div');
     r.id = 'rotate';

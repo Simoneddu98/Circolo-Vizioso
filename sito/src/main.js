@@ -38,6 +38,7 @@ const canvas = document.getElementById('scene');
 
 // telefono e tablet: controlli touch, niente pointer lock, rendering più leggero
 const TOUCH = isTouchDevice();
+const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 if (TOUCH) {
   CONFIG.render.maxPixelRatio = CONFIG.touch.maxPixelRatio;
   CONFIG.render.shadowMapSize = CONFIG.touch.shadowMapSize;
@@ -91,7 +92,7 @@ function optional(name, make) {
 }
 
 async function load() {
-  if (TOUCH) ui.showTouchLegend(CONFIG.touch.legend, CONFIG.touch.rotate);
+  if (TOUCH) ui.showTouchLegend(CONFIG.touch.legend, CONFIG.touch.rotate, IOS && !navigator.standalone ? CONFIG.touch.iosHome : null);
   let pMain = 0, pCol = 0;
   const progress = () => ui.setProgress(Math.min(0.99, pMain * 0.92 + pCol * 0.08));
   const track = (set) => (e) => { if (e.lengthComputable && e.total) { set(e.loaded / e.total); progress(); } };
@@ -243,7 +244,10 @@ function enter() {
   state = 'playing';
   player.enabled = true;
   wallet.show(true);
-  if (TOUCH) {                                      // schermo intero e orizzontale, dove il browser lo permette
+  // Android: schermo intero e orizzontale. Su iPhone/iPad no: Safari, a schermo intero, avvisa "Stai scrivendo in
+  // modalità a tutto schermo?" appena la pagina riceve un tasto; lì lo schermo intero si ha aggiungendo il gioco alla Home
+  // (manifest.webmanifest, display fullscreen).
+  if (TOUCH && !IOS) {
     document.documentElement.requestFullscreen?.({ navigationUI: 'hide' })
       .then(() => screen.orientation?.lock?.('landscape')).catch(() => {});
   }

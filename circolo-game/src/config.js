@@ -905,6 +905,7 @@ export const CONFIG = {
     maxPixelRatio: 1.25,                    // risoluzione di rendering sui telefoni (la GPU è più piccola)
     shadowMapSize: 512,
     rotate: { text: 'Gira il telefono in orizzontale per giocare meglio.', ok: 'Continua così' },
+    iosHome: 'Su iPhone, per giocare a tutto schermo: Condividi → Aggiungi alla schermata Home, poi apri il gioco da lì.',
     legend: [['Levetta a sinistra', 'Muoviti (spingi a fondo per correre)'], ['Trascina a destra', 'Guardati intorno'],
       ['Tocca', 'Parla, ordina, siediti, gioca, bevi, fai un tiro'], ['II', 'Pausa e impostazioni']],
   },

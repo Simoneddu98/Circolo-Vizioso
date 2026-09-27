@@ -1,0 +1,16 @@
+{
+  "name": "Circolo Vizioso",
+  "short_name": "Circolo Vizioso",
+  "description": "Una sera al circolo: bancone, partita, carte, biliardo e minigiochi, in prima persona.",
+  "start_url": "../",
+  "scope": "../",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "lang": "it",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

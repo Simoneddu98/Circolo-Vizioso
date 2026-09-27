@@ -6,6 +6,10 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Circolo Vizioso">
+  <link rel="manifest" href="./assets/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png">
   <title>Circolo Vizioso</title>
   <meta name="description" content="Un gioco in prima persona nel browser: entra in un circolo ricreativo di quartiere, prendi le sigarette, bevi un bicchiere al bancone e guarda la partita.">
   <link rel="icon" href="data:,">
@@ -45,6 +49,19 @@
     #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
     html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
     body.touch { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+
+    .ios-note { margin: -14px 0 18px; font-size: 14px; color: #ffe100; }
+    @media (max-height: 520px) { .ios-note { margin: -4px 0 8px; font-size: 12px; } }
+    /* ---------------------------------------------------- iPhone: fuori dalla tacca e dalla barra Home */
+    body.touch #goals { left: max(8px, env(safe-area-inset-left)); }
+    body.touch #inventory { left: max(8px, env(safe-area-inset-left)); bottom: max(8px, env(safe-area-inset-bottom)); }
+    body.touch #wallet { right: max(8px, env(safe-area-inset-right)); }
+    body.touch #held-hint { right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); }
+    body.touch #tcpause { left: max(12px, env(safe-area-inset-left)); }
+    body.touch #tcbtn .col { right: max(14px, env(safe-area-inset-right)); bottom: max(14px, env(safe-area-inset-bottom)); }
+    body.touch #tcbtn .top { left: max(12px, env(safe-area-inset-left)); }
+    body.touch #tc .hint { left: max(22px, env(safe-area-inset-left)); bottom: max(22px, env(safe-area-inset-bottom)); }
+    body.touch #start { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
 
     /* ---------------------------------------------------- telefono: invito a girarlo in orizzontale */
     #rotate { display: none; position: fixed; inset: 0; z-index: 50; background: rgba(0, 0, 0, .92); color: #f4f2fa;
