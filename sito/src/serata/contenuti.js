@@ -13,7 +13,8 @@ export const SERATA = {
     fumo: { n: 2, titolo: 'Fumo', audio: null, durata: 180 },
     blackbox: { n: 3, titolo: 'Black Box', audio: null, durata: 180 },
     cometiva: { n: 4, titolo: 'Come ti va', audio: null, durata: 210 },
-    bicchiere: { n: 5, titolo: 'Mezzo pieno', audio: null, durata: 120 },   // 2 minuti di gioco; poi lo spettacolo (sotto)
+    // 4 minuti in tutto: 2 di gioco (`gioco`), poi nello stesso brano si cercano le sigarette, ci si siede e c'è lo spettacolo
+    bicchiere: { n: 5, titolo: 'Mezzo pieno', audio: null, durata: 240, gioco: 120 },
   },
 
   // a fine serata i punti diventano euro da spendere nel circolo: tornano al bancone, alle slot, ai gettoni...
@@ -58,7 +59,7 @@ export const SERATA = {
     { goal: 'blackbox', text: 'Brano 3 · Black Box: cerca Lyuce', locked: 'Più tardi: adesso c\'è la serata' },
     { goal: 'cometiva', text: 'Brano 4 · Come ti va: cerca Kappa', locked: 'Più tardi: adesso c\'è la serata' },
     { goal: 'bicchiere', text: 'Brano 5 · Mezzo pieno: cerca Zucco', locked: 'Più tardi: adesso c\'è la serata' },
-    { goal: 'spettacolo', text: 'Torna al tavolino in fondo, prendi una sigaretta e siediti', locked: 'Prima goditi lo spettacolo' },
+    { goal: 'spettacolo', text: 'Prendi una sigaretta dal tavolino in fondo e siediti sulla sedia accanto', locked: 'Prima goditi lo spettacolo' },
     { goal: 'games', text: 'Sei libero: gira per il circolo e sfida tutti' },
   ],
   requires: { smoke: 'cinema', minigame: 'spettacolo' },
@@ -66,7 +67,8 @@ export const SERATA = {
   indicazioni: {
     prendiSigaretta: 'Prendi una sigaretta dal tavolino',
     prendiScatola: 'Prendi la scatola nera sul tavolino',
-    siediti: 'Siediti al tavolino e goditi lo spettacolo',
+    siediti: 'Prendi una sigaretta dal tavolino e siediti sulla sedia accanto',
+    primaSigaretta: 'Prima prendi una sigaretta dal tavolino',
   },
   // chi bisogna conoscere (nodo iniziale del loro dialogo) prima che Cronico ti venga a prendere
   presentazioni: { Cronico: 'benvenuto', Rafka: 'rafka_ciao', Kappa: 'kappa_ciao', Zucco: 'zucco_ciao', Lyuce: 'lyuce_ciao' },
@@ -91,7 +93,11 @@ export const SERATA = {
     blackbox: { player: [4.65, 0.8], guarda: [5.4, 0.8], npc: [4.75, 1.55], pitch: -0.95 },
     cometiva: { player: [0.5, -0.35], guarda: [1.7, -0.25], npc: [1.8, -0.25] },
     bicchiere: { player: [-3.74, -0.27], guarda: [-4.8, -0.35], npc: [-3.35, 0.65], pitch: -0.25 },
-    tavolino: { eye: [5.72, 1.12, 0.05], guarda: [0.2, 1.0, 1.5] },     // posto per fumare e per lo spettacolo
+    // sedia accanto al tavolino (una copia delle sedie della TV): ci si siede per fumare (brano 2) e per lo spettacolo,
+    // che si guarda da lì con la visuale fissa sul biliardo, dove parte il giro
+    sedia: { pos: [5.45, 0.12], guarda: [0.9, 0.9, 1.2] },
+    // il pacchetto di sigarette va nell'angolo del tavolino, lontano da dove arriva il cibo
+    pacchetto: [5.56, 0.98],
   },
   battute: {
     cinemaFine: ['Cronico', 'Bravo! I punti li teniamo da parte, a fine serata tornano utili. Adesso fatti un giro e cerca Rafka: ti voleva parlare.'],
@@ -100,8 +106,8 @@ export const SERATA = {
     fumoFine: ['Rafka', 'Posso dire? Si è mangiato da re. Quasi come a Bologna. Lyuce ti cercava, sai? Trovala.'],
     bbFine: ['Lyuce', 'Visto? L\'inizio e la fine li conosciamo tutti. È il mezzo che ci frega. Adesso vai da Kappa, che ti tira su.'],
     ctvFine: ['Kappa', 'AAAAAAH! Sei una macchina! Adesso respira, fatti un giro e poi cerca Zucco.'],
-    bicFine: ['Zucco', 'Posso dirti un segreto? Erano lo stesso bicchiere. Dipende da come lo guardi. Si gode.'],
-    bicLibero: ['Zucco', 'Adesso sei libero di circolare e di sfidare tutti. Ma prima torna al tavolino in fondo, prenditi un\'altra sigaretta e goditi lo spettacolo.'],
+    bicFine: ['Zucco', 'Posso dirti un segreto? Erano lo stesso bicchiere. Dipende da come lo guardi. Da adesso sei libero di circolare e di sfidare tutti. Si gode.'],
+    bicLibero: ['Nicola', 'Adesso vai al tavolino in fondo: prenditi una sigaretta, siediti sulla sedia e rilassati. Goditi lo spettacolo.'],
     spettacolo: ['Cronico', 'Tutti in fila! Un giro del circolo, come ogni sera. E come ogni sera, un altro giro.'],
     benvenuti: 'Benvenuti al Circolo Vizioso',
   },
@@ -266,7 +272,8 @@ export const SERATA = {
 
   // ------------------------------------------------------------------ finale: il giro del circolo
   spettacolo: {
-    durata: 120,                            // secondi dal momento in cui ti siedi
+    minimo: 45,                             // dura quanto resta del quinto brano, ma almeno questo (se non ti siedi entro allora ti
+                                            // ci porta Nicola)
     raduno: 22,                             // secondi per mettersi in fila
     passo: [1.0, 3.4],                      // metri al secondo: camminata all'inizio, corsa alla fine
     corsaDa: 0.45,                          // frazione del tempo dopo il raduno in cui si comincia ad accelerare

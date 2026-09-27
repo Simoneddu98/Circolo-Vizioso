@@ -33,7 +33,8 @@ export class Food {
 
   // posti sul piano del tavolino (il pacchetto di sigarette e il posacenere stanno verso est)
   _spot(i) {
-    const s = [[-0.14, -0.13], [0.1, -0.16], [-0.16, 0.1], [0.02, 0.02], [0.14, 0.14]][i % 5];
+    // lontano dal pacchetto (angolo sud-est) e dal posacenere (lato est)
+    const s = [[-0.13, -0.06], [-0.03, 0.15], [0.02, -0.03], [-0.15, 0.17]][i % 4];
     return new THREE.Vector3(this.center.x + s[0] * (this.half / 0.28), this.top, this.center.z + s[1] * (this.half / 0.28));
   }
 
@@ -42,8 +43,8 @@ export class Food {
     if (!on) { this.phone?.removeFromParent(); return; }
     if (!this.models?.Prop_Phone || this.phone?.parent) return;
     this.phone = this.models.Prop_Phone.clone(true);
-    this.phone.position.set(this.center.x - 0.17 * (this.half / 0.28), this.top + 0.001, this.center.z + 0.16 * (this.half / 0.28));
-    this.phone.rotation.y = 0.5;
+    this.phone.position.set(this.center.x - 0.02 * (this.half / 0.28), this.top + 0.001, this.center.z - 0.2 * (this.half / 0.28));
+    this.phone.rotation.y = 1.4;
     this.ctx.scene.add(this.phone);
   }
 

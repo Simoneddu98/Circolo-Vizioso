@@ -76,12 +76,14 @@ export class Serata {
     this._stopGame();
     this.show?.stop(); this.show = null;
     this.ov.clear(); this.ov.showBar(null); this.ov.big(null); this.ov.fade(false); this.ov.stopMusic();
+    this.ctx.ui.showHUD(true);
     this._release();
     this.food.clear();
     this.box.visible = false;
     this.tv?.setOverride(null);
     this._setFree(false);
     this.stage = 'idle';
+    this.trackLeft = null;
     this.wait = 1.5;
     this.scores.brani = {};
     this._save();
@@ -159,8 +161,15 @@ export class Serata {
     if (!this.story) return;
     const ctx = this.ctx;
     const goal = this.progress.goal;
+    // brano che continua dopo il gioco (il quinto): il tempo scorre anche mentre cerchi le sigarette e ti siedi
+    if (this.trackLeft != null && this.stage !== 'play') {
+      this.trackLeft -= dt;
+      this.ov.setTime(this.trackLeft);
+      if (this.stage === 'ritorno' && this.trackLeft <= this.cfg.spettacolo.minimo && this._playerFree()) this._autoSeat();
+    }
     if (this.stage === 'play' && this.game) {
       this.left -= dt;
+      if (this.trackLeft != null) this.trackLeft -= dt;
       this.ov.setTime(this.left);
       this.game.update(dt);
       if (this.left <= 0) this._endGame();
@@ -337,11 +346,14 @@ export class Serata {
     // la scatola nera si prende con E (handler 'serata_box')
   }
 
+  // seduti sulla sedia accanto al tavolino, guardando look ([x, z] = il piano del tavolino, [x, y, z] = un punto)
   _sitTavolino(look) {
-    const T = this.cfg.posti.tavolino, pl = this.ctx.player;
+    const S = this.cfg.posti.sedia, pl = this.ctx.player;
     if (pl.seated) pl.stand();
-    const eye = V(T.eye);
     const target = look.length === 3 ? V(look) : new THREE.Vector3(look[0], 0.62, look[1]);
+    const eye = new THREE.Vector3(S.pos[0], this.ctx.config.player.seatedEyeHeight, S.pos[1]);
+    const away = new THREE.Vector3(eye.x - target.x, 0, eye.z - target.z).normalize();
+    eye.addScaledVector(away, this.ctx.config.seat.backOffset);
     pl.sit({ eye, yaw: yawTo(eye, target), pitch: pitchTo(eye, target) });
   }
 
@@ -369,24 +381,65 @@ export class Serata {
     ctx.interactions.addTarget(g, 'serata_box');
   }
 
-  // posto a sedere al tavolino per lo spettacolo finale
+  // Sedia accanto al tavolino (copia di una sedia della TV) e pacchetto spostato nell'angolo, lontano dal cibo.
+  // Nel quinto brano, con la sigaretta in mano, sulla sedia ci si siede per lo spettacolo.
   _makeSeat() {
-    const ctx = this.ctx;
-    const table = ctx.root.getObjectByName('Side_Table');
-    if (!table) return;
+    const ctx = this.ctx, S = this.cfg.posti.sedia;
+    const pack = ctx.root.getObjectByName('Cigarette_Pack');
+    if (pack && this.cfg.posti.pacchetto) {
+      const w = pack.getWorldPosition(new THREE.Vector3());
+      const [x, z] = this.cfg.posti.pacchetto;
+      pack.position.x += x - w.x; pack.position.z += z - w.z;
+      pack.updateMatrixWorld(true);
+    }
+    const src = ctx.root.getObjectByName('Chair_Screen_01');
+    if (!src) return;
+    // (clone() copierebbe anche userData, che ha riferimenti circolari: nuova mesh con la stessa geometria)
+    // la compressione meshopt mette scala e spostamento sul nodo: la mesh va in un gruppo, centrata e appoggiata a terra
+    const mesh = new THREE.Mesh(src.geometry, src.userData.baseMaterial ?? src.material);
+    mesh.scale.copy(src.scale);
+    mesh.quaternion.copy(src.quaternion);
+    const sb = new THREE.Box3().setFromObject(src), sc = sb.getCenter(new THREE.Vector3());
+    mesh.position.set(src.position.x - sc.x, src.position.y - sb.min.y, src.position.z - sc.z);
+    const chair = new THREE.Group();
+    chair.name = 'Serata_Chair';
+    chair.add(mesh);
+    const look = V(S.guarda);
+    chair.position.set(S.pos[0], 0, S.pos[1]);
+    // le sedie della TV guardano verso nord (-z): si gira verso dove si guarda lo spettacolo
+    chair.rotation.set(0, Math.atan2(-(look.x - S.pos[0]), -(look.z - S.pos[1])), 0);
+    ctx.scene.add(chair);
+    chair.updateMatrixWorld(true);
+    this.chair = chair;
+    const cb = new THREE.Box3().setFromObject(chair);
+    ctx.collisions?.boxes.push({ name: 'COL_Serata_Chair', cx: (cb.min.x + cb.max.x) / 2, cz: (cb.min.z + cb.max.z) / 2, ux: 1, uz: 0, vx: 0, vz: 1,
+      hx: (cb.max.x - cb.min.x) / 2, hz: (cb.max.z - cb.min.z) / 2, minY: 0, maxY: cb.max.y });
     ctx.interactions.register('serata_seat', {
-      range: 2.2,
+      range: 2.4,
       label: () => {
         if (!this.story || this.progress.goal !== 'spettacolo' || this.stage !== 'ritorno' || ctx.player.seated) return null;
-        return ctx.smoking.holding ? 'Siediti e goditi lo spettacolo' : null;
+        return ctx.smoking.holding ? 'Siediti e goditi lo spettacolo' : this.cfg.indicazioni.primaSigaretta;
       },
       action: () => {
-        if (this.stage !== 'ritorno' || !ctx.smoking.holding) return;
-        this._sitTavolino(this.cfg.posti.tavolino.guarda);
+        if (this.stage !== 'ritorno') return;
+        if (!ctx.smoking.holding) { this._hint(this.cfg.indicazioni.primaSigaretta); return; }
+        this._sitTavolino(this.cfg.posti.sedia.guarda);
         this._startShow();
       },
     });
-    ctx.interactions.addTarget(table, 'serata_seat');
+    ctx.interactions.addTarget(chair, 'serata_seat');
+  }
+
+  // il brano sta finendo e non ti sei ancora seduto: ti ci porta Nicola, con la sigaretta accesa
+  _autoSeat() {
+    const ctx = this.ctx;
+    this.stage = 'going';
+    this.ov.fade(true, () => {
+      if (!ctx.smoking.holding) { ctx.smoking.give(ctx); ctx.ui.toast('Nicola ti accende una sigaretta', 3); }
+      this._sitTavolino(this.cfg.posti.sedia.guarda);
+      this.ov.fade(false);
+      this._startShow();
+    });
   }
 
   // ------------------------------------------------------------------ gioco del brano
@@ -417,24 +470,27 @@ export class Serata {
     this.game = GIOCHI[goal](api);
     const dur = await this.ov.music(brano);
     if (this.stage !== 'loading') return;                        // ricominciato nel frattempo
-    api.durata = dur;
-    this.left = dur;
-    this.ov.setTime(dur);
+    // il gioco dura quanto il brano; nel quinto solo la prima parte (`gioco`), il resto del brano è per il finale
+    const gioco = brano.gioco ? Math.min(brano.gioco, dur) : dur;
+    this.trackLeft = brano.gioco ? dur : null;
+    api.durata = gioco;
+    this.left = gioco;
+    this.ov.setTime(gioco);
     this.game.start();
     this.stage = 'play';
   }
 
-  _stopGame() {
+  _stopGame(keepMusic = false) {
     if (!this.game) return;
     this.game.dispose?.();
     this.game = null;
-    this.ov.stopMusic();
+    if (!keepMusic) this.ov.stopMusic();
   }
 
   _endGame() {
     const goal = this.gameId, brano = this.cfg.brani[goal];
     const summary = this.game.summary?.() ?? '';
-    this._stopGame();
+    this._stopGame(this.trackLeft != null);                      // il quinto brano continua a suonare
     this.stage = 'result';
     this.scores.brani[goal] = this.points;
     this._save();
@@ -448,9 +504,9 @@ export class Serata {
   _afterGame(goal) {
     const ctx = this.ctx;
     this.ov.clear();
-    this.ov.showBar(null);
+    if (this.trackLeft == null) this.ov.showBar(null);           // il quinto brano va avanti: la barra resta col tempo
     this.box.visible = false;
-    if (goal !== 'fumo') this.food.showPhone(false);
+    if (goal === 'fumo') this.food.clear();                      // si è mangiato: il tavolino si libera (arriva la scatola nera)
     const key = { cinema: 'cinemaFine', fumo: 'fumoFine', blackbox: 'bbFine', cometiva: 'ctvFine', bicchiere: 'bicFine' }[goal];
     const [who, line] = this.cfg.battute[key];
     this._say(who, this.decorate(this._npc(who), line), 5);
@@ -464,7 +520,7 @@ export class Serata {
     this.stage = goal === 'bicchiere' ? 'ritorno' : 'idle';
     this.called = null;
     this.wait = 4;
-    if (goal === 'bicchiere') setTimeout(() => this._hint(this.cfg.indicazioni.siediti), 12000);
+    if (goal === 'bicchiere') setTimeout(() => { if (this.stage === 'ritorno') this._hint(this.cfg.indicazioni.siediti); }, 12000);
     this.progress.complete(goal);
   }
 
@@ -473,18 +529,29 @@ export class Serata {
   _startShow() {
     const ctx = this.ctx;
     this.stage = 'show';
-    ctx.interactions.suspended = true;                           // niente "Alzati" durante lo spettacolo; il clic resta un tiro
+    // visuale fissa sul biliardo, cursore libero: un clic sulla scena resta un tiro di sigaretta
+    this.freeze = true; this.cursorFree = true;
+    ctx.interactions.suspended = true;
+    ctx.player.clearInput();
+    ctx.releaseLock();
     const [who, line] = this.cfg.battute.spettacolo;
     this._say(who, line, 6);
-    this.show = new Spettacolo(ctx, this.cfg.spettacolo);
+    const c = this.cfg.spettacolo;
+    const durata = Math.max(c.minimo, this.trackLeft ?? c.minimo);
+    this.show = new Spettacolo(ctx, { ...c, durata, raduno: Math.min(c.raduno, durata * 0.2) });
   }
 
   _endShow() {
     const ctx = this.ctx;
     this.stage = 'fine';
+    this.trackLeft = null;
+    this.ov.showBar(null);
+    this.ov.stopMusic();
     this.ov.fade(true, () => {
       this.show.stop();
       this.show = null;
+      ctx.ui.showHUD(false);                                     // il logo da solo: niente obiettivi, tasca o sottotitoli dietro
+      ctx.ui.subtitle(null);
       this.ov.big(`<img src="./assets/logo.webp" alt="${this.cfg.battute.benvenuti}">`);
       this.ov.fade(false);
       setTimeout(() => { this.ov.big(null); this._finalCard(); }, this.cfg.spettacolo.logo * 1000);
@@ -509,6 +576,7 @@ export class Serata {
       { label: c.ui.condividi, action: () => this._share(share) },
       { label: c.ui.giocaLibero, main: true, action: () => {
         this.ov.clear();
+        ctx.ui.showHUD(true);
         if (bonus) ctx.wallet.earn(bonus);
         if (ctx.player.seated) ctx.player.stand();
         this._setFree(false);
