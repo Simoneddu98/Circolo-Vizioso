@@ -54,10 +54,10 @@ export const SERATA = {
     { goal: 'nicola', text: 'Parla con Nicola al bancone', locked: 'Prima parla con Nicola al bancone' },
     { goal: 'presentazioni', text: 'Presentati a tutti ({n}/5): Cronico, Rafka, Kappa, Zucco, Lyuce', locked: 'Prima conosci tutti' },
     { goal: 'cinema', text: 'Brano 1 · Cinema: segui Cronico', locked: 'Più tardi: adesso c\'è la serata' },
-    { goal: 'fumo', text: 'Brano 2 · Fumo: Rafka ti cerca', locked: 'Più tardi: adesso c\'è la serata' },
-    { goal: 'blackbox', text: 'Brano 3 · Black Box: Lyuce ti cerca', locked: 'Più tardi: adesso c\'è la serata' },
-    { goal: 'cometiva', text: 'Brano 4 · Come ti va: arriva Kappa', locked: 'Più tardi: adesso c\'è la serata' },
-    { goal: 'bicchiere', text: 'Brano 5 · Mezzo pieno: Zucco ti aspetta', locked: 'Più tardi: adesso c\'è la serata' },
+    { goal: 'fumo', text: 'Brano 2 · Fumo: cerca Rafka nel circolo', locked: 'Più tardi: adesso c\'è la serata' },
+    { goal: 'blackbox', text: 'Brano 3 · Black Box: cerca Lyuce', locked: 'Più tardi: adesso c\'è la serata' },
+    { goal: 'cometiva', text: 'Brano 4 · Come ti va: cerca Kappa', locked: 'Più tardi: adesso c\'è la serata' },
+    { goal: 'bicchiere', text: 'Brano 5 · Mezzo pieno: cerca Zucco', locked: 'Più tardi: adesso c\'è la serata' },
     { goal: 'spettacolo', text: 'Torna al tavolino in fondo, prendi una sigaretta e siediti', locked: 'Prima goditi lo spettacolo' },
     { goal: 'games', text: 'Sei libero: gira per il circolo e sfida tutti' },
   ],
@@ -70,17 +70,19 @@ export const SERATA = {
   },
   // chi bisogna conoscere (nodo iniziale del loro dialogo) prima che Cronico ti venga a prendere
   presentazioni: { Cronico: 'benvenuto', Rafka: 'rafka_ciao', Kappa: 'kappa_ciao', Zucco: 'zucco_ciao', Lyuce: 'lyuce_ciao' },
+  tiriPrimaDiOrdinare: 2,                   // brano 2: tiri di sigaretta prima che Rafka abbia fame
   attesaCronico: 4,                         // secondi dopo l'ultima presentazione
   // aggiunto alla prima battuta di Rafka, Kappa, Zucco e Lyuce finché non hai conosciuto tutti
   presentazioniCoda: 'Fatti un giro e conosci tutti: tra poco Cronico ti fa partire la prima attività.',
 
-  // chi ti viene a prendere per ogni brano, con quale nodo di dialogo
+  // chi ti invita a ogni brano, con quale nodo di dialogo. Cronico (primo brano) ti viene a prendere; gli altri li cerchi
+  // tu per il circolo: parlandoci parte il loro invito. `chiama` = cosa dicono quando li trovi (entro 3,5 m)
   inviti: {
     cinema: { npc: 'Cronico', nodo: 'cinema_invito' },
-    fumo: { npc: 'Rafka', nodo: 'fumo_invito' },
-    blackbox: { npc: 'Lyuce', nodo: 'bb_invito' },
-    cometiva: { npc: 'Kappa', nodo: 'ctv_invito' },
-    bicchiere: { npc: 'Zucco', nodo: 'bic_invito' },
+    fumo: { npc: 'Rafka', nodo: 'fumo_invito', cerca: true, chiama: 'Ohi! Eccoti. Vieni qua, che ti devo dire una cosa.' },
+    blackbox: { npc: 'Lyuce', nodo: 'bb_invito', cerca: true, chiama: 'Eccoti. Hai un minuto? Vieni.' },
+    cometiva: { npc: 'Kappa', nodo: 'ctv_invito', cerca: true, chiama: 'AAAAAAH, finalmente! Vieni qui!' },
+    bicchiere: { npc: 'Zucco', nodo: 'bic_invito', cerca: true, chiama: 'Fratello! Ti stavo aspettando. Si gode.' },
   },
   // dove si finisce dopo "andiamo" (coordinate del circolo: x verso est, z verso sud; yaw = dove si guarda)
   posti: {
@@ -92,11 +94,12 @@ export const SERATA = {
     tavolino: { eye: [5.72, 1.12, 0.05], guarda: [0.2, 1.0, 1.5] },     // posto per fumare e per lo spettacolo
   },
   battute: {
-    cinemaFine: ['Cronico', 'Bravo! I punti li teniamo da parte, a fine serata tornano utili. Ora vai: qualcuno ti cerca.'],
-    fumoSiediti: ['Rafka', 'Posso dire? Adesso siediti, rilassati e ordiniamo da mangiare. Il telefono è lì, i volantini pure.'],
-    fumoFine: ['Rafka', 'Posso dire? Si è mangiato da re. Quasi come a Bologna.'],
-    bbFine: ['Lyuce', 'Visto? L\'inizio e la fine li conosciamo tutti. È il mezzo che ci frega.'],
-    ctvFine: ['Kappa', 'AAAAAAH! Sei una macchina! Adesso respira, che Zucco ti aspetta al bancone.'],
+    cinemaFine: ['Cronico', 'Bravo! I punti li teniamo da parte, a fine serata tornano utili. Adesso fatti un giro e cerca Rafka: ti voleva parlare.'],
+    fumoSiediti: ['Rafka', 'Siediti, rilassati. Fatti due tiri con calma, che la serata è lunga.'],
+    fumoFame: ['Rafka', 'Posso dire? Ho una fame che non ci vedo. Ordiniamo qualcosa? Il telefono è lì, i volantini pure.'],
+    fumoFine: ['Rafka', 'Posso dire? Si è mangiato da re. Quasi come a Bologna. Lyuce ti cercava, sai? Trovala.'],
+    bbFine: ['Lyuce', 'Visto? L\'inizio e la fine li conosciamo tutti. È il mezzo che ci frega. Adesso vai da Kappa, che ti tira su.'],
+    ctvFine: ['Kappa', 'AAAAAAH! Sei una macchina! Adesso respira, fatti un giro e poi cerca Zucco.'],
     bicFine: ['Zucco', 'Posso dirti un segreto? Erano lo stesso bicchiere. Dipende da come lo guardi. Si gode.'],
     bicLibero: ['Zucco', 'Adesso sei libero di circolare e di sfidare tutti. Ma prima torna al tavolino in fondo, prenditi un\'altra sigaretta e goditi lo spettacolo.'],
     spettacolo: ['Cronico', 'Tutti in fila! Un giro del circolo, come ogni sera. E come ogni sera, un altro giro.'],

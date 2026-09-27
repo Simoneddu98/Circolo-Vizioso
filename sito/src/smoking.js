@@ -123,6 +123,7 @@ export function createSmokeHandler() {
 
   return {
     get holding() { return s.state !== 'idle'; },
+    get puffs() { return s.puffs; },               // tiri fatti con la sigaretta di adesso
     // Cronico ti dà una sigaretta e te la accende
     give(ctx) {
       if (s.state !== 'idle' || ctx.hands.active) { ctx.ui.toast(ctx.config.minigames.handsBusy); return; }

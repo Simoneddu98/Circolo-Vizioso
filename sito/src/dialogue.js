@@ -53,7 +53,7 @@ export class DialogueSystem {
   open(npc, node = null) {
     const tree = this.cfg[npc.userData.npc_name];
     if (!tree || this.active) return false;
-    const start = node ?? tree.start.find((s) => typeof s === 'string' || this._check(s.if));
+    const start = node ?? this.ctx.serata?.startNode(npc) ?? tree.start.find((s) => typeof s === 'string' || this._check(s.if));
     this.active = { npc, tree };
     this.ctx.player.clearInput();
     this.ctx.interactions.setModal(null);           // toglie anche evidenziazione e indicazione "E —"

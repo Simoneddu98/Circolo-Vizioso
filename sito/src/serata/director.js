@@ -110,7 +110,37 @@ export class Serata {
   }
 
   onDialogueClosed(npc) {
-    if (this.stage === 'talk' && npc === this.guide) this.wait = 0.4;   // chiuso senza "Andiamo": riprova tra poco (vedi update)
+    if (this.stage !== 'talk' || npc !== this.guide) return;
+    // chiuso senza "Andiamo": chi è venuto a prenderti riprova tra poco (vedi update); chi hai cercato torna ai fatti suoi
+    // (chi hai cercato: se non si è partiti, al prossimo aggiornamento torna ai fatti suoi; vedi update)
+    if (!this.cfg.inviti[this.progress.goal]?.cerca) this.wait = 0.4;
+  }
+
+  // parlando con il personaggio del prossimo brano (quando lo trovi) parte il suo invito
+  startNode(npc) {
+    const invito = this.story && this.cfg.inviti[this.progress.goal];
+    if (!invito?.cerca || this.stage !== 'idle' || npc.userData.npc_name !== invito.npc) return null;
+    this.guide = npc;
+    npc.userData.directed = true;                               // resta fermo mentre ti parla
+    this.ctx.camerawork?.stop(npc);
+    this.ctx.npcs.stopAction(npc);
+    const u = npc.userData;
+    if (u.idle_clip) this.ctx.npcs.setLoop(npc, u.stand_clip ?? u.idle_clip, 1, 0.3);
+    this.stage = 'talk';
+    return invito.nodo;
+  }
+
+  // in attesa di essere trovato: quando ti avvicini ti chiama (una volta)
+  _waitToBeFound(invito) {
+    if (this.called === invito.npc) return;
+    const npc = this._npc(invito.npc);
+    if (!npc) { this.progress.complete(this.progress.goal); return; }
+    npc.visible = true;
+    const p = this.ctx.player.position, q = npc.getWorldPosition(new THREE.Vector3());
+    if (Math.hypot(p.x - q.x, p.z - q.z) < 3.5 && !this.ctx.dialogue.active) {
+      this.called = invito.npc;
+      this._say(invito.npc, invito.chiama, 4);
+    }
   }
 
   key(e) {
@@ -154,8 +184,10 @@ export class Serata {
     }
     const invito = this.cfg.inviti[goal];
     if (invito) {
-      if (this.stage === 'idle' && this._playerFree()) this._approach(invito);
+      if (this.stage === 'idle' && invito.cerca) this._waitToBeFound(invito);
+      else if (this.stage === 'idle' && this._playerFree()) this._approach(invito);
       else if (this.stage === 'approach') this._walk(dt);
+      else if (this.stage === 'talk' && invito.cerca && !ctx.dialogue.active) { this._release(); this.stage = 'idle'; this.wait = 1; }
       else if (this.stage === 'talk' && !ctx.dialogue.active && this._playerFree()) {
         const q = this.guide.position, pp = ctx.player.position;
         if (Math.hypot(q.x - pp.x, q.z - pp.z) > 2.2) { this._approach(invito); return; }   // si è allontanato: ti segue
@@ -287,12 +319,19 @@ export class Serata {
   _prep() {
     const ctx = this.ctx;
     if (this.prep === 'sigaretta' && ctx.smoking.holding && !ctx.hands.busy) {
-      this.prep = 'siediti';
+      // sigaretta accesa: ci si siede e si fuma con calma
+      this.prep = 'tiri';
       const [who, line] = this.cfg.battute.fumoSiediti;
       this._say(who, line, 5);
-      this.wait = 1.8;
-    } else if (this.prep === 'siediti') {
       this._sitTavolino(this.cfg.posti.fumo.guarda);
+      this._hint(`Fai ${this.cfg.tiriPrimaDiOrdinare} tiri (clic)`);
+    } else if (this.prep === 'tiri' && (ctx.smoking.puffs >= this.cfg.tiriPrimaDiOrdinare || !ctx.smoking.holding) && !ctx.hands.busy) {
+      // dopo un paio di tiri a Rafka viene fame
+      this.prep = 'fame';
+      const [who, line] = this.cfg.battute.fumoFame;
+      this._say(who, line, 5);
+      this.wait = 3;
+    } else if (this.prep === 'fame') {
       this._startGame('fumo');
     }
     // la scatola nera si prende con E (handler 'serata_box')
@@ -423,6 +462,7 @@ export class Serata {
     this._release();
     this._setFree(false);
     this.stage = goal === 'bicchiere' ? 'ritorno' : 'idle';
+    this.called = null;
     this.wait = 4;
     if (goal === 'bicchiere') setTimeout(() => this._hint(this.cfg.indicazioni.siediti), 12000);
     this.progress.complete(goal);
