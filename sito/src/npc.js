@@ -49,6 +49,11 @@ export class NPCManager {
       o.userData.displayName = o.userData.npc_name
         ? (role?.titleFormat ?? '{name}').replace('{name}', o.userData.npc_name)
         : (role ? role.names[0] : this.cfg.names[elder++ % this.cfg.names.length]);
+      // Un'imbardata oltre ±90° letta dal glb può diventare (180°, y, 180°) negli angoli di Eulero: chi poi lo gira
+      // cambiando solo rotation.y (routine, dialoghi) lo farebbe guardare dalla parte opposta. Si riscrive come sola
+      // rotazione attorno all'asse verticale, ricavata dalla direzione in cui guarda davvero.
+      const f = new THREE.Vector3(0, 0, 1).applyQuaternion(o.quaternion);
+      o.rotation.set(0, Math.atan2(f.x, f.z), 0);
       o.userData.baseRotY = o.rotation.y;
       o.userData.phase = Math.random() * 10;
       o.userData.worldPos = o.getWorldPosition(new THREE.Vector3());

@@ -234,6 +234,20 @@ export class NpcRoutine {
     this.dur = Infinity;
   }
 
+  // direzione del petto (perpendicolare alla linea delle spalle), nel piano orizzontale
+  _bodyYaw() {
+    this.shoulders ??= ['Left', 'Right'].map((side) => {
+      let hit = null;
+      const re = new RegExp(`^mixamorig${side}Shoulder(_\\d+)?$`);
+      this.npc.traverse((o) => { if (!hit && o.isBone && re.test(o.name)) hit = o; });
+      return hit;
+    });
+    const [L, R] = this.shoulders;
+    if (!L || !R) return null;
+    const s = L.getWorldPosition(new THREE.Vector3()).sub(R.getWorldPosition(new THREE.Vector3()));
+    return Math.atan2(-s.z, s.x);                                  // avanti = (sinistra - destra) ruotata di 90° sul piano
+  }
+
   _turnTo(yaw, dt, rate = 5) {
     const r = this.npc.rotation;
     let d = yaw - r.y;
@@ -256,7 +270,13 @@ export class NpcRoutine {
     // mentre si parla con lui: fermo, girato verso il giocatore
     if (ctx.dialogue?.active?.npc === npc) {
       const p = ctx.player.position, q = npc.position;
-      this._turnTo(Math.atan2(p.x - q.x, p.z - q.z), dt, 6);
+      // le clip non sono sempre dritte (chi parla sta di tre quarti): si compensa di quanto il petto è girato
+      const body = this._bodyYaw();
+      if (body != null) {
+        const off = Math.atan2(Math.sin(body - npc.rotation.y), Math.cos(body - npc.rotation.y));
+        this.bodyOff = this.bodyOff == null ? off : this.bodyOff + (off - this.bodyOff) * Math.min(1, dt * 2);
+      }
+      this._turnTo(Math.atan2(p.x - q.x, p.z - q.z) - (this.bodyOff ?? 0), dt, 6);
       this.talking = true;
       return;
     }
