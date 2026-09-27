@@ -158,3 +158,23 @@ dopo una modifica ai moduli forzare il ricaricamento (`fetch(file, {cache: 'relo
   - sotto 0,35 m in tutto 3,5 secondi, cioè passaggi brevi.
 - **Scopa:** se Peppino è al bancone quando parte la partita, torna subito a sedersi (`seated` nel minigioco, `sitNow` nella routine).
 - **Collisioni dei personaggi:** tutti i box sono ignorati tranne quello di Nicola, perché gli altri si muovono.
+
+## Telefono e tablet
+
+- `src/touch.js` si attiva sui dispositivi touch (senza mouse), oppure con `?touch=1` nell'indirizzo; `?touch=0` lo spegne.
+- **Esplorazione:**
+  - levetta a sinistra, che compare dove si appoggia il pollice (spinta a fondo = corsa);
+  - trascinare a destra per guardarsi intorno;
+  - tocco veloce = l'azione a schermo (parla, ordina, siediti, gioca, bevi, fai un tiro);
+  - si possono toccare anche la scritta dell'azione e il suggerimento "Bevi" / "Fai un tiro";
+  - pulsante II per la pausa.
+- **Minigiochi:**
+  - trascinare = muovere il mouse (mira, aste, bilia); in scopa si toccano le carte;
+  - i pulsanti a schermo sono in `CONFIG.minigames.games.<id>.touch.buttons` (`mouse`: tasto del mouse tenuto, `key`: tasto, `wheel`: rotella, `main`: il pulsante grande);
+  - regole e suggerimenti touch sono in `touch.controls` e `touch.hint`.
+- **Rendering:** sul telefono risoluzione massima 1,25, ombre 512 px, niente antialias (`CONFIG.touch`).
+- **Pagina:**
+  - niente zoom né scorrimento;
+  - schermo intero e orizzontale all'ingresso (dove il browser lo permette);
+  - in verticale compare l'invito a girare il telefono;
+  - su schermi bassi (sotto 520 px) dialoghi, bancone, pannelli e schermata iniziale sono compatti.

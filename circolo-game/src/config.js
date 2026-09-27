@@ -654,6 +654,13 @@ export const CONFIG = {
     statsPlayed: 'Partite', statsWon: 'Vinte', statsRecord: 'Record',
     games: {
       slots: {
+        touch: {
+          hint: 'Gettone · Gira · + / − puntata · Incassa',
+          controls: [['Gettone', 'Metti un gettone nella gettoniera'], ['Gira', 'Pulsante verde: gira i rulli'], ['+ / −', 'Cambia la puntata'],
+            ['Incassa', 'Pulsante rosso: incassa e chiudi']],
+          buttons: [{ label: 'Gira', mouse: 0, main: true }, { label: 'Gettone', mouse: 2 }, { label: '+', key: 'ArrowUp' },
+            { label: '−', key: 'ArrowDown' }, { label: 'Incassa', key: 'Enter' }],
+        },
         coinPrice: 0.5,                     // euro per gettone
         maxTokens: 20,                      // gettoni cambiati entrando
         name: 'slot machine',
@@ -687,6 +694,13 @@ export const CONFIG = {
         },
       },
       foosball: {
+        touch: {
+          hint: 'Trascina: muovi l\'asta · Tiro · Alza · ◀ ▶ cambia asta',
+          controls: [['Trascina', 'Muovi l\'asta a destra e sinistra'], ['Tiro (tieni premuto)', 'Carica e rilascia per tirare'],
+            ['Alza (tieni premuto)', 'Alza gli omini'], ['◀ ▶', 'Cambia asta'], ['Vista', 'Vista dall\'alto']],
+          buttons: [{ label: 'Tiro', mouse: 0, main: true }, { label: 'Alza', mouse: 2 }, { label: '▶', wheel: -1 }, { label: '◀', wheel: 1 },
+            { label: 'Vista', key: 'KeyC' }],
+        },
         price: 1,                           // euro a partita (il gettone)
         name: 'biliardino',
         title: 'Biliardino',
@@ -723,6 +737,12 @@ export const CONFIG = {
         },
       },
       pool: {
+        touch: {
+          hint: 'Trascina per mirare · tieni premuto Tira per la potenza',
+          controls: [['Trascina', 'Mira (con la bilia in mano: spostala)'], ['Tira (tieni premuto)', 'Potenza: rilascia per tirare'],
+            ['Tira (tocco)', 'Con la bilia in mano: posala'], ['Vista', 'Vista dall\'alto']],
+          buttons: [{ label: 'Tira', mouse: 0, main: true }, { label: 'Vista', key: 'KeyT' }],
+        },
         price: 2,                           // euro a partita (il gettone)
         name: 'biliardo',
         title: 'Biliardo',
@@ -762,6 +782,10 @@ export const CONFIG = {
         },
       },
       scopa: {
+        touch: {
+          hint: 'Tocca una delle tue carte per giocarla',
+          controls: [['Tocca una carta', 'La giochi'], ['Tocca le carte della presa', 'Scegli quale presa fare, se ce n\'è più di una']],
+        },
         name: 'scopa',
         title: 'Scopa',
         opponent: 'Peppino',
@@ -798,6 +822,11 @@ export const CONFIG = {
         },
       },
       darts: {
+        touch: {
+          hint: 'Trascina per mirare · tieni premuto Tira · Respira per fermare la mano',
+          controls: [['Trascina', 'Mira'], ['Tira (tieni premuto)', 'Potenza: rilascia per tirare'], ['Respira', 'Trattieni il respiro: la mano trema meno']],
+          buttons: [{ label: 'Tira', mouse: 0, main: true }, { label: 'Respira', mouse: 2 }],
+        },
         price: 1,                           // euro a partita (il gettone)
         name: 'freccette',
         title: 'Freccette',
@@ -862,6 +891,22 @@ export const CONFIG = {
     drift: 0.05,
     size: [0.012, 0.09],
     opacity: 0.22,
+  },
+
+  // Telefono e tablet (src/touch.js)
+  touch: {
+    lookSpeed: 1.35,                        // trascinare per guardarsi intorno (moltiplica i pixel)
+    stickRadius: 58,                        // corsa della levetta in pixel
+    stickArea: 0.42,                        // la levetta nasce se si tocca nella parte sinistra (frazione della larghezza)
+    dragSpeed: 1.2,                         // minigiochi: trascinare = muovere il mouse
+    tapMove: 12, tapTime: 280,              // tocco veloce: meno di 12 px e 280 ms
+    stickHint: 'Muoviti',
+    rulesLabel: 'Regole', exitLabel: 'Esci',
+    maxPixelRatio: 1.25,                    // risoluzione di rendering sui telefoni (la GPU è più piccola)
+    shadowMapSize: 512,
+    rotate: { text: 'Gira il telefono in orizzontale per giocare meglio.', ok: 'Continua così' },
+    legend: [['Levetta a sinistra', 'Muoviti (spingi a fondo per correre)'], ['Trascina a destra', 'Guardati intorno'],
+      ['Tocca', 'Parla, ordina, siediti, gioca, bevi, fai un tiro'], ['II', 'Pausa e impostazioni']],
   },
 
   render: {

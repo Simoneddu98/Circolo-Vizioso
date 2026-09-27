@@ -30,10 +30,27 @@ export class UI {
     return matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches;
   }
 
-  showTouchMessage() {
-    this.el.touch.hidden = false;
-    this.el.enter.hidden = true;
-    this.el.controls.before(this.el.touch);     // su telefono il messaggio viene prima della legenda
+  // Telefono: legenda dei comandi touch al posto di quella per tastiera, e invito a girare il telefono in orizzontale
+  showTouchLegend(legend, rotate) {
+    const c = this.el.controls;
+    const h = c.querySelector('h2');
+    c.innerHTML = '';
+    c.append(h);
+    for (const [k, d] of legend) {
+      const row = document.createElement('div');
+      row.className = 'ctl';
+      row.innerHTML = '<span class="keys"><span class="key"></span></span>';
+      row.querySelector('.key').textContent = k;
+      row.append(d);
+      c.append(row);
+    }
+    const r = document.createElement('div');
+    r.id = 'rotate';
+    r.innerHTML = '<div class="phone"></div><p></p><button class="secondary"></button>';
+    r.querySelector('p').textContent = rotate.text;
+    r.querySelector('button').textContent = rotate.ok;
+    r.querySelector('button').addEventListener('click', () => document.body.classList.add('rotate-ok'));
+    document.body.append(r);
   }
 
   setProgress(p) {

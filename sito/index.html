@@ -2,7 +2,10 @@
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#000000">
   <title>Circolo Vizioso</title>
   <meta name="description" content="Un gioco in prima persona nel browser: entra in un circolo ricreativo di quartiere, prendi le sigarette, bevi un bicchiere al bancone e guarda la partita.">
   <link rel="icon" href="data:,">
@@ -39,7 +42,65 @@
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; height: 100%; overflow: hidden; background: var(--walnut); color: var(--ink); font-family: var(--body); }
-    #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+    #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+    html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+    body.touch { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+
+    /* ---------------------------------------------------- telefono: invito a girarlo in orizzontale */
+    #rotate { display: none; position: fixed; inset: 0; z-index: 50; background: rgba(0, 0, 0, .92); color: #f4f2fa;
+      place-items: center; align-content: center; gap: 18px; padding: 24px; text-align: center; font-size: 19px; }
+    #rotate .phone { width: 46px; height: 78px; border: 3px solid #ff17e4; border-radius: 9px; animation: tilt 1.8s ease-in-out infinite; }
+    @keyframes tilt { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
+    @media (orientation: portrait) { body.touch:not(.rotate-ok) #rotate { display: grid; } }
+
+    /* ---------------------------------------------------- schermi piccoli (telefono in orizzontale: ~390 px di altezza) */
+    @media (max-height: 520px), (max-width: 700px) {
+      html body #goals { left: 8px; top: 8px; max-width: 230px; padding: 8px 10px; }
+      html body #goals h3 { font-size: 11px; margin-bottom: 4px; }
+      html body #goals li { font-size: 13px; line-height: 1.5; gap: 7px; }
+      html body #goals .box { width: 13px; height: 13px; flex-basis: 13px; }
+      html body #wallet { top: 8px; right: 8px; padding: 5px 10px; }
+      html body #wallet .v { font-size: 18px; }
+      html body #prompt { font-size: 15px; padding: 6px 12px 6px 6px; top: calc(50% + 24px); }
+      html body #held-hint { right: 12px; bottom: 12px; font-size: 14px; }
+      html body #subtitle { bottom: 6%; font-size: 15px; }
+      html body #toast { top: 8px; font-size: 14px; padding: 7px 12px; }
+      html body #dlg { bottom: 8px; padding: 10px 14px; width: min(720px, calc(100% - 24px)); max-height: 72vh; overflow-y: auto; }
+      html body #dlg .who { font-size: 13px; }
+      html body #dlg .txt { font-size: 15px; margin: 4px 0 8px; line-height: 1.35; }
+      html body #dlg ol { gap: 4px; }
+      html body #dlg li button { font-size: 14px; padding: 6px 10px; }
+      html body #barui .menu { width: min(360px, calc(100% - 24px)); max-height: calc(100% - 20px); overflow-y: auto; padding: 12px 14px; right: 12px; }
+      html body #barui .ask { font-size: 16px; margin: 4px 0 8px; }
+      html body #barui button { font-size: 14px; padding: 6px 10px; }
+      html body #barui .note { display: none; }
+      html body #mg .panel { padding: 14px 16px; max-height: calc(100% - 16px); width: min(620px, calc(100% - 20px)); }
+      html body #mg h2 { font-size: 22px; }
+      html body #mg .sub, html body #mg ul, html body #mg table { font-size: 13px; margin-bottom: 10px; }
+      html body #mg button { font-size: 15px; padding: 8px 14px; }
+      html body #mg .hud { top: 8px; font-size: 13px; gap: 6px; }
+      html body #mg .hud .box { padding: 4px 9px; }
+      html body #mg .msg { font-size: 28px; }
+      html body #mg .hint { bottom: 8px; font-size: 12px; white-space: normal; max-width: 56%; text-align: center; }
+      html body #mg .power { right: auto; left: 16px; bottom: 60px; height: 150px; width: 18px; }
+      html body #pause .box { padding: 16px 18px; max-height: calc(100% - 16px); overflow-y: auto; }
+      html body #pause h2 { font-size: 26px; margin-bottom: 12px; }
+      html body #broke .box { padding: 16px 18px; }
+      html body #broke h2 { font-size: 24px; }
+      html body #broke p { font-size: 15px; }
+    }
+    /* schermata iniziale su schermi bassi: tutto in vista, il pulsante "Entra" sempre ancorato in basso */
+    @media (max-height: 520px) {
+      #start { padding: 10px 16px; place-items: start center; }
+      #title img { max-height: 19vh; }
+      #subtitle-intro, #credits { display: none; }
+      #controls { margin: 8px 0 10px; padding: 8px 12px; gap: 4px 18px; }
+      #controls h2 { font-size: 12px; }
+      .ctl { font-size: 13px; gap: 8px; }
+      .ctl .key { height: 26px; min-width: 26px; font-size: 12px; padding: 0 6px; }
+      .load { margin-bottom: 8px; }
+      #enter { position: sticky; bottom: 8px; padding: 10px 26px; font-size: 18px; }
+    }
     [hidden] { display: none !important; }
 
     .key {

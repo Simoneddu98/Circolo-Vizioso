@@ -112,8 +112,9 @@ export class MinigameManager {
 
   _rulesHTML(id) {
     const c = this.cfg.games[id];
+    const controls = (this.ctx.touch && c.touch?.controls) || c.controls;       // su telefono: i comandi touch
     return `<h2>${c.title}</h2><p class="sub">${c.intro}</p><ul>${c.rules.map((r) => `<li>${r}</li>`).join('')}</ul>
-      <table>${c.controls.map(([k, d]) => `<tr><td>${k}</td><td>${d}</td></tr>`).join('')}</table>`;
+      <table>${controls.map(([k, d]) => `<tr><td>${k}</td><td>${d}</td></tr>`).join('')}</table>`;
   }
 
   // ------------------------------------------------------------------ ciclo di vita
@@ -345,7 +346,12 @@ export class MinigameManager {
     this._msgT = setTimeout(() => { m.style.opacity = 0; }, dur * 1000);
   }
 
-  hint(text) { this.el.hint.hidden = !text; if (text) this.el.hint.textContent = text; }
+  hint(text) {
+    const t = this.game?.cfg.touch;
+    if (this.ctx.touch && t?.hint && text === this.game.cfg.hint) text = t.hint;     // su telefono: il suggerimento touch
+    this.el.hint.hidden = !text;
+    if (text) this.el.hint.textContent = text;
+  }
 
   power(v, zone) {
     const p = this.el.power;

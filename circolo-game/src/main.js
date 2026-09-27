@@ -26,6 +26,7 @@ import { SmokeSystem } from './smoke.js';
 import { Wallet } from './wallet.js';
 import { BarOrder } from './bar.js';
 import { CameraWork } from './camerawork.js';
+import { isTouchDevice, TouchControls } from './touch.js';
 
 const DEBUG = new URLSearchParams(location.search).get('debug') === '1';
 const ui = new UI(CONFIG);
@@ -35,7 +36,13 @@ const canvas = document.getElementById('scene');
 
 // ------------------------------------------------------------------ renderer e scena
 
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+// telefono e tablet: controlli touch, niente pointer lock, rendering più leggero
+const TOUCH = isTouchDevice();
+if (TOUCH) {
+  CONFIG.render.maxPixelRatio = CONFIG.touch.maxPixelRatio;
+  CONFIG.render.shadowMapSize = CONFIG.touch.shadowMapSize;
+}
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: !TOUCH, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, CONFIG.render.maxPixelRatio));
 renderer.setSize(window.innerWidth, window.innerHeight, false);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -84,7 +91,7 @@ function optional(name, make) {
 }
 
 async function load() {
-  if (ui.isTouchOnly()) ui.showTouchMessage();
+  if (TOUCH) ui.showTouchLegend(CONFIG.touch.legend, CONFIG.touch.rotate);
   let pMain = 0, pCol = 0;
   const progress = () => ui.setProgress(Math.min(0.99, pMain * 0.92 + pCol * 0.08));
   const track = (set) => (e) => { if (e.lengthComputable && e.total) { set(e.loaded / e.total); progress(); } };
@@ -146,6 +153,7 @@ async function load() {
   ctx.routines = routines;
   ctx.collisions = collisions;                               // chi cammina non attraversa i mobili
   camerawork = optional('reflex', () => new CameraWork(ctx));   // Kappa e Zucco: foto e video con la reflex
+  ctx.touch = TOUCH ? new TouchControls(ctx, { pause }) : null;
   ctx.camerawork = camerawork;
   if (CONFIG.minigames.games.foosball.demoInExploration) {
     foosDemo = new FoosballDemo(ctx);                // i due giocatori del circolo al biliardino
@@ -207,7 +215,7 @@ function setupShadows(root) {
 
 let lockFailures = 0;
 async function requestLock() {
-  if (dragMode) return;
+  if (dragMode || TOUCH) return;                    // sul telefono si guarda trascinando il dito
   try {
     if (!canvas.requestPointerLock) throw new DOMException('assente', 'NotSupportedError');
     await canvas.requestPointerLock();
@@ -235,6 +243,10 @@ function enter() {
   state = 'playing';
   player.enabled = true;
   wallet.show(true);
+  if (TOUCH) {                                      // schermo intero e orizzontale, dove il browser lo permette
+    document.documentElement.requestFullscreen?.({ navigationUI: 'hide' })
+      .then(() => screen.orientation?.lock?.('landscape')).catch(() => {});
+  }
   if (!startIntro()) requestLock();
   wallet.checkBroke();                                   // rientro con le tasche già vuote
 }
@@ -379,6 +391,7 @@ function tick(dt) {
     }
     if (intro && state === 'playing' && (intro.t -= dt) <= 0) { dialogue.open(intro.host); intro = null; }
     if (state === 'playing') { foosDemo?.update(dt); for (const r of routines) r.update(dt); barOrder?.update(dt); camerawork?.update(dt); }   // dopo le animazioni: l'IK delle braccia le corregge
+    ctx.touch?.update(state);
     ctx.hands.update(state === 'playing' ? dt : 0, camera);
     if (!minigames.active && !dialogue?.active && !barOrder?.active) interactions.update(dt);
     else ui.setPrompt(null);

@@ -22,6 +22,7 @@ export class Player {
     this.sensitivity = this.cfg.mouseSensitivity;
     this.headBob = this.cfg.headBob;
     this.input = { f: false, b: false, l: false, r: false, run: false };
+    this.analog = null;                        // levetta touch: { x (destra), y (avanti) } tra -1 e 1
     this.enabled = false;
     this.seat = null;                          // { eye: Vector3, yaw, pitch, standPos, standYaw }
     this.bobPhase = 0;
@@ -88,14 +89,19 @@ export class Player {
     dt = Math.min(dt, this.cfg.maxStepDt);
     let speed = 0;
     if (!this.seat) {
-      const fwd = (this.input.f ? 1 : 0) - (this.input.b ? 1 : 0);
-      const side = (this.input.r ? 1 : 0) - (this.input.l ? 1 : 0);
+      let fwd = (this.input.f ? 1 : 0) - (this.input.b ? 1 : 0);
+      let side = (this.input.r ? 1 : 0) - (this.input.l ? 1 : 0);
+      let amount = 1, run = this.input.run;
+      if (this.analog && !fwd && !side) {                  // levetta: la spinta decide la velocità, a fondo si corre
+        const m = Math.min(1, Math.hypot(this.analog.x, this.analog.y));
+        if (m > 0.12) { fwd = this.analog.y; side = this.analog.x; amount = m; run = m > 0.95; }
+      }
       const target = new THREE.Vector3();
       if (this.enabled && (fwd || side)) {
         const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
         // avanti = -Z locale della camera ruotata di yaw
         target.set(-sin * fwd + cos * side, 0, -cos * fwd - sin * side).normalize()
-          .multiplyScalar(this.input.run ? this.cfg.runSpeed : this.cfg.walkSpeed);
+          .multiplyScalar((run ? this.cfg.runSpeed : this.cfg.walkSpeed) * (run ? 1 : amount));
       }
       const a = 1 - Math.exp(-this.cfg.acceleration * dt);
       this.velocity.lerp(target, a);
