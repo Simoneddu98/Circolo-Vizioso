@@ -8,8 +8,9 @@ biliardino, scopa, slot).
 
 La cartella **`sito/`** è il sito statico pronto: nessuna dipendenza e nessun comando di build.
 
-- **Vercel**: importa il repository e imposta *Root Directory* = `sito`, *Framework Preset* = **Other**,
-  lascia vuoti i comandi di build e di output. Le intestazioni di cache sono in `sito/vercel.json`.
+- **Vercel**: importa il repository e basta: il `vercel.json` nella radice pubblica la cartella `sito/`
+  (nessun comando di build) con le intestazioni di cache. Se in Vercel imposti *Root Directory* = `sito`, vale invece
+  `sito/vercel.json`, con le stesse regole.
 - **Netlify**: *Base directory* = `sito` (usa `sito/netlify.toml`), oppure trascina la cartella su
   https://app.netlify.com/drop.
 
