@@ -12,6 +12,7 @@ import { pick } from './minigames/util.js';
 const UP = new THREE.Vector3(0, 1, 0);
 const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3();
 const _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion();
+const _m = new THREE.Matrix4();
 const FADE = 0.4;
 
 // bottiglie che non ci sono sugli scaffali: birra (vetro scuro) e shaker per i cocktail
@@ -39,6 +40,7 @@ export class BarOrder {
     this.active = false;
     if (!this.enabled) return;
     this.arm = new ArmIK(this.barista, 'Right');
+    this._handVerts();
     this.bottles = {};
     for (const d of this.cfg.drinks) this.bottles[d.id] = this._bottle(d.bottle);
     const geo = new THREE.CylinderGeometry(0.004, 0.003, 1, 8, 1, true);
@@ -53,6 +55,36 @@ export class BarOrder {
     ctx.scene.add(this.cup);
     this.sipIn = this._sipDelay();
     this._ui();
+  }
+
+  // vertici della mano destra (uno su tre): servono a tenere le dita fuori dal vetro della bottiglia
+  _handVerts() {
+    this.hv = [];
+    this.barista.traverse((o) => { if (o.isSkinnedMesh && !this.skin) this.skin = o; });
+    const sm = this.skin;
+    if (!sm) return;
+    const hand = new Set(sm.skeleton.bones.map((b, i) => (/RightHand/.test(b.name) ? i : -1)).filter((i) => i >= 0));
+    const si = sm.geometry.attributes.skinIndex, sw = sm.geometry.attributes.skinWeight;
+    for (let v = 0; v < si.count; v++) {
+      let w = 0;
+      for (let k = 0; k < 4; k++) if (hand.has(si.getComponent(v, k))) w += sw.getComponent(v, k);
+      if (w > 0.5 && v % 3 === 0) this.hv.push(v);
+    }
+  }
+
+  // quanto le dita entrano nella bottiglia (cilindro del suo raggio, tra il 10 e il 90% dell'altezza)
+  _penetration(B) {
+    if (!this.skin || !this.hv.length) return 0;
+    const sm = this.skin, h = B.userData.h, r = B.userData.r * 0.92;
+    sm.updateMatrixWorld(true);
+    _m.copy(B.matrixWorld).invert().multiply(sm.matrixWorld);
+    let pen = 0;
+    for (const v of this.hv) {
+      sm.getVertexPosition(v, _a).applyMatrix4(_m);
+      if (_a.y < h * 0.1 || _a.y > h * 0.9) continue;
+      pen = Math.max(pen, r - Math.hypot(_a.x, _a.z));
+    }
+    return pen;
   }
 
   _sipDelay() { const [a, b] = this.cfg.sipEvery; return a + Math.random() * (b - a); }
@@ -75,6 +107,7 @@ export class BarOrder {
       holder.add(mesh);
       holder.userData.h = box.max.y - box.min.y;
       holder.userData.r = Math.max(box.max.x - box.min.x, box.max.z - box.min.z) / 2;
+      holder.userData.source = src;                         // l'originale sullo scaffale: sparisce mentre è in mano
       holder.visible = false;
       this.ctx.scene.add(holder);
       return holder;
@@ -261,12 +294,15 @@ export class BarOrder {
     const bp = this.barista.getWorldPosition(new THREE.Vector3());
     this.toBarista = bp.sub(this.glassTop).setY(0).normalize();
     const c = this.cfg.pour;
+    // spazio in più tra polso e vetro (le dita sono lunghe): si parte da quello misurato l'ultima volta con questa bottiglia
+    this.gaps ??= {};
+    this.gap = this.gaps[dr.id] ?? c.gripGap;
     this.T = { reach: c.reach, tilt: c.reach + c.tilt, pour: c.reach + c.tilt + dr.pour, untilt: c.reach + c.tilt + dr.pour + c.untilt,
       back: c.reach + c.tilt + dr.pour + c.untilt + c.back };
   }
 
   _hideProps() {
-    for (const b of Object.values(this.bottles)) if (b) b.visible = false;
+    for (const b of Object.values(this.bottles)) if (b) { b.visible = false; if (b.userData.source) b.userData.source.visible = true; }
     this.stream.visible = false;
   }
 
@@ -284,6 +320,7 @@ export class BarOrder {
     const hand = this.arm.hand;
     if (B && hand) {
       B.visible = w > 0.02;
+      if (B.userData.source) B.userData.source.visible = !B.visible;
       const h = B.userData.h;
       const axis = new THREE.Vector3().copy(UP).multiplyScalar(Math.cos(tilt)).addScaledVector(this.toBarista, -Math.sin(tilt)).normalize();
       // il collo parte alto, di lato al bicchiere (bottiglia dritta sopra il bancone), e scende sul bicchiere mentre si
@@ -293,26 +330,35 @@ export class BarOrder {
       const neckPour = this.glassTop.clone().addScaledVector(UP, c.neckAbove).addScaledVector(this.toBarista, c.neckBack);
       const neck = neckUp.lerp(neckPour, s(kt));
       const grip = neck.clone().addScaledVector(axis, -h * 0.6);           // presa: sull'asse della bottiglia
-      // il polso sta dalla parte di Nicola, a una mano più il raggio della bottiglia: le dita toccano il vetro
-      const off = c.palm + B.userData.r;
-      const wrist = grip.clone().addScaledVector(this.toBarista, off);
+      // il polso sta di fianco alla bottiglia, perpendicolare al suo asse (anche quando è inclinata per versare), sul lato
+      // destro di Nicola e un po' verso di lui, a una mano più il raggio: le dita toccano il vetro senza entrarci
+      const bq = this.barista.getWorldQuaternion(_q);
+      const right = new THREE.Vector3(-1, 0, 0).applyQuaternion(bq);
+      const perp = (v) => v.clone().addScaledVector(axis, -v.dot(axis));
+      const side = perp(right).addScaledVector(perp(this.toBarista), c.gripToward).normalize();
+      const off = c.palm + B.userData.r + this.gap;
+      const wrist = grip.clone().addScaledVector(side, off);
       this.arm.begin();
       const cur = hand.getWorldPosition(new THREE.Vector3());
       const target = cur.lerp(wrist, w);
       if (this.arm.ok && w > 0.001) {
-        // gomito in fuori, sul fianco destro di Nicola (non all'indietro verso lo scaffale)
-        const right = new THREE.Vector3(-1, 0, 0).applyQuaternion(this.barista.getWorldQuaternion(_q));
-        const pole = new THREE.Vector3(0, -1, 0).addScaledVector(right, 0.8);
+        // gomito in fuori sul fianco destro e un po' in avanti, verso il bancone: all'indietro entrerebbe nelle bottiglie
+        // dello scaffale basso alle sue spalle
+        const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(bq);
+        const pole = new THREE.Vector3(0, -1, 0).addScaledVector(right, c.elbowOut).addScaledVector(fwd, c.elbowFwd);
         this.arm.solve(target, pole);
         hand.getWorldPosition(_b);
-        aimBone(hand, _c.copy(_b).addScaledVector(this.toBarista, -1), new THREE.Vector3(0, 1, 0));
+        aimBone(hand, _c.copy(_b).addScaledVector(side, -1), new THREE.Vector3(0, 1, 0));   // dita verso il vetro
       }
       this.arm.end();
       // bottiglia: davanti alle dita (la sua base a 0.4 h sotto la presa)
-      hand.getWorldPosition(_b).addScaledVector(this.toBarista, -off);
+      hand.getWorldPosition(_b).addScaledVector(side, -off);
       B.quaternion.setFromUnitVectors(UP, axis);
       B.position.copy(_b).addScaledVector(axis, -h * 0.4);
       B.updateMatrixWorld(true);
+      // dita dentro il vetro: la mano si allontana (la bottiglia resta dov'è: al fotogramma dopo polso e bottiglia
+      // si ricalcolano con lo spazio in più)
+      if (B.visible) { const pen = this._penetration(B); if (pen > 0.002) this.gap = Math.min(0.14, this.gap + pen * 0.8); }
     }
     // liquido e getto
     const f = THREE.MathUtils.clamp((t - T.tilt) / (T.pour - T.tilt), 0, 1);
@@ -329,6 +375,7 @@ export class BarOrder {
       this.stream.quaternion.setFromUnitVectors(UP, surf.sub(neck).normalize().negate());
     }
     if (t >= T.back) {
+      this.gaps[this.dr.id] = this.gap;
       this._hideProps();
       this.arm.release();
       this.api.state = 'full';

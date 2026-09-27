@@ -77,6 +77,7 @@ export class Serata {
     this.show?.stop(); this.show = null;
     this.ov.clear(); this.ov.showBar(null); this.ov.big(null); this.ov.fade(false); this.ov.stopMusic();
     this.ctx.ui.showHUD(true);
+    this.ctx.wallet.show(true);
     this._release();
     this.food.clear();
     this.box.visible = false;
@@ -551,6 +552,7 @@ export class Serata {
       this.show.stop();
       this.show = null;
       ctx.ui.showHUD(false);                                     // il logo da solo: niente obiettivi, tasca o sottotitoli dietro
+      ctx.wallet.show(false);
       ctx.ui.subtitle(null);
       this.ov.big(`<img src="./assets/logo.webp" alt="${this.cfg.battute.benvenuti}">`);
       this.ov.fade(false);
@@ -577,6 +579,7 @@ export class Serata {
       { label: c.ui.giocaLibero, main: true, action: () => {
         this.ov.clear();
         ctx.ui.showHUD(true);
+        ctx.wallet.show(true);
         if (bonus) ctx.wallet.earn(bonus);
         if (ctx.player.seated) ctx.player.stand();
         this._setFree(false);

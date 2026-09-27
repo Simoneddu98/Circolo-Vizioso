@@ -200,3 +200,7 @@ Punto di ripristino prima di questo lavoro: tag git `prima-della-serata` (commit
 - **Finale:** torni al tavolino, prendi una sigaretta, "Siediti e goditi lo spettacolo": tutti (tranne Nicola) si mettono in fila e girano attorno al biliardo (`SERATA.spettacolo.anello`), prima camminando poi correndo; poi il logo "Benvenuti al Circolo Vizioso" e la scheda della serata.
 - **Punti:** a fine serata diventano euro (1 € ogni 250 punti, massimo 40) da spendere nel circolo, più titolo (`titoloDellaSerata` in `contenuti.js`), record e testo da condividere con la riga dell'EP (`SERATA.ep`).
 - **Asset:** `asset-props/cibo/` contiene gli script Blender che hanno prodotto `cibo.glb` dal cheeseburger (Blend Swap #73900, CC0) e dall'iPhone 5s; compressione con `gltf-transform merge` + `meshopt`.
+
+## Correzioni del 27 settembre 2026 (sera)
+- Logo finale "Benvenuti al Circolo Vizioso": HUD (obiettivi, tasca, sottotitoli) e portafoglio nascosti finché resta la scheda finale.
+- Versata di Nicola (`src/bar.js`, `CONFIG.bar.pour`): la mano impugna la bottiglia di lato, perpendicolare al suo asse anche quando è inclinata (`gripToward`); il gomito va in fuori e in avanti (`elbowOut`, `elbowFwd`), non più nelle bottiglie dello scaffale basso alle sue spalle; la distanza polso-vetro si corregge da sola misurando i vertici della mano (`gripGap`, ricordata per bottiglia); la bottiglia originale sparisce dallo scaffale mentre è in mano. Controllo sui vertici del braccio per tutti e quattro i drink: 0 contatti con le bottiglie dello scaffale, massimo 1 mm con quella in mano.

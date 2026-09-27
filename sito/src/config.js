@@ -254,7 +254,9 @@ export const CONFIG = {
     sipEvery: [40, 75],                     // ogni quanto Nicola beve un sorso (secondi)
     // versata: tempi (s), inclinazione della bottiglia (gradi), collo sul bicchiere e bottiglia dritta accanto (m)
     pour: { reach: 0.9, tilt: 0.8, untilt: 0.5, back: 0.7, tiltStart: 10, tiltPour: 118, neckAbove: 0.07, neckBack: 0.02,
-      baseAbove: 0.05, sideOffset: 0.16, palm: 0.075 },   // palm: dal polso al vetro, oltre il raggio della bottiglia
+      baseAbove: 0.05, sideOffset: 0.16, palm: 0.075,     // palm: dal polso al vetro, oltre il raggio della bottiglia
+      elbowOut: 0.8, elbowFwd: 0.6,                       // direzione del gomito
+      gripToward: 0.5, gripGap: 0.12 },                  // gripGap: lunghezza delle dita oltre il palmo (si corregge da solo)                                  // presa: di fianco alla bottiglia (lato destro), un po' verso Nicola                     // direzione del gomito: in fuori e verso il bancone (lontano dallo scaffale)
     cameraYaw: -0.22,                       // rotazione della vista del bancone (radianti): il bicchiere lascia spazio al menu
     hideNear: 1.1,                          // chi è più vicino di così alla camera del bancone sparisce durante l'ordinazione
     drinks: [
