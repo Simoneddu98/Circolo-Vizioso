@@ -1237,6 +1237,10 @@ PEOPLE = [
      "Lyuce", "stylist", "lyuce", (-3.7, 3.0, (1.0, -0.6)), {}),
 ]
 
+# Lyuce: la borsa a tracolla nera sotto i capelli sembrava una ciocca; ridipinta rosso lacca, spostata in avanti e pesata sul busto.
+# Zona: fianco sinistro (x > 0.08) tra la vita e la spalla, sopra la cintura
+BAG_FIX = {"Lyuce": {"region": ((0.08, 0.35), (1.05, 1.55)), "color": (0.6, 0.03, 0.05)}}
+
 def _meshy_people(c):
     import meshy_chars
     for folder, files, stand_from, talk_from, name, action, routine, (x, y, (fx, fy)), extra in PEOPLE:
@@ -1249,6 +1253,8 @@ def _meshy_people(c):
         if not built:
             continue
         root, arm, body, meas = built
+        if name in BAG_FIX:                                    # borsa di Lyuce: colore e pesi (vedi meshy_chars.fix_bag)
+            print("BAG_FIX", name, meshy_chars.fix_bag(body, **BAG_FIX[name]))
         _to_coll([root, arm, body], c)
         lift = -meas["stand_min_z"]
         root.matrix_world = Matrix.Translation((x, y, lift)) @ Matrix.Rotation(math.atan2(fx, -fy), 4, "Z")

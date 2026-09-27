@@ -686,3 +686,82 @@ def build_meshy_char(folder, name, files, stand_from, talk_from=None, max_tex=20
     _use(arm, acts["Idle"]); sc.frame_set(1)
     meas["clips"] = {k: [round(a.frame_range[0]), round(a.frame_range[1])] for k, a in acts.items()}
     return root, arm, body, meas
+
+
+def fix_bag(body, region, color=(0.6, 0.03, 0.05), max_lum=0.08, torso="Spine1", arm_bones=("LeftArm", "LeftForeArm"),
+            shift=(0.0, -0.06, 0.0), shift_below=1.3):
+    """Borsa a tracolla nera di Lyuce: da dietro spunta sotto la punta dei capelli castani e sembra una ciocca, e una parte
+    era pesata sul braccio sinistro (si muoveva con il braccio). Le facce scure nella zona `region` (coordinate del modello
+    appena importato: x = sinistra del personaggio, z = altezza; ((x0, x1), (z0, z1))) vengono ridipinte nel colore della
+    borsa (conservando le pieghe della texture) e i loro vertici passano dal braccio al busto. Il corpo della borsa (sotto
+    `shift_below`) si sposta di `shift` (metri; -y = in avanti): da dietro non spunta più sotto la punta dei capelli."""
+    import numpy as np
+    me, M = body.data, body.matrix_world
+    img = None
+    for m in me.materials:
+        for n in (m.node_tree.nodes if m and m.node_tree else []):
+            if n.type == "TEX_IMAGE" and n.image and n.outputs[0].links and n.outputs[0].links[0].to_socket.name == "Base Color":
+                img = n.image
+    if img is None:
+        return 0
+    W, H = img.size
+    px = np.array(img.pixels[:], dtype=np.float32).reshape(H, W, 4)
+    uv = me.uv_layers.active.data
+    (x0, x1), (z0, z1) = region
+    faces = []
+    for p in me.polygons:
+        c = M @ p.center
+        if not (x0 <= c.x <= x1 and z0 <= c.z <= z1):
+            continue
+        lum = np.mean([px[min(H - 1, int(uv[li].uv[1] * H)), min(W - 1, int(uv[li].uv[0] * W)), :3].mean() for li in p.loop_indices])
+        if lum < max_lum:
+            faces.append(p)
+    # pittura dei triangoli UV (con un pixel di margine), tono moltiplicato per la luminosità originale
+    col = np.array(color, dtype=np.float32)
+    done = np.zeros((H, W), dtype=bool)
+    for p in faces:
+        t = np.array([[uv[li].uv[0] * W, uv[li].uv[1] * H] for li in p.loop_indices], dtype=np.float32)
+        for k in range(1, len(t) - 1):
+            a, b, c = t[0], t[k], t[k + 1]
+            xmin, xmax = int(max(0, np.floor(min(a[0], b[0], c[0])) - 1)), int(min(W - 1, np.ceil(max(a[0], b[0], c[0])) + 1))
+            ymin, ymax = int(max(0, np.floor(min(a[1], b[1], c[1])) - 1)), int(min(H - 1, np.ceil(max(a[1], b[1], c[1])) + 1))
+            if xmax < xmin or ymax < ymin:
+                continue
+            X, Y = np.meshgrid(np.arange(xmin, xmax + 1) + 0.5, np.arange(ymin, ymax + 1) + 0.5)
+            d = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1])
+            if abs(d) < 1e-9:
+                continue
+            l1 = ((b[1] - c[1]) * (X - c[0]) + (c[0] - b[0]) * (Y - c[1])) / d
+            l2 = ((c[1] - a[1]) * (X - c[0]) + (a[0] - c[0]) * (Y - c[1])) / d
+            l3 = 1 - l1 - l2
+            e = 1.5 / max(1.0, np.sqrt(abs(d)))                       # margine di circa un pixel e mezzo
+            inside = (l1 >= -e) & (l2 >= -e) & (l3 >= -e)
+            done[ymin:ymax + 1, xmin:xmax + 1] |= inside
+    sel = done
+    lum = px[..., :3].mean(axis=2)
+    shade = np.clip(0.55 + lum * 6.0, 0.55, 1.25)[..., None]
+    px[..., :3] = np.where(sel[..., None], col * shade, px[..., :3])
+    img.pixels.foreach_set(px.ravel())
+    img.update()
+    img.pack()
+    # pesi: la borsa segue il busto, non il braccio
+    groups = {g.name.replace(MX, ""): g for g in body.vertex_groups}
+    tg = groups.get(torso)
+    verts = {v for p in faces for v in p.vertices}
+    for vi in verts:
+        v = me.vertices[vi]
+        moved = 0.0
+        for g in list(v.groups):
+            name = body.vertex_groups[g.group].name.replace(MX, "")
+            if name in arm_bones and g.weight > 0:
+                moved += g.weight
+                body.vertex_groups[g.group].remove([vi])
+        if moved and tg:
+            tg.add([vi], moved, "ADD")
+    # corpo della borsa un po' più avanti sul fianco (la tracolla resta sulla spalla)
+    d = M.inverted().to_3x3() @ Vector(shift)
+    moved = {v for p in faces if (M @ p.center).z < shift_below for v in p.vertices}
+    for vi in moved:
+        me.vertices[vi].co += d
+    me.update()
+    return len(faces)
