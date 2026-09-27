@@ -1,0 +1,5 @@
+Texture CC0 (pubblico dominio) scaricate da Poly Haven — https://polyhaven.com/license
+- terracotta_floor_tiles  https://polyhaven.com/a/terracotta_floor_tiles
+- plastered_wall_04       https://polyhaven.com/a/plastered_wall_04
+- dark_wood               https://polyhaven.com/a/dark_wood
+Mappe 2K: colore (diff), normale OpenGL (nor_gl), rugosità (rough).

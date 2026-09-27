@@ -1,0 +1,9 @@
+# Sorgenti pesanti e prodotti intermedi: restano sul computer (il sito pubblicabile è in sito/)
+build/
+consegna/
+asset-meshy/
+asset-blender-completi/
+*.blend1
+.claude/
+.DS_Store
+node_modules/

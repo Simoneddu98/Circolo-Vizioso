@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Circolo Vizioso</title>
+  <meta name="description" content="Un gioco in prima persona nel browser: entra in un circolo ricreativo di quartiere, prendi le sigarette, bevi un bicchiere al bancone e guarda la partita.">
+  <link rel="icon" href="data:,">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three/build/three.module.js",
+        "three/addons/": "./vendor/three/examples/jsm/"
+      }
+    }
+  </script>
+  <style>
+    @font-face { font-family: 'Oswald'; font-weight: 600; font-display: swap; src: url('./vendor/fonts/oswald-latin-600-normal.woff2') format('woff2'); }
+    @font-face { font-family: 'Oswald'; font-weight: 700; font-display: swap; src: url('./vendor/fonts/oswald-latin-700-normal.woff2') format('woff2'); }
+    @font-face { font-family: 'Source Sans 3'; font-weight: 400; font-display: swap; src: url('./vendor/fonts/source-sans-3-latin-400-normal.woff2') format('woff2'); }
+    @font-face { font-family: 'Source Sans 3'; font-weight: 600; font-display: swap; src: url('./vendor/fonts/source-sans-3-latin-600-normal.woff2') format('woff2'); }
+
+    :root {
+      --walnut: #1e120a;
+      --walnut-2: #2e1c10;
+      --walnut-3: #4a2f1b;
+      --tobacco: #d9aa45;
+      --tobacco-soft: #e9c77a;
+      --felt: #1d6b41;
+      --felt-bright: #27864f;
+      --ink: #f1e6d2;
+      --ink-dim: #bba98a;
+      --red: #b3261e;
+      --display: 'Oswald', 'Arial Narrow', sans-serif;
+      --body: 'Source Sans 3', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      --neon-yellow: #ffe100;
+      --neon-magenta: #ff17e4;
+      --neon-purple: #7b1fa2;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: var(--walnut); color: var(--ink); font-family: var(--body); }
+    #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+    [hidden] { display: none !important; }
+
+    .key {
+      display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 8px;
+      border: 2px solid rgba(217, 170, 69, .7); border-bottom-width: 4px; border-radius: 5px; background: var(--walnut-3);
+      font-family: var(--display); font-weight: 600; font-size: 15px; color: var(--tobacco-soft); letter-spacing: .02em;
+    }
+
+    /* ---------------------------------------------------- schermata iniziale */
+    /* logo "Benvenuti al Circolo Vizioso" (assets/logo.webp, trasparente) su nero */
+    #start {
+      position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 24px; overflow-y: auto;
+      background: #000;
+    }
+    .sign { width: min(820px, 100%); }
+    #title { margin: 0; line-height: 0; }
+    #title img { display: block; width: 100%; height: auto; max-height: 24vh; object-fit: contain; object-position: left center; }
+    /* schermi bassi: tutto compatto, barra di caricamento e pulsante "Entra" restano visibili senza scorrere */
+    @media (max-height: 820px) {
+      #start { place-items: start center; padding-top: 16px; }
+      #subtitle-intro { margin: 10px 0 14px; font-size: 17px; }
+      #controls { padding: 12px 16px; margin-bottom: 16px; gap: 8px 22px; }
+      .ctl { font-size: 15px; }
+      .load { margin-bottom: 14px; }
+      #credits { margin-top: 14px; }
+    }
+    #subtitle-intro { margin: 18px 0 28px; font-size: 20px; line-height: 1.45; color: #f4f2fa; max-width: 560px; }
+    #controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 28px; margin: 0 0 30px; padding: 20px 22px;
+      background: #0d0612; border: 1px solid rgba(176, 74, 224, .45); border-radius: 6px; }
+    #controls h2 { grid-column: 1 / -1; margin: 0 0 2px; font-family: var(--display); font-weight: 600; font-size: 15px;
+      text-transform: uppercase; letter-spacing: .12em; color: var(--neon-yellow); }
+    #start .key { background: #1c0b26; border-color: rgba(176, 74, 224, .8); color: #f4f2fa; }
+    #start .load .track { background: #1c0b26; }
+    #start #load-fill { background: linear-gradient(90deg, var(--neon-yellow), var(--neon-magenta)); }
+    #start .primary { color: #fff; background: linear-gradient(180deg, #c93cf0, var(--neon-purple)); border: 2px solid var(--neon-yellow);
+      box-shadow: 0 0 18px rgba(255, 23, 228, .45); }
+    #start .primary:hover:not(:disabled) { background: linear-gradient(180deg, #db5cff, #9227c4); }
+    .ctl { display: flex; align-items: center; gap: 12px; font-size: 17px; }
+    .ctl .keys { display: flex; gap: 4px; flex: 0 0 auto; }
+    .load { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; }
+    .load .track { flex: 1; height: 10px; background: var(--walnut-3); border-radius: 3px; overflow: hidden; }
+    #load-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--felt-bright), var(--tobacco)); transition: width .2s; }
+    #load-label { flex: 0 0 220px; font-size: 15px; color: var(--ink-dim); text-align: right; }
+    #load-error { color: #ff9c8f; font-size: 16px; margin: -8px 0 18px; }
+    button {
+      font-family: var(--display); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; cursor: pointer;
+      border-radius: 6px; transition: background .15s, transform .1s, border-color .15s;
+    }
+    button:active { transform: translateY(1px); }
+    button:focus-visible, input:focus-visible { outline: 3px solid var(--tobacco-soft); outline-offset: 3px; }
+    .primary { padding: 16px 34px; font-size: 22px; color: #fff7e6; background: var(--felt); border: 2px solid var(--tobacco); }
+    .primary:hover:not(:disabled) { background: var(--felt-bright); }
+    .primary:disabled { opacity: .45; cursor: progress; }
+    .secondary { padding: 12px 24px; font-size: 18px; color: var(--tobacco-soft); background: transparent; border: 2px solid rgba(217, 170, 69, .6); }
+    .secondary:hover { border-color: var(--tobacco); background: rgba(217, 170, 69, .08); }
+    #credits { margin: 26px 0 0; max-width: 620px; font-size: 13px; line-height: 1.5; color: var(--ink); opacity: 0.62; }
+    #touch-msg { margin: 0 0 24px; padding: 18px 20px; font-size: 19px; line-height: 1.45; background: var(--felt); border-left: 6px solid var(--tobacco); border-radius: 4px; }
+
+    /* ---------------------------------------------------- HUD */
+    #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+    #crosshair { position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%;
+      background: var(--ink); box-shadow: 0 0 0 2px rgba(20, 11, 5, .7); }
+    #prompt { position: absolute; left: 50%; top: calc(50% + 34px); transform: translateX(-50%); display: flex; align-items: center; gap: 10px;
+      padding: 8px 16px 8px 8px; background: rgba(30, 18, 10, .86); border: 1px solid rgba(217, 170, 69, .35); border-radius: 6px;
+      font-family: var(--display); font-weight: 600; font-size: 20px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink); white-space: nowrap; }
+    #prompt .dash, #held-hint .dash { color: var(--tobacco); }
+    #prompt.modal { top: auto; bottom: 80px; }
+    .panel { position: absolute; background: rgba(30, 18, 10, .8); border: 1px solid rgba(217, 170, 69, .25); border-radius: 6px; padding: 12px 16px; }
+    .panel h3 { margin: 0 0 8px; font-family: var(--display); font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: .12em; color: var(--tobacco); }
+    #goals { left: 18px; top: 18px; max-width: 320px; }
+    #goals ul, #inv-list { list-style: none; margin: 0; padding: 0; }
+    #goals li { display: flex; align-items: center; gap: 10px; font-size: 16px; line-height: 1.8; }
+    #goals .box { width: 16px; height: 16px; flex: 0 0 16px; border: 2px solid var(--tobacco); border-radius: 3px; position: relative; }
+    #goals li.done { color: var(--ink-dim); }
+    #goals li.current { color: var(--ink); font-weight: 600; }
+    #goals li.done .box { background: var(--felt-bright); border-color: var(--felt-bright); }
+    #goals li.done .box::after { content: ''; position: absolute; left: 4px; top: 0; width: 4px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+    #inventory { left: 18px; bottom: 18px; }
+    #inv-list { display: flex; gap: 8px; }
+    #inv-list li { padding: 6px 12px; background: var(--walnut-3); border: 1px solid var(--tobacco); border-radius: 4px; font-weight: 600; }
+    #subtitle { position: absolute; left: 50%; bottom: 11%; transform: translateX(-50%); width: min(760px, calc(100% - 40px)); text-align: center;
+      padding: 12px 20px; background: rgba(20, 11, 5, .82); border-radius: 6px; }
+    #sub-name { display: block; font-family: var(--display); font-weight: 600; text-transform: uppercase; letter-spacing: .1em; font-size: 14px; color: var(--tobacco); margin-bottom: 4px; }
+    #sub-text { font-size: 21px; line-height: 1.35; }
+    #toast { position: absolute; left: 50%; top: 22px; transform: translateX(-50%); padding: 10px 18px; background: var(--felt); border: 1px solid var(--tobacco);
+      border-radius: 6px; font-size: 17px; font-weight: 600; }
+    #held-hint { position: absolute; right: 24px; bottom: 26px; display: flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 600;
+      text-transform: uppercase; letter-spacing: .04em; font-size: 17px; padding: 8px 14px 8px 8px; background: rgba(30, 18, 10, .8); border-radius: 6px; }
+    #lock-hint { position: absolute; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 16px; color: var(--ink-dim); }
+    #debug { position: fixed; right: 12px; top: 12px; z-index: 30; padding: 8px 12px; background: rgba(0, 0, 0, .7); color: #9ef0b0; font: 600 14px/1.5 var(--body);
+      font-variant-numeric: tabular-nums; white-space: pre; border-radius: 4px; pointer-events: none; }
+
+    /* ---------------------------------------------------- pausa */
+    #pause { position: fixed; inset: 0; z-index: 25; display: grid; place-items: center; background: rgba(15, 8, 3, .72); padding: 24px; }
+    #pause .box { width: min(420px, 100%); padding: 28px; background: var(--walnut-2); border: 1px solid rgba(217, 170, 69, .35); border-radius: 8px; }
+    #pause h2 { margin: 0 0 22px; font-family: var(--display); font-weight: 700; font-size: 38px; text-transform: uppercase; color: var(--tobacco); }
+    #pause .row { margin: 0 0 20px; }
+    #pause label { display: flex; justify-content: space-between; font-size: 17px; margin-bottom: 8px; }
+    #pause input[type=range] { width: 100%; accent-color: var(--tobacco); }
+    #pause .check { display: flex; align-items: center; gap: 10px; justify-content: flex-start; cursor: pointer; }
+    #pause input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--felt-bright); }
+    #pause .buttons { display: grid; gap: 12px; margin-top: 8px; }
+    #pause .primary { font-size: 20px; padding: 14px; }
+
+    @media (max-width: 640px) {
+      #controls { grid-template-columns: 1fr; }
+      #load-label { flex-basis: 150px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="scene"></canvas>
+
+  <section id="start">
+    <div class="sign">
+      <h1 id="title"><picture><source srcset="./assets/logo.webp" type="image/webp"><img src="./assets/logo.png" alt="Benvenuti al Circolo Vizioso" width="1899" height="450"></picture></h1>
+      <p id="subtitle-intro"></p>
+      <div id="controls">
+        <h2>Comandi</h2>
+        <div class="ctl"><span class="keys"><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span></span>Muoviti (anche con le frecce)</div>
+        <div class="ctl"><span class="keys"><span class="key">Mouse</span></span>Guardati intorno</div>
+        <div class="ctl"><span class="keys"><span class="key">Shift</span></span>Cammina più veloce</div>
+        <div class="ctl"><span class="keys"><span class="key">E</span></span>Ordina da bere, parla, siediti, gioca</div>
+        <div class="ctl"><span class="keys"><span class="key">Clic</span></span>Bevi o fai un tiro (con qualcosa in mano)</div>
+        <div class="ctl"><span class="keys"><span class="key">Esc</span></span>Pausa e impostazioni</div>
+      </div>
+      <div class="load"><div class="track"><div id="load-fill"></div></div><span id="load-label">Caricamento del circolo… 0%</span></div>
+      <p id="load-error" hidden></p>
+      <button id="enter" class="primary" disabled></button>
+      <p id="touch-msg" hidden></p>
+      <p id="credits"></p>
+    </div>
+  </section>
+
+  <div id="hud" hidden>
+    <div id="crosshair"></div>
+    <div id="prompt" hidden><span class="key">E</span><span class="dash">—</span><span id="prompt-text"></span></div>
+    <div id="goals" class="panel"><h3>Stasera al circolo</h3><ul></ul></div>
+    <div id="inventory" class="panel" hidden><h3>In tasca</h3><ul id="inv-list"></ul></div>
+    <div id="subtitle" hidden><span id="sub-name"></span><span id="sub-text"></span></div>
+    <div id="toast" hidden></div>
+    <div id="held-hint" hidden><span class="key">Clic</span><span class="dash">—</span><span></span></div>
+    <div id="lock-hint" hidden></div>
+  </div>
+
+  <section id="pause" hidden>
+    <div class="box">
+      <h2>Pausa</h2>
+      <div class="row">
+        <label for="sens"><span>Sensibilità del mouse</span><span id="sens-val">1.0</span></label>
+        <input id="sens" type="range" min="0.3" max="2.5" step="0.1" value="1">
+      </div>
+      <div class="row"><label class="check"><input id="bob" type="checkbox" checked> Oscillazione della camminata</label></div>
+      <div class="buttons">
+        <button id="resume" class="primary">Riprendi</button>
+        <button id="restart" class="secondary">Ricomincia</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="debug" hidden></div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+# Sito statico: nessun comando di build. Trascina questa cartella su https://app.netlify.com/drop
+[build]
+  publish = "."
+  command = ""
+
+# I glb hanno la versione nell'URL (?v=, src/version.js): si possono tenere in cache a lungo; il logo un giorno.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+[[headers]]
+  for = "/assets/*.glb"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Pagina e codice: sempre ricontrollati, così una nuova pubblicazione si vede subito
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+[[headers]]
+  for = "/src/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/*.glb"
+  [headers.values]
+    Content-Type = "model/gltf-binary"

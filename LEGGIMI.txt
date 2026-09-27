@@ -1,0 +1,9 @@
+CIRCOLO SARDEGNA — ASSET DEFINITIVI
+
+15 immagini PNG alla risoluzione originale.
+Ambiente arredato con bandiera sarda, due versioni della pianta con bandiera sarda, stanza vuota, dieci asset di arredo/oggetti e turnaround del personaggio.
+Generazione e modifiche: strumento integrato ImageGen.
+
+Prompt delle modifiche finali: sostituire le bandiere italiane con la bandiera della Sardegna (campo bianco, croce rossa, quattro teste nere con fascia bianca), mantenendo composizione, arredi, materiali, illuminazione e stile delle immagini di riferimento. Nella pianta dettagliata aggiornare anche il piccolo tricolore incorniciato sulla parete destra.
+
+Stile: 3D stilizzato semi-realistico, circolo italiano vissuto ma pulito, noce scuro, giallo tabacco, verde feltro, terracotta, crema.

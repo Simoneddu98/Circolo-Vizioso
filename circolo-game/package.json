@@ -1,0 +1,7 @@
+{
+  "name": "circolo-game",
+  "private": true,
+  "type": "module",
+  "description": "Sito statico: nessuna dipendenza. package.json serve solo a eseguire i test della logica dei minigiochi con node.",
+  "scripts": { "test": "node --test tests/*.test.mjs" }
+}

@@ -1,0 +1,14 @@
+CIRCOLO SARDEGNA — SCENA BLENDER
+
+Aprire circolo-sardegna.blend in Blender 5.2 o successivo.
+Unità: metri. Interno: 8 x 12 m, altezza 3,3 m.
+
+Ricostruzione stilizzata procedurale delle immagini di riferimento: geometrie reali, materiali, luci e camere modificabili. Non è una scansione né una replica identica dei render generati. Non include personaggi riggati o animazioni.
+
+Gli elementi sono organizzati in 10 collezioni: architettura, bar, biliardo, TV e platea, calcio balilla, slot, tavolo carte, decorazioni, luci, camere.
+Il soffitto è presente ma nascosto per facilitare l'ispezione; attivarlo nell'Outliner quando necessario.
+Camera principale: ingresso. Seconda camera: vista pianta ortografica.
+La bandiera dei Quattro Mori è modellata con forme geometriche semplificate.
+I materiali sono procedurali e non richiedono texture esterne.
+
+È incluso lo script Python di costruzione, eseguibile dalla sezione Scripting di Blender o in background.
