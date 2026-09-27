@@ -1,5 +1,6 @@
 // Tutte le costanti regolabili del gioco. Unità: metri, secondi, radianti.
 import { ASSET_VERSION } from './version.js';
+import { SERATA } from './serata/contenuti.js';
 
 // ?v=: dopo ogni pubblicazione il browser scarica gli asset nuovi invece di usare quelli in cache
 const v = (path) => `${path}?v=${ASSET_VERSION}`;
@@ -10,6 +11,7 @@ export const CONFIG = {
     collision: v('./assets/circolo_collision.glb'),
     video: './assets/partita.mp4',          // opzionale: se manca, lo schermo usa la partita disegnata su canvas
     hands: v('./assets/hands.glb'),            // mani in prima persona (pose: rilassata, bicchiere, sigaretta)
+    food: v('./assets/cibo.glb'),              // serata, secondo brano: hamburger, bibita e telefono (pizza e kebab sono in codice)
   },
 
   player: {
@@ -87,7 +89,7 @@ export const CONFIG = {
   },
 
   smoking: {
-    fromCronico: true,                      // la sigaretta la offre Cronico (dialogo); il pacchetto sul tavolino è decorazione
+    fromCronico: false,                     // true = la offre Cronico (dialogo) e il pacchetto è decorazione; ora si prende dal tavolino
     puffs: 5,                               // tiri per sigaretta
     toMouth: 0.6,
     hold: 0.9,
@@ -156,7 +158,7 @@ export const CONFIG = {
       names: ['Cronico'],
       talkDistance: 2.4,
       lines: ['Ohi! Vieni, vieni: premi E se vuoi fare due chiacchiere.', 'Benvenuto! Se ti serve una guida, chiedi pure.',
-        'Stasera c\'è la partita, il circolo è pieno.', 'Hai già conosciuto Nicola? Il bancone è da quella parte.'],
+        'Stasera il circolo è pieno. Come ogni sera.', 'Hai già conosciuto Nicola? Il bancone è da quella parte.'],
     },
     photographer: {                        // Kappa
       names: ['Kappa'],
@@ -215,6 +217,7 @@ export const CONFIG = {
     requires: { smoke: 'match', serve_drink: 'cigarettes', pickup_drink: 'cigarettes', minigame: 'glass' },
     unlockedToast: 'Nuovo obiettivo: {text}',
     storageKey: 'circolo.progress.v1',       // la progressione resta salvata nel browser (se disponibile)
+    // la serata (modalità storia) usa i suoi passi: CONFIG.serata.passi
   },
 
   // Soldi del gioco (euro finti): bar e gettoni. Finiti i soldi si ricomincia la serata.
@@ -320,8 +323,8 @@ export const CONFIG = {
   routines: {
     // Rafka: saluta con la mano quando ti vede la prima volta, poi gira tra bancone, freccette, biliardino e TV
     rafka: {
-      markers: 'ELDER', startAfter: 'benvenuto', startTimeout: 90, walkSpeed: 1.1, hearing: 7,
-      greet: { distance: 4.5, clip: 'Wave', say: 'Ohi! Benvenuto! Io sono Rafka, parliamo dopo.', after: 'benvenuto' },
+      markers: 'ELDER', startAfter: 'nicola_ciao', startTimeout: 90, walkSpeed: 1.1, hearing: 7,
+      greet: { distance: 4.5, clip: 'Wave', say: 'Ohi! Benvenuto! Io sono Rafka, vieni a presentarti.', after: 'nicola_ciao' },
       steps: [
         { wait: [8, 12] },
         { goto: 'Bar2', via: [] },
@@ -475,7 +478,7 @@ export const CONFIG = {
     },
     cronico: {
       markers: 'CRONICO',
-      startAfter: 'benvenuto',             // parte a fine del dialogo d'accoglienza (o dopo startTimeout secondi)
+      startAfter: 'nicola_ciao',           // parte quando Nicola ha cominciato a spiegare la serata (o dopo startTimeout secondi)
       startTimeout: 60,
       walkSpeed: 1.15,
       hearing: 7,                          // le sue battute si sentono entro questa distanza
@@ -502,37 +505,45 @@ export const CONFIG = {
   },
 
   // Dialoghi a scelta (vedi src/dialogue.js). Chiave = npc_name del personaggio nel glb.
-  // all'inizio il giocatore è di fronte a Cronico, che gli parla da solo (poi comincia la sua routine)
-  intro: { npc: 'Cronico', delay: 0.8 },
   dialogues: {
-    Cronico: {
-      start: [{ if: '!seen:benvenuto', node: 'benvenuto' }, { if: 'match&!cigarettes', node: 'sigaretta' }, { if: 'games', node: 'sfida' }, 'ancora'],
+    // Nicola, il barista: all'inizio della serata spiega il posto, la gente, i giochi e le regole
+    Nicola: {
+      start: ['nicola_ciao'],
       nodes: {
-        benvenuto: { text: 'Ohi, benvenuto al circolo! Io sono Cronico. Qui dentro prima o poi ci passa tutto il paese. È la prima volta che vieni?',
-          options: [{ text: 'Sì, è la prima volta. Come funziona qui?', next: 'guida' }, { text: 'Mi hanno parlato bene di questo posto.', next: 'giro2' },
-            { text: 'Sono solo di passaggio.', next: 'passaggio' }] },
-        // guida minima ai comandi, detta da lui
-        guida: { text: 'Semplice: ti muovi con W A S D, Shift per andare più svelto, e ti guardi intorno col mouse. Quando puoi usare qualcosa compare la scritta: premi E o clicca. Con la gente si parla allo stesso modo, e rispondi coi numeri. Esc per fermarti un attimo.',
-          options: [{ text: 'E cosa si fa, stasera?', next: 'serata' }, { text: 'Chiaro, grazie.', action: 'end' }] },
-        giro: { text: 'Allora ti faccio fare il giro. Al bancone c\'è Nicola: il rosso è buono, il caffè dipende dalla giornata.',
-          options: [{ text: 'E quei signori al tavolo?', next: 'vecchi' }, { text: 'Cosa si fa qui la sera?', next: 'serata' }] },
-        giro2: { text: 'Ah sì? Scommetto che è stato Tonino, lo racconta a tutti. Vieni, ti presento il circolo.',
-          options: [{ text: 'Come funziona qui?', next: 'guida' }, { text: 'Chi c\'è stasera?', next: 'vecchi' }] },
-        passaggio: { text: 'Di passaggio... dicono tutti così, poi restano fino alla chiusura. Almeno siediti a vedere la partita.',
-          options: [{ text: 'Va bene: come funziona?', next: 'guida' }, { text: 'Ci penso.', action: 'end' }] },
-        vecchi: { text: 'Sono Peppino, Tonino, Gavino ed Efisio: giocano a scopa da quarant\'anni e litigano da quarantuno. Peppino dice di non perdere mai. Dice.',
-          options: [{ text: 'E che giochi ci sono?', next: 'giochi' }, { text: 'Come si comincia la serata?', next: 'serata' }] },
-        serata: { text: 'Qui funziona così: prima ti siedi a guardare la partita, poi vieni da me che ti offro una sigaretta, poi al bancone ordini qualcosa da Nicola. Dopo si gioca: occhio ai soldi, che tra gettoni e cocktail finiscono in fretta.',
-          options: [{ text: 'E quali giochi ci sono?', next: 'giochi' }, { text: 'Chi sono quelli al tavolo?', next: 'vecchi' }, { text: 'Perfetto, grazie.', action: 'end' }] },
-        giochi: { text: 'Freccette, biliardo, biliardino, scopa e le slot, che però non pagano mai. Quando sei pronto ti sfido io: a freccette sono il migliore del circolo. Più o meno.',
-          options: [{ text: 'Raccontami del circolo.', next: 'storia' }, { text: 'Allora a dopo.', action: 'end' }] },
-        storia: { text: 'Il circolo l\'ha aperto mio nonno nel sessantotto. Il biliardo è quello originale; il maxischermo no, quello l\'abbiamo preso per i mondiali.',
-          options: [{ text: 'Bella storia. A dopo.', action: 'end' }, { text: 'Come si comincia la serata?', next: 'serata' }] },
-        ancora: { text: ['Tutto a posto? Ricorda: partita, sigaretta, bicchiere. Poi si gioca.', 'Se ti serve qualcosa chiedi a Nicola, al bancone.',
-          'Non farti battere a scopa da Peppino, che poi se ne vanta per un mese.'],
-          options: [{ if: 'match&!cigarettes', text: 'Mi offri una sigaretta?', next: 'sigaretta' }, { text: 'Ricordami i comandi.', next: 'guida' }, { text: 'Cosa devo fare?', next: 'serata' }, { text: 'Chi sono quelli al tavolo?', next: 'vecchi' }, { text: 'A dopo.', action: 'end' }] },
-        sigaretta: { text: ['Hai visto un po\' di partita? Bravo. Tieni, una sigaretta: te l\'accendo io.', 'Una sigaretta? Offro io, qui si fa così.'],
-          options: [{ text: 'Grazie, volentieri.', action: 'give:cigarette' }, { text: 'No, grazie.', action: 'end' }] },
+        nicola_ciao: { text: 'Ohi, benvenuto al Circolo Vizioso! Io sono Nicola. Qui la gente viene a staccare la testa: si beve, si gioca, si ride. E poi si torna. Si torna sempre. Ti spiego come funziona?',
+          options: [{ text: 'Come funziona la serata?', next: 'nicola_serata' }, { text: 'Chi c\'è stasera?', next: 'nicola_gente' },
+            { text: 'Come si gioca? (comandi)', next: 'nicola_comandi' }] },
+        nicola_serata: { text: 'Stasera ci sono cinque brani e cinque giochi. Ogni gioco dura quanto il suo brano: parte la musica, si gioca; finisce, si passa al prossimo. Ogni gioco dà punti, e a fine serata i punti diventano soldi da spendere qui. Tanto tornano sempre qui.',
+          options: [{ text: 'Che giochi?', next: 'nicola_giochi' }, { text: 'Chi c\'è stasera?', next: 'nicola_gente' }] },
+        nicola_giochi: { text: 'Uno, Cinema: un quiz sul maxischermo al posto della partita. Due, Fumo: ti fumi una sigaretta e ordini da mangiare per il tavolo, al telefono. Tre, la scatola nera: sai come comincia e come finisce, devi capire cosa succede in mezzo. Quattro, Come ti va: più giochi possibile, da solo, contro il tempo. Cinque: mezzo pieno o mezzo vuoto?',
+          options: [{ text: 'E le regole?', next: 'nicola_regole' }, { text: 'E dopo?', next: 'nicola_dopo' }] },
+        nicola_regole: { text: 'Poche: più sei veloce e preciso, più punti fai; se sbagli non perdi niente, solo tempo. Ogni gioco ha i suoi pulsanti sullo schermo, e c\'è sempre qualcuno che ti accompagna. Esc per fermarti un attimo.',
+          options: [{ text: 'E dopo?', next: 'nicola_dopo' }, { text: 'Chi c\'è stasera?', next: 'nicola_gente' }] },
+        nicola_dopo: { text: 'Dopo sei libero: freccette, biliardo, biliardino, scopa, slot, e sfidi chi vuoi. Qui dentro la serata finisce sempre come è cominciata. Ma è bello così.',
+          options: [{ text: 'Chi c\'è stasera?', next: 'nicola_gente' }, { text: 'Ho capito. Vado a presentarmi.', goal: 'nicola', action: 'end' }] },
+        nicola_gente: { text: 'Cronico è il padrone di casa, quello col cappellino. Rafka è di casa pure lui: a Bologna ci ha lasciato il cuore. Kappa fotografa, Zucco riprende tutto, Lyuce ti guarda le scarpe. Al tavolo i vecchi: Peppino, Tonino, Gavino ed Efisio. Presentati a tutti: poi Cronico ti viene a prendere.',
+          options: [{ text: 'Come funziona la serata?', next: 'nicola_serata' }, { text: 'Vado a presentarmi.', goal: 'nicola', action: 'end' }] },
+        nicola_comandi: { text: 'Ti muovi con W A S D, Shift per andare più svelto, e ti guardi intorno col mouse. Quando puoi usare qualcosa compare la scritta: premi E o clicca. Con la gente si parla allo stesso modo, e rispondi coi numeri. Esc per fermarti un attimo.',
+          options: [{ text: 'Come funziona la serata?', next: 'nicola_serata' }, { text: 'Chiaro. Vado a presentarmi.', goal: 'nicola', action: 'end' }] },
+      },
+    },
+    Cronico: {
+      start: [{ if: 'spettacolo', node: 'sfida' }, { if: '!seen:benvenuto', node: 'benvenuto' }, 'ancora'],
+      nodes: {
+        benvenuto: { text: 'Ohi! Io sono Cronico, il padrone di casa. Nicola ti ha spiegato tutto? Bene. Fatti un giro, presentati agli altri: tra poco ti vengo a prendere io per la prima attività della serata.',
+          options: [{ text: 'Che attività?', next: 'attivita' }, { text: 'Chi devo conoscere?', next: 'vecchi' }, { text: 'A dopo.', action: 'end' }] },
+        attivita: { text: 'Sorpresa. Ti dico solo che c\'entra il maxischermo, e che stasera la partita la spegniamo. Tu intanto conosci tutti: Rafka, Kappa, Zucco e Lyuce.',
+          options: [{ text: 'Vado.', action: 'end' }] },
+        vecchi: { text: 'Rafka, Kappa, Zucco e Lyuce: girano per il circolo, li trovi subito. I vecchi al tavolo invece giocano a scopa da quarant\'anni e litigano da quarantuno: quelli lasciali stare, per ora.',
+          options: [{ text: 'Raccontami del circolo.', next: 'storia' }, { text: 'A dopo.', action: 'end' }] },
+        storia: { text: 'Il circolo l\'ha aperto mio nonno nel sessantotto. Il biliardo è quello originale; il maxischermo no, quello l\'abbiamo preso per i mondiali. Da allora qui è sempre la stessa sera. Ed è una bella sera.',
+          options: [{ text: 'A dopo.', action: 'end' }] },
+        // Brano 1: Cronico ti porta davanti al maxischermo
+        cinema_invito: { text: 'Eccoti! Allora, stasera niente partita: si fa cinema. Siediti davanti al maxischermo: domande facili, film d\'amore e qualcosa di più... caldo. Rispondi veloce, che i punti si sommano fino a fine serata.',
+          options: [{ text: 'Andiamo!', action: 'serata:go' }] },
+        ancora: { text: ['Tutto a posto? Goditi la serata.', 'Se ti serve qualcosa chiedi a Nicola, al bancone.',
+          'Non farti battere a scopa da Peppino, che poi se ne vanta per un mese.', 'Presentati a tutti, poi ti vengo a prendere io.'],
+          options: [{ text: 'Chi devo conoscere?', next: 'vecchi' }, { text: 'Raccontami del circolo.', next: 'storia' }, { text: 'A dopo.', action: 'end' }] },
         sfida: { text: ['Allora, ti senti pronto? Una partita a freccette, 301: chi arriva a zero vince.', 'Rivincita? Stavolta niente sconti.',
           'Ho la mano calda stasera. Una sfida?'],
           options: [{ text: 'Accetto: freccette!', action: 'challenge:darts' }, { text: 'Meglio il biliardo.', action: 'challenge:pool' },
@@ -540,10 +551,17 @@ export const CONFIG = {
       },
     },
     Rafka: {
-      start: [{ if: '!seen:rafka_ciao', node: 'rafka_ciao' }, { if: 'games', node: 'rafka_sfida' }, 'rafka_ancora'],
+      start: [{ if: '!seen:rafka_ciao', node: 'rafka_ciao' }, { if: 'spettacolo', node: 'rafka_sfida' }, 'rafka_ancora'],
       nodes: {
-        rafka_ciao: { text: 'Ohi! Tu devi essere quello nuovo. Io sono Rafka: qui dentro ci passo più tempo che a casa. Cronico ti ha già fatto il giro?',
-          options: [{ text: 'Sì, mi ha spiegato tutto.', next: 'rafka_bene' }, { text: 'Più o meno.', next: 'rafka_consigli' }] },
+        rafka_ciao: { text: 'Ohi! Tu devi essere quello nuovo. Io sono Rafka: qui dentro ci passo più tempo che a casa.',
+          options: [{ text: 'Ci vediamo dopo, allora.', next: 'rafka_bene' }, { text: 'Consigli?', next: 'rafka_consigli' }] },
+        // Brano 2: Bologna, le sigarette di Cronico, e da mangiare
+        fumo_invito: { text: 'Posso dire? Bologna è la città più bella del mondo. I portici, le torri, le tagliatelle alle tre di notte, la gente che ti parla come se ti conoscesse da sempre. Cronico ci è legatissimo, sai? Ci ha passato anni.',
+          options: [{ text: 'Davvero? Cronico a Bologna?', next: 'fumo_invito2' }] },
+        fumo_invito2: { text: 'Si ricorda ancora le sigarette fumate sotto i portici con gli amici, fino all\'alba. Truccate o meno, non si sa: lui dice di no. Posso dire? Io dico di sì.',
+          options: [{ text: 'E adesso?', next: 'fumo_invito3' }] },
+        fumo_invito3: { text: 'Adesso vieni al tavolino in fondo: ci sono le sigarette, prendine una. Poi ti siedi, ti rilassi e ordiniamo da mangiare per tutti. Ho una fame...',
+          options: [{ text: 'Andiamo.', action: 'serata:go' }] },
         rafka_bene: { text: 'Allora sei in buone mani. Io intanto mi prendo una birretta: Nicola la spina la tratta come un gioiello.',
           options: [{ text: 'Che consigli mi dai?', next: 'rafka_consigli' }, { text: 'A dopo.', action: 'end' }] },
         rafka_consigli: { text: 'Tre regole: al biliardino non si rulla, a scopa non si parla mentre Peppino conta, e i soldi tienili d\'occhio: tra slot e cocktail la serata finisce in fretta.',
@@ -552,7 +570,7 @@ export const CONFIG = {
           options: [{ text: 'Dopo, promesso.', action: 'end' }] },
         rafka_ancora: { text: ['Tutto bene? Hai ancora qualcosa in tasca?', 'Hai assaggiato il mirto di Nicola? Pericoloso.',
           'Kappa mi ha fatto dieci foto mentre bevevo. Dieci. Mi sa che finisco su una mostra.'],
-          options: [{ if: 'games', text: 'Una partita a biliardino?', next: 'rafka_sfida' }, { text: 'Consigli?', next: 'rafka_consigli' },
+          options: [{ if: 'spettacolo', text: 'Una partita a biliardino?', next: 'rafka_sfida' }, { text: 'Consigli?', next: 'rafka_consigli' },
             { text: 'A dopo.', action: 'end' }] },
         rafka_sfida: { text: ['Biliardino? Ci sto. Il gettone è un euro, a te l\'onore.', 'Rivincita? Stavolta non ti lascio neanche un gol.'],
           options: [{ text: 'Andiamo!', action: 'challenge:foosball' }, { text: 'Meglio le freccette.', action: 'challenge:darts' },
@@ -573,6 +591,9 @@ export const CONFIG = {
         kappa_foto: { text: 'Ecco: Peppino che conta le carte, Cronico in controluce, il mirto nel bicchiere. AAAAAAH, questa è bellissima. Se passi davanti all\'obiettivo ti metto nel servizio.',
           options: [{ text: 'Volentieri.', action: 'end' }, { text: 'Meglio di no.', next: 'kappa_no' }] },
         kappa_no: { text: 'Troppo tardi, sei già in tre scatti. AAAAAAH, stai benissimo.' },
+        // Brano 4: Kappa ti tira su e ti porta in mezzo alla sala
+        ctv_invito: { text: 'AAAAAAH, eccoti! Come ti va? Ti vedo moscio, sai: troppe domande, troppe scatole nere. Adesso basta pensare. Vieni in mezzo alla sala: tre minuti e mezzo per fare più giochi possibile. Da solo, contro il tempo. AAAAAAH!',
+          options: [{ text: 'Andiamo!', action: 'serata:go' }] },
         kappa_ancora: { text: ['AAAAAAH, sei tornato! Mettiti vicino al biliardo, che c\'è una luce...', 'Al Ciabi c\'è il pienone, mi scrivono tutti. Io resto qui: qui è più vero.',
           'Zucco mi ha ripresa mentre scattavo. Adesso sono nel suo documentario. AAAAAAH.'],
           options: [{ text: 'Com\'è il Ciabi?', next: 'kappa_ciabi' }, { text: 'Fammi vedere le foto.', next: 'kappa_foto' }, { text: 'A dopo.', action: 'end' }] },
@@ -587,6 +608,9 @@ export const CONFIG = {
           options: [{ text: 'Si Godox?', next: 'zucco_godox' }, { text: 'Bello. A dopo.', action: 'end' }] },
         zucco_godox: { text: 'Godox, le luci! Io giro solo con le Godox. E qui si gode così tanto che si Godox. Si gode, si Godox: capito?',
           options: [{ text: 'Ho capito. Purtroppo.', next: 'zucco_riprese' }, { text: 'A dopo.', action: 'end' }] },
+        // Brano 5: al bancone, tre bicchieri
+        bic_invito: { text: 'Fratello, ultimo brano. Si gode. Vieni al bancone: Nicola ha tre bicchieri e una domanda sola. Mezzo pieno o mezzo vuoto? Dipende da come lo guardi. E da quanto sei veloce.',
+          options: [{ text: 'Andiamo.', action: 'serata:go' }] },
         zucco_riprese: { text: 'Se vuoi ti riprendo mentre giochi a biliardino: slow motion sul gol, musica epica, dissolvenza sul mirto. Si gode.',
           options: [{ text: 'Magari dopo.', action: 'end' }] },
         zucco_ancora: { text: ['Hai visto la luce sul tavolo da biliardo? Si Godox.', 'Ho girato Peppino che mischia le carte: tre minuti di arte pura. Si gode.',
@@ -605,6 +629,11 @@ export const CONFIG = {
           options: [{ text: 'Grazie... credo.', next: 'lyuce_regola' }, { text: 'A me piace come sono.', next: 'lyuce_ok' }] },
         lyuce_ok: { text: 'Ed è giusto così: lo stile parte da lì. Io ti do solo gli attrezzi. Le scarpe però puliscile.' },
         lyuce_regola: { text: 'Figurati. Regola d\'oro: massimo tre colori addosso. Qui dentro la rispetta solo Peppino, e secondo me per caso.' },
+        // Brano 3: la scatola nera
+        bb_invito: { text: 'Ottimo: abbiamo mangiato, ci siamo divertiti. Ma ogni tanto è importante anche porsi delle domande più profonde, anche se il Circolo Vizioso non vuole. Hai mai pensato a come prendi le tue decisioni?',
+          options: [{ text: 'Sinceramente no.', next: 'bb_invito2' }, { text: 'Ogni tanto.', next: 'bb_invito2' }] },
+        bb_invito2: { text: 'Sul tavolino dove c\'erano le sigarette è comparsa una scatola nera. Di ogni cosa sai come comincia e come finisce: il difficile è capire cosa succede in mezzo. Vieni.',
+          options: [{ text: 'Andiamo.', action: 'serata:go' }] },
         lyuce_elegante: { text: 'Nicola, senza dubbio: divisa pulita, colori giusti. Il resto del circolo lo sto sistemando, un bottone alla volta.' },
         lyuce_ancora: { text: ['Hai visto Zucco? Prima o poi lo convinco a lasciare i kaki.', 'Kappa è l\'unica che si veste per lavorare. Rispetto.',
           'Cronico con quel cappellino... ci sto ancora pensando.'],
@@ -884,6 +913,8 @@ export const CONFIG = {
     },
   },
 
+  serata: SERATA,
+
   smoke: {
     count: 22,
     life: 3.6,                              // secondi di vita di ogni sbuffo
@@ -927,8 +958,8 @@ export const CONFIG = {
 
   ui: {
     title: 'Circolo Vizioso',
-    credits: 'Modelli 3D di terzi: "LED TV" di ragstorich (CC-BY 3.0), "Cigarette with Smoke" (Blend Swap #80373, CC-BY 3.0), "Drink Bar assets v.5" di b2przemo (CC-BY 3.0). Bersaglio, freccette, carte e parti mobili dei minigiochi realizzati per il progetto. Personaggi creati con Meshy AI; mani da Human Base Meshes di Blender Studio (CC0). Texture legno da Poly Haven (CC0).',
-    subtitle: 'Una sera di campionato. Entra, fai un giro, siediti a guardare la partita.',
+    credits: 'Modelli 3D di terzi: "LED TV" di ragstorich (CC-BY 3.0), "Cigarette with Smoke" (Blend Swap #80373, CC-BY 3.0), "Drink Bar assets v.5" di b2przemo (CC-BY 3.0). Bersaglio, freccette, carte e parti mobili dei minigiochi realizzati per il progetto. Personaggi creati con Meshy AI; mani da Human Base Meshes di Blender Studio (CC0). Texture legno da Poly Haven (CC0). Hamburger e bibita da "Low Poly Beach Assets" di JosephBennett (Blend Swap #73900, CC0); telefono: modello iPhone 5s / SE.',
+    subtitle: 'Una sera al circolo: si beve, si gioca, si ride. E poi si ricomincia.',
     enterLabel: 'Entra nel circolo',
     touchMessage: 'Questo gioco si usa con tastiera e mouse. Apri questo link da un computer per entrare nel circolo.',
     drinkHint: 'Bevi',

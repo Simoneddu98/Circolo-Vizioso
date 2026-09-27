@@ -7,7 +7,7 @@ export class UI {
     this.cfg = config;
     this.el = {
       start: $('start'), progress: $('load-fill'), loadLabel: $('load-label'), enter: $('enter'),
-      touch: $('touch-msg'), controls: $('controls'), hud: $('hud'), prompt: $('prompt'), promptText: $('prompt-text'),
+      enterFree: $('enter-free'), touch: $('touch-msg'), controls: $('controls'), hud: $('hud'), prompt: $('prompt'), promptText: $('prompt-text'),
       goals: $('goals'), inventory: $('inventory'), invList: $('inv-list'), subtitle: $('subtitle'),
       subName: $('sub-name'), subText: $('sub-text'), toast: $('toast'), held: $('held-hint'),
       pause: $('pause'), resume: $('resume'), restart: $('restart'), sens: $('sens'), sensVal: $('sens-val'),
@@ -16,7 +16,13 @@ export class UI {
     document.title = config.ui.title;               // il titolo a schermo è il logo in index.html
     $('subtitle-intro').textContent = config.ui.subtitle;
     $('credits').textContent = config.ui.credits;
-    this.el.enter.textContent = config.ui.enterLabel;
+    // due modi di entrare: la serata (storia a brani) o il circolo libero, tutto sbloccato
+    const S = config.serata?.ui;
+    if (S && this.el.enterFree) {
+      $('mode-q').textContent = S.scegli;
+      this.el.enter.innerHTML = `${S.storia}<small>${S.storiaSub}</small>`;
+      this.el.enterFree.innerHTML = `${S.libero}<small>${S.liberoSub}</small>`;
+    } else this.el.enter.textContent = config.ui.enterLabel;
     this.el.touch.textContent = config.ui.touchMessage;
     this.el.lockHint.textContent = config.ui.pointerLockHint;
     this.items = [];
@@ -68,6 +74,7 @@ export class UI {
   ready() {
     this.setProgress(1);
     this.el.enter.disabled = false;
+    if (this.el.enterFree) this.el.enterFree.disabled = false;
   }
 
   loadError(msg) {
@@ -123,12 +130,22 @@ export class UI {
     const ul = this.el.goals.querySelector('ul');
     const p = this.progress;
     if (!p) { ul.replaceChildren(); return; }
+    if (p.free) {                                 // gioco libero: una riga sola, niente lista di cose da fare
+      const li = document.createElement('li');
+      li.className = 'current';
+      li.textContent = this.cfg.serata?.ui.liberoGoal ?? '';
+      ul.replaceChildren(li);
+      return;
+    }
     const cur = p.current;
-    ul.replaceChildren(...p.steps.slice(0, cur + 1).map((g, i) => {
+    // della storia si vedono gli ultimi passi fatti e quello corrente (la lista completa sarebbe troppo lunga)
+    const from = Math.max(0, cur - 2);
+    ul.replaceChildren(...p.steps.slice(from, cur + 1).map((g, j) => {
+      const i = from + j;
       const li = document.createElement('li');
       li.className = i < cur ? 'done' : 'current';
       li.innerHTML = '<span class="box"></span>';
-      li.append(g.text);
+      li.append(p.text(g));
       return li;
     }));
   }

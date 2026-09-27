@@ -280,6 +280,7 @@ export class NpcRoutine {
       this.talking = true;
       return;
     }
+    if (npc.userData.directed) return;                         // la serata lo sta guidando (invito, spettacolo)
     if (this.talking) {                                          // fine dialogo: riprende da dove era
       this.talking = false;
       if (this.path?.length && this.walkClip) ctx.npcs.setLoop(npc, this.walkClip, this.walkScale, 0.3);

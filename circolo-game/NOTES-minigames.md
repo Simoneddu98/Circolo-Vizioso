@@ -178,3 +178,22 @@ dopo una modifica ai moduli forzare il ricaricamento (`fetch(file, {cache: 'relo
   - schermo intero e orizzontale all'ingresso (dove il browser lo permette);
   - in verticale compare l'invito a girare il telefono;
   - su schermi bassi (sotto 520 px) dialoghi, bancone, pannelli e schermata iniziale sono compatti.
+
+## La serata a brani (modalità storia) e il gioco libero (27 settembre 2026)
+
+Punto di ripristino prima di questo lavoro: tag git `prima-della-serata` (commit 57f0428).
+
+- **Schermata iniziale:** due pulsanti. *La serata* = la storia a brani; *Gioco libero* = tutto sbloccato come a serata finita (nessun obiettivo, niente salvataggi della progressione, routine di tutti partite subito).
+- **Codice:** `src/serata/` — `contenuti.js` (tutti i testi, i tempi, le domande, i menu, le scatole nere: si regola lì), `director.js` (regia), un file per gioco (`cinema.js`, `cibo.js`, `blackbox.js`, `cometiva.js`, `bicchiere.js`), `spettacolo.js` (finale), `cibo3d.js` (cibo sul tavolino), `overlay.js` (interfaccia comune e musica), `regole.js` (logica pura, provata da `tests/serata.test.mjs`).
+- **Passi** (`SERATA.passi`, salvati in `circolo.progress.serata.v1`): Nicola spiega posto, gente, giochi e regole → ci si presenta a Cronico, Rafka, Kappa, Zucco, Lyuce (contatore nell'obiettivo) → Cronico ti viene a prendere → 5 brani → ritorno al tavolino → spettacolo → libero.
+- **Inviti:** il personaggio raggiunge il giocatore camminando (`userData.directed`: la sua routine si ferma), parla (nodo `*_invito`), con "Andiamo" dissolvenza e si va al posto del gioco (`SERATA.posti`). Se chiudi il dialogo senza partire te lo ripropone; se ti allontani ti segue.
+- **Durante un gioco:** giocatore fermo, cursore libero, pulsanti a schermo e tasti numerici; clic sulla scena = un tiro di sigaretta; Esc = pausa (anche la musica). Obiettivi nascosti e sottotitoli in alto a sinistra (`body.srt-on`).
+- **Brani:** durata in `SERATA.brani.<id>.durata`; con `audio` (mp3 in `assets/musica/`) la durata è quella del file e il brano suona in sottofondo.
+  1. *Cinema*: quiz sul maxischermo (canvas 1024×576 al posto della partita, `tv.setOverride`), 12 s a domanda, punti + velocità + serie.
+  2. *Fumo*: Rafka (Bologna, le sigarette di Cronico; da qui in poi "Posso dire?" nel 40% delle sue frasi). Si prende la sigaretta dal pacchetto sul tavolino (`CONFIG.smoking.fromCronico = false`), ci si siede, si ordina per il tavolo: volantino → composizione → telefonata al numero del volantino (prefisso 051) → orario. Punti: richiesta rispettata, numero giusto al primo colpo, velocità, orario, consegna prima della fine del brano. Il cibo arriva sul tavolino (`cibo3d.js`: hamburger e bibita da `assets/cibo.glb`, pizza e kebab costruiti con gli ingredienti scelti; c'è anche il telefono).
+  3. *Black Box*: Lyuce; una scatola nera compare sul tavolino, si prende con E. Inizio e fine noti: scegliere cosa è successo in mezzo, o mettere in ordine i passaggi.
+  4. *Come ti va*: Kappa; in mezzo alla sala, otto microgiochi a rotazione sempre più veloci per 3:30.
+  5. *Mezzo pieno*: Zucco, al bancone; tre bicchieri (pieno, mezzo pieno, mezzo vuoto) mescolati sempre più veloci, 2 minuti.
+- **Finale:** torni al tavolino, prendi una sigaretta, "Siediti e goditi lo spettacolo": tutti (tranne Nicola) si mettono in fila e girano attorno al biliardo (`SERATA.spettacolo.anello`), prima camminando poi correndo; poi il logo "Benvenuti al Circolo Vizioso" e la scheda della serata.
+- **Punti:** a fine serata diventano euro (1 € ogni 250 punti, massimo 40) da spendere nel circolo, più titolo (`titoloDellaSerata` in `contenuti.js`), record e testo da condividere con la riga dell'EP (`SERATA.ep`).
+- **Asset:** `asset-props/cibo/` contiene gli script Blender che hanno prodotto `cibo.glb` dal cheeseburger (Blend Swap #73900, CC0) e dall'iPhone 5s; compressione con `gltf-transform merge` + `meshopt`.

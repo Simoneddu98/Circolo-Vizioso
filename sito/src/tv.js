@@ -39,10 +39,35 @@ export async function setupScreen(root, config) {
   for (const m of meshes) if (m.userData.baseMaterial) refreshHighlight(m, config.interaction);
 
   let acc = 0;
+  let override = null;                      // { tex, draw } : il quiz del cinema al posto della partita
+  const setMaps = (t) => {
+    for (const mat of mats) { mat.map = t; mat.emissiveMap = t; mat.needsUpdate = true; }
+    for (const m of meshes) if (m.userData.baseMaterial) refreshHighlight(m, config.interaction);
+  };
   source = `${source} su ${mats.size} schermi`;
   return {
     source,
+    // canvas disegnato da altri (null = torna la partita); draw(dt) viene chiamato a ogni aggiornamento dello schermo
+    setOverride(canvas, draw = null) {
+      override?.tex.dispose();
+      override = null;
+      if (canvas) {
+        const t = new THREE.CanvasTexture(canvas);
+        t.colorSpace = THREE.SRGBColorSpace;
+        t.flipY = false;
+        override = { tex: t, draw };
+        setMaps(t);
+      } else setMaps(tex);
+    },
     update(dt) {
+      if (override) {
+        acc += dt;
+        if (acc < 1 / config.tv.fps) return;
+        override.draw?.(acc);
+        acc = 0;
+        override.tex.needsUpdate = true;
+        return;
+      }
       if (!match) return;
       acc += dt;
       if (acc < 1 / config.tv.fps) return;
@@ -165,6 +190,17 @@ class CanvasMatch {
 
 // ------------------------------------------------------------------ handler "look": sedersi davanti allo schermo
 
+// seduti sulla sedia, occhi verso il centro dello schermo (anche la serata ci mette il giocatore per il quiz)
+export function seatInFront(ctx, chair, screen) {
+  const seatPos = chair.getWorldPosition(new THREE.Vector3());
+  const target = new THREE.Box3().setFromObject(screen).getCenter(new THREE.Vector3());
+  const eye = seatPos.clone();
+  eye.y = ctx.config.player.seatedEyeHeight;
+  const away = new THREE.Vector3(eye.x - target.x, 0, eye.z - target.z).normalize();
+  eye.addScaledVector(away, ctx.config.seat.backOffset);
+  ctx.player.sit({ eye, yaw: yawTo(eye, target), pitch: pitchTo(eye, target) });
+}
+
 export function createLookHandler() {
   let screen = null;
   const chairs = [];
@@ -198,14 +234,8 @@ export function createLookHandler() {
         if (d < bestD) { bestD = d; best = c; }
       }
       if (!best) return;
-      const seatPos = best.getWorldPosition(new THREE.Vector3());
-      const target = new THREE.Box3().setFromObject(screen).getCenter(new THREE.Vector3());
-      const eye = seatPos.clone();
-      eye.y = ctx.config.player.seatedEyeHeight;
-      const away = new THREE.Vector3(eye.x - target.x, 0, eye.z - target.z).normalize();
-      eye.addScaledVector(away, ctx.config.seat.backOffset);
       occupied = best;
-      ctx.player.sit({ eye, yaw: yawTo(eye, target), pitch: pitchTo(eye, target) });
+      seatInFront(ctx, best, screen);
       ctx.ui.completeGoal('match');
       ctx.ui.toast(ctx.config.ui.seatedHint);
       ctx.interactions.setModal({ label: ctx.config.interaction.labels.stand, action: () => standUp(ctx) });

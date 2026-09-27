@@ -124,6 +124,7 @@ export class NPCManager {
 
   say(npc, text) {
     this.lastTime = this.clock;
+    text = this.decorate?.(npc, text) ?? text;
     this.ui.subtitle(npc.userData.displayName, text, this.cfg.subtitleDuration);
   }
 

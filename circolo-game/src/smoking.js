@@ -122,12 +122,14 @@ export function createSmokeHandler() {
   }
 
   return {
+    get holding() { return s.state !== 'idle'; },
     // Cronico ti dà una sigaretta e te la accende
     give(ctx) {
       if (s.state !== 'idle' || ctx.hands.active) { ctx.ui.toast(ctx.config.minigames.handsBusy); return; }
       light(ctx, ctx.config.items.cigarettes.given);
     },
     setup(t, ctx) {
+      if (t.object.name !== 'Cigarette_Pack') return;          // la serata aggiunge altri oggetti con altri handler
       s.pack = t.object;
       s.left = s.pack.userData.cigarettes_left ?? 5;
       s.fx ??= new Puffs(ctx.scene, 90);

@@ -27,6 +27,7 @@ import { Wallet } from './wallet.js';
 import { BarOrder } from './bar.js';
 import { CameraWork } from './camerawork.js';
 import { isTouchDevice, TouchControls } from './touch.js';
+import { Serata } from './serata/director.js';
 
 const DEBUG = new URLSearchParams(location.search).get('debug') === '1';
 const ui = new UI(CONFIG);
@@ -72,10 +73,11 @@ let dragMode = false;                                // ripiego se il browser ri
 let spawn = null;
 let interactions, npcs, tv, smoke;
 
-let minigames = null, foosDemo = null, dialogue = null, routines = [], barOrder = null, barHandlers = null, camerawork = null;
+let minigames = null, foosDemo = null, dialogue = null, routines = [], barOrder = null, barHandlers = null, camerawork = null, serata = null;
 const ctx = {
   config: CONFIG, scene, camera, player, ui, renderer, progress, wallet, occluders: [], requestLock: () => requestLock(),
   releaseLock: () => { if (document.pointerLockElement === canvas) document.exitPointerLock(); },
+  pause: () => pause(),
   active: () => state === 'playing',
 };
 
@@ -160,6 +162,8 @@ async function load() {
     foosDemo = new FoosballDemo(ctx);                // i due giocatori del circolo al biliardino
     foosDemo.rig.ball.visible = true;
   }
+  serata = optional('serata', () => new Serata(ctx, tv));    // la serata a brani (modalità storia)
+  ctx.serata = serata;
   smoke = new SmokeSystem(root, CONFIG);
   player.spawn(spawn.pos, spawn.yaw, spawn.eye);
   renderer.shadowMap.needsUpdate = true;
@@ -216,7 +220,7 @@ function setupShadows(root) {
 
 let lockFailures = 0;
 async function requestLock() {
-  if (dragMode || TOUCH) return;                    // sul telefono si guarda trascinando il dito
+  if (dragMode || TOUCH || serata?.cursorFree) return;   // sul telefono si guarda trascinando; nei giochi della serata cursore libero
   try {
     if (!canvas.requestPointerLock) throw new DOMException('assente', 'NotSupportedError');
     await canvas.requestPointerLock();
@@ -237,8 +241,9 @@ async function requestLock() {
   }
 }
 
-function enter() {
+function enter(mode = 'storia') {
   if (state !== 'start') return;
+  gameMode = serata ? mode : 'libero';
   ui.showStart(false);
   ui.showHUD(true);
   state = 'playing';
@@ -251,9 +256,11 @@ function enter() {
     document.documentElement.requestFullscreen?.({ navigationUI: 'hide' })
       .then(() => screen.orientation?.lock?.('landscape')).catch(() => {});
   }
-  if (!startIntro()) requestLock();
+  serata?.begin(gameMode);
+  requestLock();
   wallet.checkBroke();                                   // rientro con le tasche già vuote
 }
+let gameMode = 'storia';
 
 // Soldi finiti: si chiude quello che è aperto e si ricomincia la serata da capo (soldi, obiettivi, accoglienza)
 function broke() {
@@ -266,21 +273,9 @@ function broke() {
     progress.reset();
     dialogue.seen.clear();
     restart();
-    if (!startIntro()) requestLock();
+    serata?.begin(gameMode);
+    requestLock();
   });
-}
-
-// accoglienza: il giocatore guarda Cronico, che dopo un attimo attacca a parlare (il cursore resta libero per il dialogo)
-let intro = null;
-function startIntro() {
-  const c = CONFIG.intro;
-  const host = c && !dialogue?.seen.size && npcs.npcs.find((o) => o.userData.npc_name === c.npc && o.visible);
-  if (!host) return false;
-  const h = host.getWorldPosition(new THREE.Vector3());
-  player.yaw = Math.atan2(-(h.x - player.position.x), -(h.z - player.position.z));
-  player.pitch = -0.04;
-  intro = { host, t: c.delay ?? 0.8 };
-  return true;
 }
 
 function pause() {
@@ -288,26 +283,31 @@ function pause() {
   state = 'paused';
   player.clearInput();
   ui.showPause(true);
+  serata?.onPause(true);
 }
 
 function resume() {
   if (state !== 'paused') return;
   ui.showPause(false);
   state = 'playing';
+  serata?.onPause(false);
   requestLock();
 }
 
 function restart() {
   if (minigames.active) return;
+  serata?.reset();
   interactions.reset();
   npcs.reset();
   ui.resetProgress();
   wallet.reset();
   player.spawn(spawn.pos, spawn.yaw, spawn.eye);
   if (state === 'paused') resume();
+  if (serata?.story) serata.begin('storia');
 }
 
-ui.el.enter.addEventListener('click', enter);
+ui.el.enter.addEventListener('click', () => enter('storia'));
+ui.el.enterFree?.addEventListener('click', () => enter('libero'));
 ui.bindPause({
   onResume: resume, onRestart: restart,
   onSensitivity: (v) => { player.sensitivity = v; },
@@ -319,14 +319,14 @@ document.addEventListener('pointerlockchange', () => {
   const locked = document.pointerLockElement === canvas;
   if (!dragMode) ui.showLockHint(!locked && state === 'playing');
   if (minigames?.active) { if (!locked) minigames.onPointerLockLost(); return; }
-  if (dialogue?.active || barOrder?.active || document.getElementById('broke')) return;   // dialogo, bancone: cursore libero
+  if (dialogue?.active || barOrder?.active || serata?.cursorFree || document.getElementById('broke')) return;   // dialogo, bancone, serata: cursore libero
   if (!locked && state === 'playing' && !dragMode) pause();
 });
 
 document.addEventListener('mousemove', (e) => {
   if (state !== 'playing') return;
   if (minigames?.input('mousemove', e)) return;
-  if (dialogue?.active || barOrder?.active) return;
+  if (dialogue?.active || barOrder?.active || serata?.cursorFree) return;
   if (document.pointerLockElement === canvas) player.look(e.movementX, e.movementY);
   else if (dragMode && (e.buttons & 1)) player.look(e.movementX, e.movementY);
 });
@@ -334,6 +334,7 @@ document.addEventListener('mousemove', (e) => {
 let dragStart = null;
 canvas.addEventListener('mousedown', (e) => {
   if (dialogue?.active || barOrder?.active || document.getElementById('broke')) return;   // si sceglie con i pulsanti
+  if (serata?.cursorFree) { if (state === 'playing' && e.button === 0) interactions.primary(); return; }   // clic sulla scena = un tiro
   if (state === 'playing' && minigames?.active) {
     if (minigames.game?.def.pointerLock !== false && document.pointerLockElement !== canvas && minigames.state === 'playing' && !minigames.paused) { requestLock(); return; }
     minigames.input('mousedown', e); return;
@@ -356,6 +357,7 @@ canvas.addEventListener('mouseup', (e) => {
 window.addEventListener('keydown', (e) => {
   if (state === 'playing' && minigames?.active) { if (minigames.input('keydown', e)) e.preventDefault(); return; }
   if (state === 'playing' && dialogue?.key(e)) { e.preventDefault(); return; }
+  if (state === 'playing' && serata?.key(e)) { e.preventDefault(); return; }
   if (state === 'playing' && barOrder?.key(e)) { e.preventDefault(); return; }
   if (document.getElementById('broke')) return;
   if (state === 'playing') {
@@ -387,14 +389,14 @@ function tick(dt) {
     if (state === 'playing' && minigames.active) {
       minigames.update(dt);
       npcs.update(dt, player.position, false);
-    } else if (state === 'playing' && (dialogue?.active || barOrder?.active)) {
-      npcs.update(dt, player.position, false);        // si parla o si ordina: il giocatore resta fermo
+    } else if (state === 'playing' && (dialogue?.active || barOrder?.active || serata?.freeze)) {
+      npcs.update(dt, player.position, false);        // si parla, si ordina o si gioca un brano: il giocatore resta fermo
+      if (serata?.freeze) player.update(dt);          // (solo la camera: seduto o fermo, niente input)
     } else if (state === 'playing') {
       player.update(dt);
       npcs.update(dt, player.position);
     }
-    if (intro && state === 'playing' && (intro.t -= dt) <= 0) { dialogue.open(intro.host); intro = null; }
-    if (state === 'playing') { foosDemo?.update(dt); for (const r of routines) r.update(dt); barOrder?.update(dt); camerawork?.update(dt); }   // dopo le animazioni: l'IK delle braccia le corregge
+    if (state === 'playing') { foosDemo?.update(dt); for (const r of routines) r.update(dt); barOrder?.update(dt); camerawork?.update(dt); serata?.update(dt); }   // dopo le animazioni: l'IK delle braccia le corregge
     ctx.touch?.update(state);
     ctx.hands.update(state === 'playing' ? dt : 0, camera);
     if (!minigames.active && !dialogue?.active && !barOrder?.active) interactions.update(dt);
@@ -445,7 +447,8 @@ function setupDebug() {
     THREE, camera, player, collisions, ui, stats, renderer, hands: ctx.hands, get npcs() { return npcs; },
     get interactions() { return interactions; },
     state: () => state,
-    enter: () => { dragMode = true; enter(); },
+    enter: (mode = 'storia') => { dragMode = true; enter(mode); },
+    get serata() { return serata; },
     face(x, z, y = null) {
       player.yaw = yawTo(player.position, { x, z });
       if (y !== null) player.pitch = Math.atan2(y - camera.position.y, Math.hypot(x - player.position.x, z - player.position.z));

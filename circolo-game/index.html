@@ -116,7 +116,10 @@
       .ctl { font-size: 13px; gap: 8px; }
       .ctl .key { height: 26px; min-width: 26px; font-size: 12px; padding: 0 6px; }
       .load { margin-bottom: 8px; }
-      #enter { position: sticky; bottom: 8px; padding: 10px 26px; font-size: 18px; }
+      .modes { position: sticky; bottom: 8px; gap: 8px; }
+      #enter, #enter-free { padding: 8px 18px; font-size: 16px; }
+      .modes button small { font-size: 11px; }
+      #mode-q { display: none; }
     }
     [hidden] { display: none !important; }
 
@@ -173,6 +176,12 @@
     .primary:disabled { opacity: .45; cursor: progress; }
     .secondary { padding: 12px 24px; font-size: 18px; color: var(--tobacco-soft); background: transparent; border: 2px solid rgba(217, 170, 69, .6); }
     .secondary:hover { border-color: var(--tobacco); background: rgba(217, 170, 69, .08); }
+    #mode-q { margin: 0 0 10px; font-family: var(--display); font-weight: 600; font-size: 15px; text-transform: uppercase; letter-spacing: .12em; color: var(--neon-yellow); }
+    .modes { display: flex; flex-wrap: wrap; gap: 14px; align-items: stretch; }
+    .modes button small { display: block; margin-top: 4px; font-family: var(--body); font-weight: 400; font-size: 14px; text-transform: none; letter-spacing: 0; opacity: .85; }
+    #start .secondary { color: #f4f2fa; border-color: rgba(255, 225, 0, .6); padding: 16px 28px; font-size: 20px; }
+    #start .secondary:hover:not(:disabled) { background: rgba(255, 225, 0, .08); border-color: var(--neon-yellow); }
+    #start .secondary:disabled { opacity: .45; cursor: progress; }
     #credits { margin: 26px 0 0; max-width: 620px; font-size: 13px; line-height: 1.5; color: var(--ink); opacity: 0.62; }
     #touch-msg { margin: 0 0 24px; padding: 18px 20px; font-size: 19px; line-height: 1.45; background: var(--felt); border-left: 6px solid var(--tobacco); border-radius: 4px; }
 
@@ -246,7 +255,8 @@
       </div>
       <div class="load"><div class="track"><div id="load-fill"></div></div><span id="load-label">Caricamento del circolo… 0%</span></div>
       <p id="load-error" hidden></p>
-      <button id="enter" class="primary" disabled></button>
+      <p id="mode-q"></p>
+      <div class="modes"><button id="enter" class="primary" disabled></button><button id="enter-free" class="secondary" disabled></button></div>
       <p id="touch-msg" hidden></p>
       <p id="credits"></p>
     </div>

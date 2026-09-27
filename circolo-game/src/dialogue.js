@@ -1,6 +1,7 @@
 // Dialoghi a scelta con i personaggi (interactable = "talk" nel glb). I testi sono alberi di nodi in CONFIG.dialogues:
 //   { start: [ { if: 'games', node: 'sfida' }, ..., 'benvenuto' ], nodes: { id: { text, options: [ { text, next | action } ] } } }
-// Azioni: 'end', 'challenge:<minigioco>' (sfida con il personaggio come avversario), 'give:cigarette' (te la accende lui).
+// Azioni: 'end', 'challenge:<minigioco>' (sfida con il personaggio come avversario), 'give:cigarette' (te la accende lui),
+// 'serata:<azione>' (la serata a brani: 'go' = si parte con il brano). Un'opzione con goal completa quel passo.
 // Condizioni ('if'): obiettivo completato ('match', 'games', ...), 'seen:<nodo>' già visto, '!' davanti per negare,
 // più condizioni insieme con '&' ('match&!cigarettes').
 import { pick } from './minigames/util.js';
@@ -48,10 +49,11 @@ export class DialogueSystem {
     return neg ? !ok : ok;
   }
 
-  open(npc) {
+  // node: nodo da cui partire (la serata apre gli inviti); se manca si sceglie da tree.start
+  open(npc, node = null) {
     const tree = this.cfg[npc.userData.npc_name];
-    if (!tree || this.active) return;
-    const start = tree.start.find((s) => typeof s === 'string' || this._check(s.if));
+    if (!tree || this.active) return false;
+    const start = node ?? tree.start.find((s) => typeof s === 'string' || this._check(s.if));
     this.active = { npc, tree };
     this.ctx.player.clearInput();
     this.ctx.interactions.setModal(null);           // toglie anche evidenziazione e indicazione "E —"
@@ -60,6 +62,7 @@ export class DialogueSystem {
     if (npc.userData.talk_clip) this.prevClip = this.ctx.npcs.setLoop(npc, npc.userData.talk_clip);
     this.ctx.releaseLock?.();
     this._show(typeof start === 'string' ? start : start.node);
+    return true;
   }
 
   _show(id) {
@@ -68,7 +71,8 @@ export class DialogueSystem {
     if (!node) { this.close(); return; }
     this.seen.add(id);
     this.active.node = node;
-    const text = Array.isArray(node.text) ? pick(node.text) : node.text;
+    let text = Array.isArray(node.text) ? pick(node.text) : node.text;
+    text = this.ctx.serata?.decorate(npc, text, id) ?? text;
     const opts = (node.options ?? [{ text: this.ctx.config.dialogueUi.bye, action: 'end' }]).filter((o) => this._check(o.if));
     this.active.opts = opts;
     this.el.innerHTML = `<div class="who">${npc.userData.npc_name}</div><div class="txt"></div><ol></ol>`;
@@ -94,6 +98,7 @@ export class DialogueSystem {
     const npc = this.active.npc;
     this.close();
     if (o.action === 'give:cigarette') this.ctx.smoking?.give(this.ctx, npc);
+    if (o.action?.startsWith('serata:')) this.ctx.serata?.action(o.action.slice(7), npc);
     if (o.action?.startsWith('challenge:')) {
       const game = o.action.slice(10);
       this.ctx.minigames.start(game, null, { opponent: npc.userData.npc_name });
@@ -109,6 +114,7 @@ export class DialogueSystem {
     this.el.hidden = true;
     this.ctx.npcs.lastTime = this.ctx.npcs.clock;  // una pausa prima della prossima battuta di sottofondo
     this.ctx.requestLock?.();
+    this.ctx.serata?.onDialogueClosed(npc);
   }
 
   // tasti durante il dialogo: 1-9 scelgono, Esc chiude

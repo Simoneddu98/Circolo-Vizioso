@@ -88,7 +88,9 @@ export class InteractionSystem {
   update(dt) {
     for (const [type, h] of this.handlers) h.update?.(dt, this.ctx, this.targets.filter((t) => t.type === type));
     let label = null;
-    if (this.modal) {
+    if (this.suspended) {
+      this._setHover(null);
+    } else if (this.modal) {
       label = this.modal.label;
     } else if (this.ctx.active()) {
       let t = this._pick();
