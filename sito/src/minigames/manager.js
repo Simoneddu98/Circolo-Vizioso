@@ -88,6 +88,10 @@ export class MinigameManager {
       #mg .score-table td { padding: 3px 14px 3px 0; }
       #mg .score-table th { text-align: left; font: 600 15px var(--display, sans-serif); color: #e6be78; padding: 3px 14px 6px 0; }
       #mg .layer { position: absolute; inset: 0; }
+      #mg .mg-logo { display: block; width: 100%; max-width: 540px; height: auto; margin: -6px auto 4px; }
+      #mg .mg-dedica { margin: 0 0 14px; text-align: center; font: 600 16px var(--display, sans-serif); letter-spacing: .12em; text-transform: uppercase;
+        color: #ffe100; }
+      @media (max-height: 520px), (max-width: 700px) { #mg .mg-logo { max-width: 300px; } #mg .mg-dedica { font-size: 12px; margin-bottom: 8px; } }
       #mg .layer > * { pointer-events: auto; }
     `;
     document.head.appendChild(css);
@@ -113,7 +117,8 @@ export class MinigameManager {
   _rulesHTML(id) {
     const c = this.cfg.games[id];
     const controls = (this.ctx.touch && c.touch?.controls) || c.controls;       // su telefono: i comandi touch
-    return `<h2>${c.title}</h2><p class="sub">${c.intro}</p><ul>${c.rules.map((r) => `<li>${r}</li>`).join('')}</ul>
+    const head = DEFS.get(id)?.introHTML?.(c) ?? `<h2>${c.title}</h2>`;           // un gioco può mettere il suo logo al posto del titolo
+    return `${head}<p class="sub">${c.intro}</p><ul>${c.rules.map((r) => `<li>${r}</li>`).join('')}</ul>
       <table>${controls.map(([k, d]) => `<tr><td>${k}</td><td>${d}</td></tr>`).join('')}</table>`;
   }
 
@@ -308,7 +313,9 @@ export class MinigameManager {
     const mgr = this;
     return {
       THREE, scene: ctx.scene, root: ctx.root, camera: ctx.camera, renderer: ctx.renderer, config: ctx.config, hands: ctx.hands,
-      wallet: ctx.wallet,
+      wallet: ctx.wallet, tv: ctx.tv,
+      stopFilming: (npc) => ctx.camerawork?.stop(npc),
+      setClip: (npc, name) => ctx.npcs.setLoop(npc, name, 1, 0.3),
       cfg: this.game.cfg,
       marker: (name) => ctx.root.getObjectByName(name),
       setCamera: (m) => mgr.setCamera(m),

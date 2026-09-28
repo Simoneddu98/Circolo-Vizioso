@@ -1,4 +1,4 @@
-// Brano 5 · Mezzo pieno: al bancone, tre bicchieri. Nicola ne riempie uno fino a metà (mezzo pieno), Zucco ne beve
+// Brano 5 · Mezzo pieno: al bancone, tre bicchieri. Nicola ne riempie uno fino a metà (mezzo pieno), Zugo ne beve
 // metà di un altro (mezzo vuoto), il terzo resta pieno. Poi si mescolano, sempre più veloci: dov'è il mezzo pieno?
 // E il mezzo vuoto? (Sembrano uguali. Lo sono.)
 import { scambi, applicaScambi, difficolta, lerp, puntiRisposta } from './regole.js';
@@ -51,7 +51,7 @@ export function createBicchiere(api) {
       draw(g);
     });
     qEl.textContent = `Giro ${giro}: guarda bene`;
-    infoEl.textContent = 'Nicola riempie, Zucco beve.';
+    infoEl.textContent = 'Nicola riempie, Zugo beve.';
   }
 
   function click(i) {

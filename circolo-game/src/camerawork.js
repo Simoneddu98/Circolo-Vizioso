@@ -1,4 +1,4 @@
-// Kappa (foto) e Zucco (video) con la reflex in mano (Prop_Camera del glb, una copia a testa).
+// Kappa (foto) e Zugo (video) con la reflex in mano (Prop_Camera del glb, una copia a testa).
 // La posa si fa con l'IK sopra l'animazione, nello spazio del personaggio (avanti +Z, su +Y, destra -X):
 //   - mano destra sull'impugnatura, a destra del corpo macchina, dita in avanti attorno al grip;
 //   - mano sinistra sotto l'obiettivo, dita in avanti, a sostenerlo;

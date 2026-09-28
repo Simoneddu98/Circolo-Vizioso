@@ -1224,7 +1224,7 @@ def _meshy_barista(c):
     REPORT["assets"]["barista"] = {"model": "Meshy Barista (Rigged biped)", "measures": meas}
     return True
 
-# Persone Meshy in piedi (Rafka, Kappa, Zucco): (cartella, file -> clip, clip di partenza per l'attesa, clip per "Talk",
+# Persone Meshy in piedi (Rafka, Kappa, Zugo): (cartella, file -> clip, clip di partenza per l'attesa, clip per "Talk",
 # nome, azione, routine, dove si parte (x, y, verso), proprietà in più)
 PEOPLE = [
     ("rafka_rig", {"Stand_and_Chat": "Talk", "Walking": "Walk", "Wave_One_Hand": "Wave"}, "Talk", None,
@@ -1232,7 +1232,7 @@ PEOPLE = [
     ("kappa_rig", {"Idle_3": "Idle", "Walking": "Walk", "Big_Wave_Hello": "Wave"}, "Idle", None,
      "Kappa", "photographer", "kappa", (2.75, -3.3, (1.45, 0.7)), {"camera_role": "photo", "foos_spectator": True}),
     ("zucco_rig", {"Idle_15": "Idle", "Walking": "Walk", "Talk_with_Hands_Open": "Talk"}, "Idle", None,
-     "Zucco", "videomaker", "zucco", (0.95, 2.5, (-2.45, 1.5)), {"camera_role": "video", "foos_spectator": True}),
+     "Zugo", "videomaker", "zucco", (0.95, 2.5, (-2.45, 1.5)), {"camera_role": "video", "foos_spectator": True}),
     ("lyuce_rig", {"Walking": "Walk", "Red_Carpet_Walk": "_Carpet"}, "Walk", "_Carpet",
      "Lyuce", "stylist", "lyuce", (-3.7, 3.0, (1.0, -0.6)), {}),
 ]
@@ -1269,7 +1269,7 @@ def _meshy_people(c):
         REPORT["assets"][name.lower()] = {"model": folder, "measures": meas}
 
 def build_camera_prop(c):
-    """Reflex (Nikon D7100 + 50 mm, Blend Swap #77959, CC0) per Kappa e Zucco: ridotta, materiali semplici, obiettivo
+    """Reflex (Nikon D7100 + 50 mm, Blend Swap #77959, CC0) per Kappa e Zugo: ridotta, materiali semplici, obiettivo
     verso -Y locale (il fronte, come i personaggi), origine al centro del corpo. Nascosta: il gioco ne fa le copie."""
     src = "/Users/simonesanna/Desktop/circolo-sardegna-assets/asset-props/nikon/NikonD7100.blend"
     if not os.path.exists(src):

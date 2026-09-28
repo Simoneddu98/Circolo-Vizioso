@@ -18,6 +18,7 @@ import './minigames/scopa/view.js';
 import './minigames/pool/view.js';
 import './minigames/foosball/view.js';
 import './minigames/slots/view.js';
+import './minigames/patata/view.js';
 import { setupScreen, createLookHandler } from './tv.js';
 import { NPCManager } from './npc.js';
 import { UI } from './ui.js';
@@ -143,6 +144,7 @@ async function load() {
   root.traverse((o) => { if (o.isMesh && !o.isSkinnedMesh && !o.userData.interactionTarget && !isMarker(o)) ctx.occluders.push(o); });
 
   tv = await setupScreen(root, CONFIG);
+  ctx.tv = tv;
   npcs = new NPCManager(root, gltf.animations, CONFIG, ui);
   ctx.npcs = npcs;
   minigames = new MinigameManager(ctx);
@@ -155,7 +157,7 @@ async function load() {
     .map((o) => new NpcRoutine(ctx, o, CONFIG.routines[o.userData.routine]))) ?? [];
   ctx.routines = routines;
   ctx.collisions = collisions;                               // chi cammina non attraversa i mobili
-  camerawork = optional('reflex', () => new CameraWork(ctx));   // Kappa e Zucco: foto e video con la reflex
+  camerawork = optional('reflex', () => new CameraWork(ctx));   // Kappa e Zugo: foto e video con la reflex
   ctx.touch = TOUCH ? new TouchControls(ctx, { pause }) : null;
   ctx.camerawork = camerawork;
   if (CONFIG.minigames.games.foosball.demoInExploration) {

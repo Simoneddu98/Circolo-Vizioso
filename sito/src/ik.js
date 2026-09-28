@@ -1,5 +1,5 @@
 // IK a due ossa per le braccia dei personaggi Mixamo (spalla -> gomito -> polso), applicata sopra l'animazione.
-// Usata dal barista (versata) e da Kappa e Zucco (foto e video con la reflex in mano).
+// Usata dal barista (versata) e da Kappa e Zugo (foto e video con la reflex in mano).
 import * as THREE from 'three';
 
 const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3();

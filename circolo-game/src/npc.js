@@ -43,6 +43,8 @@ export class NPCManager {
     this.npcs.sort((a, b) => a.name.localeCompare(b.name));
     const clips = new Map(animations.map((a) => [a.name, a]));
     let elder = 0;
+    // nomi cambiati dopo la costruzione del glb (CONFIG.npc.rename, es. Zucco -> Zugo)
+    for (const o of this.npcs) { const to = this.cfg.rename?.[o.userData.npc_name]; if (to) o.userData.npc_name = to; }
     for (const o of this.npcs) {
       const role = config.npcActions[o.userData.npc_action];
       o.userData.lineSet = role ?? this.cfg;

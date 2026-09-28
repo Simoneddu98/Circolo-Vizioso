@@ -514,7 +514,7 @@ def foosball_spectators(c):
         return
     face = opp.matrix_world.to_3x3() @ Vector((0, -1, 0))                    # fronte dello spot (-Y) verso il tavolo
     side = Vector((-face.y, face.x, 0)).normalized()
-    # chi guarda la partita al biliardino: Kappa e Zucco (foos_spectator), o i vecchi giocatori del biliardino
+    # chi guarda la partita al biliardino: Kappa e Zugo (foos_spectator), o i vecchi giocatori del biliardino
     players = sorted([o for o in bpy.data.objects if o.get("foos_spectator") or o.get("npc_action") == "play_foosball"],
                      key=lambda o: o["npc_name"])
     for k, (o, sgn) in enumerate(zip(players, (1, -1)), 1):

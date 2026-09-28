@@ -149,7 +149,8 @@ export const CONFIG = {
     ],
     idleSway: 0.006,
     // personaggi nascosti in esplorazione: compaiono solo quando parte il minigioco che li usa (come spettatori)
-    hiddenUntilMinigame: [],                        // micro-movimento se il glb non ha animazioni (i corpi seduti non devono ruotare molto)
+    hiddenUntilMinigame: [],
+    rename: { Zucco: 'Zugo' },              // nel glb costruito prima del cambio di nome il videomaker si chiama ancora Zucco
   },
 
   // Battute per tipo di NPC (custom property npc_action nel glb). "play_cards" usa names/lines qui sopra.
@@ -166,8 +167,8 @@ export const CONFIG = {
       lines: ['AAAAAAH, che luce! Fermi tutti.', 'Fermo lì! Ecco... AAAAAAH, perfetta.', 'Al Ciabi queste facce non le trovi, te lo dico io.',
         'Peppino, guarda qui! No, non tu: le carte.', 'AAAAAAH, il biliardo in controluce!', 'Dovevo essere al Ciabi. Però guarda che roba.'],
     },
-    videomaker: {                          // Zucco
-      names: ['Zucco'],
+    videomaker: {                          // Zugo
+      names: ['Zugo'],
       talkDistance: 2.2,
       lines: ['Questo è il Circolo Vizioso, gente. Si gode.', 'Nicola, versa piano, che faccio lo slow motion. Si Godox.',
         'Guarda che inquadratura. Si gode.', 'Il biliardino al rallentatore è cinema. Si Godox.', 'Carrellata sul bancone... si gode.'],
@@ -271,7 +272,7 @@ export const CONFIG = {
     ],
   },
 
-  // Kappa e Zucco con la reflex (src/camerawork.js). Misure nello spazio del personaggio rispetto al centro della
+  // Kappa e Zugo con la reflex (src/camerawork.js). Misure nello spazio del personaggio rispetto al centro della
   // macchina C: [destra, su, avanti] in metri. C = osso della testa + forward (avanti) + up (su).
   camerawork: {
     photo: {                                // davanti al viso (scatto guardando lo schermo): gomiti giù, braccia naturali
@@ -308,9 +309,9 @@ export const CONFIG = {
         ['Kappa, il nero per chi fotografa è giusto: nelle foto non ti vedi. Una giacca strutturata però ti darebbe forma.', 'AAAAAAH, grazie! La giacca l\'ho lasciata a casa, pensavo di andare al Ciabi.'],
         ['I capelli raccolti così sono perfetti, Kappa, non toccarli. Il pantalone largo invece accorcialo di due dita.', 'AAAAAAH, due dita! Ci sto.'],
       ],
-      Zucco: [
-        ['Zucco, camicia marrone sopra la maglia a maniche lunghe: anni novanta, mi piace. I pantaloni kaki però spengono tutto: prova un blu scuro.', 'Blu scuro... si Godox. Ci penso.'],
-        ['Zucco, i baffi li approvo. La camicia va stirata, non può andare in video così.', 'È un look documentaristico. Si gode.'],
+      Zugo: [
+        ['Zugo, camicia marrone sopra la maglia a maniche lunghe: anni novanta, mi piace. I pantaloni kaki però spengono tutto: prova un blu scuro.', 'Blu scuro... si Godox. Ci penso.'],
+        ['Zugo, i baffi li approvo. La camicia va stirata, non può andare in video così.', 'È un look documentaristico. Si gode.'],
       ],
       Elder: [
         ['Signori, camicia bianca e pantaloni scuri: eleganza da circolo, niente da dire. Solo, la camicia va dentro i pantaloni.', 'Signorina, alla mia età la camicia fa quello che vuole.'],
@@ -436,7 +437,7 @@ export const CONFIG = {
         { goto: 'CardsPhoto', via: ['R', 'Q', 'S', 'P', 'E'] },
       ],
     },
-    // Zucco: videomaker. Riprende la partita, le slot, il biliardino, il biliardo e il bancone.
+    // Zugo: videomaker. Riprende la partita, le slot, il biliardino, il biliardo e il bancone.
     zucco: {
       markers: 'ELDER', startTimeout: 15, walkSpeed: 1.0, hearing: 7,
       steps: [
@@ -523,7 +524,7 @@ export const CONFIG = {
           options: [{ text: 'E dopo?', next: 'nicola_dopo' }, { text: 'Chi c\'è stasera?', next: 'nicola_gente' }] },
         nicola_dopo: { text: 'Dopo sei libero: freccette, biliardo, biliardino, scopa, slot, e sfidi chi vuoi. Qui dentro la serata finisce sempre come è cominciata. Ma è bello così.',
           options: [{ text: 'Chi c\'è stasera?', next: 'nicola_gente' }, { text: 'Ho capito. Vado a presentarmi.', goal: 'nicola', action: 'end' }] },
-        nicola_gente: { text: 'Cronico è il padrone di casa, quello col cappellino. Rafka è di casa pure lui: a Bologna ci ha lasciato il cuore. Kappa fotografa, Zucco riprende tutto, Lyuce ti guarda le scarpe. Al tavolo i vecchi: Peppino, Tonino, Gavino ed Efisio. Presentati a tutti: poi Cronico ti viene a prendere.',
+        nicola_gente: { text: 'Cronico è il padrone di casa, quello col cappellino. Rafka è di casa pure lui: a Bologna ci ha lasciato il cuore. Kappa fotografa, Zugo riprende tutto, Lyuce ti guarda le scarpe. Al tavolo i vecchi: Peppino, Tonino, Gavino ed Efisio. Presentati a tutti: poi Cronico ti viene a prendere.',
           options: [{ text: 'Come funziona la serata?', next: 'nicola_serata' }, { text: 'Vado a presentarmi.', goal: 'nicola', action: 'end' }] },
         nicola_comandi: { text: 'Ti muovi con W A S D, Shift per andare più svelto, e ti guardi intorno col mouse. Quando puoi usare qualcosa compare la scritta: premi E o clicca. Con la gente si parla allo stesso modo, e rispondi coi numeri. Esc per fermarti un attimo.',
           options: [{ text: 'Come funziona la serata?', next: 'nicola_serata' }, { text: 'Chiaro. Vado a presentarmi.', goal: 'nicola', action: 'end' }] },
@@ -534,9 +535,9 @@ export const CONFIG = {
       nodes: {
         benvenuto: { text: 'Ohi! Io sono Cronico, il padrone di casa. Nicola ti ha spiegato tutto? Bene. Fatti un giro, presentati agli altri: tra poco ti vengo a prendere io per la prima attività della serata.',
           options: [{ text: 'Che attività?', next: 'attivita' }, { text: 'Chi devo conoscere?', next: 'vecchi' }, { text: 'A dopo.', action: 'end' }] },
-        attivita: { text: 'Sorpresa. Ti dico solo che c\'entra il maxischermo, e che stasera la partita la spegniamo. Tu intanto conosci tutti: Rafka, Kappa, Zucco e Lyuce.',
+        attivita: { text: 'Sorpresa. Ti dico solo che c\'entra il maxischermo, e che stasera la partita la spegniamo. Tu intanto conosci tutti: Rafka, Kappa, Zugo e Lyuce.',
           options: [{ text: 'Vado.', action: 'end' }] },
-        vecchi: { text: 'Rafka, Kappa, Zucco e Lyuce: girano per il circolo, li trovi subito. I vecchi al tavolo invece giocano a scopa da quarant\'anni e litigano da quarantuno: quelli lasciali stare, per ora.',
+        vecchi: { text: 'Rafka, Kappa, Zugo e Lyuce: girano per il circolo, li trovi subito. I vecchi al tavolo invece giocano a scopa da quarant\'anni e litigano da quarantuno: quelli lasciali stare, per ora.',
           options: [{ text: 'Raccontami del circolo.', next: 'storia' }, { text: 'A dopo.', action: 'end' }] },
         storia: { text: 'Il circolo l\'ha aperto mio nonno nel sessantotto. Il biliardo è quello originale; il maxischermo no, quello l\'abbiamo preso per i mondiali. Da allora qui è sempre la stessa sera. Ed è una bella sera.',
           options: [{ text: 'A dopo.', action: 'end' }] },
@@ -597,19 +598,23 @@ export const CONFIG = {
         ctv_invito: { text: 'AAAAAAH, eccoti! Come ti va? Ti vedo moscio, sai: troppe domande, troppe scatole nere. Adesso basta pensare. Vieni in mezzo alla sala: tre minuti e mezzo per fare più giochi possibile. Da solo, contro il tempo. AAAAAAH!',
           options: [{ text: 'Andiamo!', action: 'serata:go' }] },
         kappa_ancora: { text: ['AAAAAAH, sei tornato! Mettiti vicino al biliardo, che c\'è una luce...', 'Al Ciabi c\'è il pienone, mi scrivono tutti. Io resto qui: qui è più vero.',
-          'Zucco mi ha ripresa mentre scattavo. Adesso sono nel suo documentario. AAAAAAH.'],
+          'Zugo mi ha ripresa mentre scattavo. Adesso sono nel suo documentario. AAAAAAH.'],
           options: [{ text: 'Com\'è il Ciabi?', next: 'kappa_ciabi' }, { text: 'Fammi vedere le foto.', next: 'kappa_foto' }, { text: 'A dopo.', action: 'end' }] },
       },
     },
-    Zucco: {
+    Zugo: {
       start: [{ if: '!seen:zucco_ciao', node: 'zucco_ciao' }, 'zucco_ancora'],
       nodes: {
-        zucco_ciao: { text: 'Fratello! Zucco, videomaker. Sono al Circolo Vizioso e sto girando tutto: le carte, il biliardo, Nicola che versa. Si gode.',
-          options: [{ text: 'Cosa stai girando?', next: 'zucco_video' }, { text: 'Perché "si gode"?', next: 'zucco_godox' }] },
+        zucco_ciao: { text: 'Fratello! Zugo, videomaker. Sono al Circolo Vizioso e sto girando tutto: le carte, il biliardo, Nicola che versa. Si gode.',
+          options: [{ if: 'spettacolo', text: 'Patata Simulator 3000?', next: 'zugo_patata' }, { text: 'Cosa stai girando?', next: 'zucco_video' },
+            { text: 'Perché "si gode"?', next: 'zucco_godox' }] },
         zucco_video: { text: 'Un documentario. Anzi, un reel. Anzi, un documentario in formato reel. Luce calda, facce vere, il mirto che scorre. Si Godox.',
           options: [{ text: 'Si Godox?', next: 'zucco_godox' }, { text: 'Bello. A dopo.', action: 'end' }] },
         zucco_godox: { text: 'Godox, le luci! Io giro solo con le Godox. E qui si gode così tanto che si Godox. Si gode, si Godox: capito?',
           options: [{ text: 'Ho capito. Purtroppo.', next: 'zucco_riprese' }, { text: 'A dopo.', action: 'end' }] },
+        // gioco libero: Patata Simulator 3000 sul maxischermo
+        zugo_patata: { text: 'Fratello, ho una cosa segreta: Patata Simulator 3000, sul maxischermo. Un easter egg per Jaime. Tu e io contro le patate: chi ne abbatte di più vince. Si gode.',
+          options: [{ text: 'Giochiamo!', action: 'challenge:patata' }, { text: 'Più tardi.', action: 'end' }] },
         // Brano 5: al bancone, tre bicchieri
         bic_invito: { text: 'Fratello, ultimo brano. Si gode. Vieni al bancone: Nicola ha tre bicchieri e una domanda sola. Mezzo pieno o mezzo vuoto? Dipende da come lo guardi. E da quanto sei veloce.',
           options: [{ text: 'Andiamo.', action: 'serata:go' }] },
@@ -617,7 +622,8 @@ export const CONFIG = {
           options: [{ text: 'Magari dopo.', action: 'end' }] },
         zucco_ancora: { text: ['Hai visto la luce sul tavolo da biliardo? Si Godox.', 'Ho girato Peppino che mischia le carte: tre minuti di arte pura. Si gode.',
           'Stasera il Circolo Vizioso esce su tutti i social. Si gode.'],
-          options: [{ text: 'Cosa stai girando?', next: 'zucco_video' }, { text: 'Spiegami il Godox.', next: 'zucco_godox' }, { text: 'A dopo.', action: 'end' }] },
+          options: [{ if: 'spettacolo', text: 'Una partita a Patata Simulator 3000?', next: 'zugo_patata' }, { text: 'Cosa stai girando?', next: 'zucco_video' },
+            { text: 'Spiegami il Godox.', next: 'zucco_godox' }, { text: 'A dopo.', action: 'end' }] },
       },
     },
     Lyuce: {
@@ -637,7 +643,7 @@ export const CONFIG = {
         bb_invito2: { text: 'Sul tavolino dove c\'erano le sigarette è comparsa una scatola nera. Di ogni cosa sai come comincia e come finisce: il difficile è capire cosa succede in mezzo. Vieni.',
           options: [{ text: 'Andiamo.', action: 'serata:go' }] },
         lyuce_elegante: { text: 'Nicola, senza dubbio: divisa pulita, colori giusti. Il resto del circolo lo sto sistemando, un bottone alla volta.' },
-        lyuce_ancora: { text: ['Hai visto Zucco? Prima o poi lo convinco a lasciare i kaki.', 'Kappa è l\'unica che si veste per lavorare. Rispetto.',
+        lyuce_ancora: { text: ['Hai visto Zugo? Prima o poi lo convinco a lasciare i kaki.', 'Kappa è l\'unica che si veste per lavorare. Rispetto.',
           'Cronico con quel cappellino... ci sto ancora pensando.'],
           options: [{ text: 'Cosa pensi del mio outfit?', next: 'lyuce_tu' }, { text: 'Chi è il più elegante qui?', next: 'lyuce_elegante' },
             { text: 'A dopo.', action: 'end' }] },
@@ -665,7 +671,7 @@ export const CONFIG = {
           hit: ['Gol! Te l\'avevo detto.', 'Ajò, questa era imparabile.', 'Portiere di legno, eh.', 'E vai!'],
           miss: ['Uff, per un pelo.', 'L\'asta scivola, giuro.', 'Questa la lascio a te.', 'Distrazione.'],
           win: ['Vinto! Il gettone era ben speso.', 'Il biliardino è casa mia.', 'Rivincita quando vuoi, ma il gettone lo paghi tu.'],
-          lose: ['Mi hai battuto! Non dirlo a Zucco, che l\'ha ripreso di sicuro.', 'Va bene, sei forte. Birretta offerta.', 'Rivincita, subito!'],
+          lose: ['Mi hai battuto! Non dirlo a Zugo, che l\'ha ripreso di sicuro.', 'Va bene, sei forte. Birretta offerta.', 'Rivincita, subito!'],
         },
       },
       Cronico: {
@@ -684,6 +690,46 @@ export const CONFIG = {
     newRecord: 'Nuovo record!',
     statsPlayed: 'Partite', statsWon: 'Vinte', statsRecord: 'Record',
     games: {
+      // Patata Simulator 3000: easter egg per Jaime. Sul maxischermo, con Zugo (si avvia parlando con lui, nel gioco libero)
+      patata: {
+        name: 'Patata Simulator 3000',
+        title: 'Patata Simulator 3000',
+        logo: './assets/patata-logo.png',
+        dedica: 'Easter egg per Jaime',
+        opponent: 'Zugo',
+        fov: 34,
+        mouseSensitivity: 0.12,             // spostamento del cannone per pixel di mouse
+        opzioni: { lives: 3 },              // vedi PatataGame in src/minigames/patata/rules.js
+        intro: 'Le patate stanno invadendo il maxischermo. Tu e Zugo avete un cannone a testa: chi ne abbatte di più vince.',
+        rules: [
+          'Le patate scendono a file e lanciano patatine fritte: se ti colpiscono perdete una vita (le vite sono in comune).',
+          'Patata novella 10 punti, patata 20, patatona 30. La patata dorata che passa in alto ne vale 100.',
+          'Finita un\'onda ne arriva un\'altra, più veloce. La partita finisce quando le vite sono zero o le patate arrivano ai cannoni.',
+        ],
+        controls: [['Frecce o A / D (o il mouse)', 'Muovi il cannone'], ['Spazio o clic', 'Spara (tieni premuto)'], ['H', 'Regole'], ['Esc', 'Esci']],
+        hint: 'Frecce / A D / mouse: muovi · Spazio o clic: spara',
+        touch: {
+          hint: 'Trascina o ◀ ▶ per muoverti · Spara',
+          controls: [['Trascina o ◀ ▶', 'Muovi il cannone'], ['Spara (tieni premuto)', 'Spara']],
+          buttons: [{ label: 'Spara', mouse: 0, main: true }, { label: '▶', key: 'ArrowRight' }, { label: '◀', key: 'ArrowLeft' }],
+        },
+        youWin: 'Hai battuto Zugo!',
+        youLose: 'Ha vinto {name}',
+        invasione: 'Le patate sono arrivate ai cannoni',
+        finite: 'Vite finite',
+        onda: 'Onda',
+        lines: {
+          start: ['Patata Simulator 3000. Si gode.', 'Pronto? Io prendo quelle a destra. Forse.', 'Questo lo giravo in slow motion, ma non c\'è tempo.'],
+          hit: ['Presa! Si Godox.', 'Una in meno.', 'Guarda che mira.', 'Purè!'],
+          onda: ['Ne arrivano altre!', 'Onda nuova, patate nuove.', 'Sono di più. E più veloci.'],
+          oroTuo: ['La dorata! Ma come hai fatto?', 'Cento punti, fratello. Rispetto.'],
+          oroSuo: ['La dorata è mia! Si gode!', 'Cento punti per Zugo.'],
+          colpitoTu: ['Occhio alle patatine!', 'Ti hanno fritto.', 'Schiva, schiva!'],
+          colpitoLui: ['Mi hanno preso! Colpa del ketchup.', 'Patatina in faccia. Si gode lo stesso.'],
+          win: ['Ho vinto io. Si gode.', 'Zugo campione delle patate.', 'Rivincita? Tanto le patate sono infinite.'],
+          lose: ['Hai vinto tu, fratello. Rispetto.', 'Mi hai battuto. Questo lo metto nel documentario.', 'Bravo! Jaime sarebbe fiero.'],
+        },
+      },
       slots: {
         touch: {
           hint: 'Gettone · Gira · + / − puntata · Incassa',

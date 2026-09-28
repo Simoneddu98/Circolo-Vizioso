@@ -7,7 +7,7 @@
 //   { say: '...' } / { reply: 'Nicola', text: '...' }   battute (sottotitoli) di chi fa la routine o di un altro personaggio
 //   { rise: 'Seat1' }                          si alza dalla sedia e si mette in piedi su <PREFISSO>_Spot_Seat1
 //   { sit: true }                              torna al posto di partenza e si siede (clip userData.sit_clip)
-//   { act: 'photo' | 'video', for: 4 }         Kappa e Zucco: foto o video con la reflex (src/camerawork.js)
+//   { act: 'photo' | 'video', for: 4 }         Kappa e Zugo: foto o video con la reflex (src/camerawork.js)
 //   { comment: 'any' | ['Nicola', ...], for: 6 } Lyuce: si gira verso il più vicino entro CONFIG.stylist.range e commenta
 //                                              il suo outfit; lui risponde (CONFIG.stylist.lines)
 // Chi cammina tiene la destra: se ha davanti qualcuno (personaggio in piedi o giocatore) entro walkAvoid metri devia

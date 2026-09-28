@@ -1,7 +1,7 @@
 # Circolo Vizioso
 
 Gioco in prima persona nel browser (three.js): una sera al circolo, tra il bancone di Nicola, la partita in TV,
-i vecchi che giocano a carte, Cronico, Rafka, Kappa, Zucco e Lyuce, e i minigiochi (freccette, biliardo,
+i vecchi che giocano a carte, Cronico, Rafka, Kappa, Zugo e Lyuce, e i minigiochi (freccette, biliardo,
 biliardino, scopa, slot). Si entra in due modi: **La serata** (la storia in cinque brani dell'EP *Circolo Vizioso*, un gioco per
 brano) oppure **Gioco libero** (tutto sbloccato). Dettagli in `circolo-game/NOTES-minigames.md`.
 
