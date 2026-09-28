@@ -1,24 +1,26 @@
 // La serata a brani (modalità storia): testi, tempi e contenuti dei cinque giochi. Tutto quello che si regola sta qui;
 // la logica è in director.js (regia) e nei file dei singoli giochi.
 //
-// Ogni brano dell'EP è un gioco che dura quanto il brano. `audio` è il file del brano (un mp3 nella cartella assets/musica, percorso relativo alla pagina):
+// Ogni brano dell'EP è un gioco da un minuto (`gioco`). `audio` è il file del brano (un mp3 nella cartella assets/musica, percorso relativo alla pagina):
 // finché è null il gioco usa solo `durata` (secondi) e va in silenzio. Con il file, la durata è quella del file.
 
 export const SERATA = {
   storageKey: 'circolo.serata.v1',          // punti e record, salvati nel browser
   fade: 0.5,
 
+  // `gioco` = quanto dura il gioco (secondi): 1 minuto per tutti, anche se il brano è più lungo (con l'audio, il gioco finisce
+  // lì e la musica si ferma). Il quinto continua dopo il gioco (`continua`): si cercano le sigarette, ci si siede e c'è lo
+  // spettacolo, fino alla fine del brano (`durata`).
   brani: {
-    cinema: { n: 1, titolo: 'Cinema', audio: null, durata: 180 },
-    fumo: { n: 2, titolo: 'Fumo', audio: null, durata: 180 },
-    blackbox: { n: 3, titolo: 'Black Box', audio: null, durata: 180 },
-    cometiva: { n: 4, titolo: 'Come ti va', audio: null, durata: 210 },
-    // 4 minuti in tutto: 2 di gioco (`gioco`), poi nello stesso brano si cercano le sigarette, ci si siede e c'è lo spettacolo
-    bicchiere: { n: 5, titolo: 'Mezzo pieno', audio: null, durata: 240, gioco: 120 },
+    cinema: { n: 1, titolo: 'Cinema', audio: null, durata: 60, gioco: 60 },
+    fumo: { n: 2, titolo: 'Fumo', audio: null, durata: 60, gioco: 60 },
+    blackbox: { n: 3, titolo: 'Black Box', audio: null, durata: 60, gioco: 60 },
+    cometiva: { n: 4, titolo: 'Come ti va', audio: null, durata: 60, gioco: 60 },
+    bicchiere: { n: 5, titolo: 'Mezzo pieno', audio: null, durata: 180, gioco: 60, continua: true },
   },
 
   // a fine serata i punti diventano euro da spendere nel circolo: tornano al bancone, alle slot, ai gettoni...
-  euroPerPunti: 250,                        // 1 € ogni 250 punti
+  euroPerPunti: 100,                        // 1 € ogni 100 punti (giochi da un minuto: una serata fa circa 1000 punti)
   euroMax: 40,
 
   // l'EP (schermata finale e testo da condividere)
@@ -168,10 +170,10 @@ export const SERATA = {
   // volantino e si sceglie l'orario. Punti: richiesta rispettata, numero giusto al primo colpo, velocità, orario giusto,
   // e un bonus se il cibo arriva prima che finisca il brano.
   cibo: {
-    orologio: { inizio: 20 * 60 + 40, minutiPerSecondo: 1 / 3 },   // 20:40, un minuto del gioco ogni 3 secondi
+    orologio: { inizio: 20 * 60 + 40, minutiPerSecondo: 1 },   // 20:40, un minuto del gioco ogni secondo: in un minuto di gioco si arriva alle 21:40 e gli ordini arrivano
     orari: [15, 30, 45, 60],                // minuti da adesso
     punti: { ordine: 60, rispettata: 60, violata: -40, numero: 40, velocita: 60, orario: 40, arrivato: 30 },
-    tempoVelocita: 30,                      // sotto questi secondi per ordine il bonus velocità è pieno, poi cala
+    tempoVelocita: 20,                      // sotto questi secondi per ordine il bonus velocità è pieno, poi cala
     // immagine opzionale per ogni volantino (una webp nella cartella assets/volantini): se c'è, sostituisce quello disegnato
     locali: [
       { id: 'kebab', nome: 'Mezzaluna Kebab', motto: 'Aperto finché c\'è fame', tel: '051 482 916', colore: '#c8341c', fondo: '#fbe7b5', immagine: null,
@@ -211,7 +213,7 @@ export const SERATA = {
   // Si sa com'è iniziata e com'è finita: si indovina cosa è successo in mezzo. 'scegli': la risposta giusta è la
   // prima (vengono mescolate); 'ordina': i passaggi sono già nell'ordine giusto (vengono mescolati).
   blackbox: {
-    tempo: 16,                              // secondi per scatola
+    tempo: 14,                              // secondi per scatola
     punti: 100, puntiOrdine: 150, bonusVelocita: 50,
     commenti: {
       giusta: ['Esatto. Visto che le cose non succedono per caso?', 'Brava testa.', 'Giusto. E tu come ci sei arrivato?'],
@@ -251,8 +253,8 @@ export const SERATA = {
 
   // ------------------------------------------------------------------ Brano 4: tutti i giochi che riesci, in fila
   cometiva: {
-    tempoBase: 6,                           // secondi per microgioco all'inizio...
-    tempoMin: 3,                            // ...e alla fine (si accelera)
+    tempoBase: 5,                           // secondi per microgioco all'inizio...
+    tempoMin: 2.5,                          // ...e alla fine (si accelera)
     punti: 100, bonusSerie: 15,
     kappa: ['AAAAAAH! Vai così!', 'Più veloce! Più veloce!', 'Sei una bestia!', 'Non ti fermare!', 'AAAAAAH, che riflessi!'],
     colori: [['ROSSO', '#e0402a'], ['VERDE', '#2fa24a'], ['BLU', '#3a6ee8'], ['GIALLO', '#f2c230']],
@@ -263,7 +265,7 @@ export const SERATA = {
   bicchiere: {
     scambi: [5, 14],                        // scambi al primo giro e al giro più difficile
     velocita: [0.5, 0.17],                  // secondi per scambio (all'inizio, alla fine)
-    giriAlMassimo: 7,
+    giriAlMassimo: 4,                       // al quarto giro è già alla velocità massima (il gioco dura un minuto)
     punti: 100, bonusVelocita: 40,
     domande: ['Dov\'è il bicchiere mezzo pieno?', 'E quello mezzo vuoto?'],
     etichette: { pieno: 'Pieno', mezzoPieno: 'Mezzo pieno', mezzoVuoto: 'Mezzo vuoto' },

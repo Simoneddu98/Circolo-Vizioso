@@ -1,4 +1,4 @@
-// Brano 4 · Come ti va: in mezzo alla sala, da solo, più microgiochi possibile in 3 minuti e mezzo. Ognuno dura pochi
+// Brano 4 · Come ti va: in mezzo alla sala, da solo, più microgiochi possibile in un minuto. Ognuno dura pochi
 // secondi e sempre meno; ogni vittoria vale punti, le vittorie di fila di più. Tutti si giocano con mouse, dita o tastiera.
 import { shuffle, lerp } from './regole.js';
 import { pick, sfx, jingle } from '../minigames/util.js';

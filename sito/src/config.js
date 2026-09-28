@@ -516,7 +516,7 @@ export const CONFIG = {
         nicola_ciao: { text: 'Ohi, benvenuto al Circolo Vizioso! Io sono Nicola. Qui la gente viene a staccare la testa: si beve, si gioca, si ride. E poi si torna. Si torna sempre. Ti spiego come funziona?',
           options: [{ text: 'Come funziona la serata?', next: 'nicola_serata' }, { text: 'Chi c\'è stasera?', next: 'nicola_gente' },
             { text: 'Come si gioca? (comandi)', next: 'nicola_comandi' }] },
-        nicola_serata: { text: 'Stasera ci sono cinque brani e cinque giochi. Ogni gioco dura quanto il suo brano: parte la musica, si gioca; finisce, si passa al prossimo. Ogni gioco dà punti, e a fine serata i punti diventano soldi da spendere qui. Tanto tornano sempre qui.',
+        nicola_serata: { text: 'Stasera ci sono cinque brani e cinque giochi. Ogni gioco dura un minuto: parte la musica, si gioca; finito il minuto, si passa al prossimo. Ogni gioco dà punti, e a fine serata i punti diventano soldi da spendere qui. Tanto tornano sempre qui.',
           options: [{ text: 'Che giochi?', next: 'nicola_giochi' }, { text: 'Chi c\'è stasera?', next: 'nicola_gente' }] },
         nicola_giochi: { text: 'Uno, Cinema: un quiz sul maxischermo al posto della partita. Due, Fumo: ti fumi una sigaretta e ordini da mangiare per il tavolo, al telefono. Tre, la scatola nera: sai come comincia e come finisce, devi capire cosa succede in mezzo. Quattro, Come ti va: più giochi possibile, da solo, contro il tempo. Cinque: mezzo pieno o mezzo vuoto?',
           options: [{ text: 'E le regole?', next: 'nicola_regole' }, { text: 'E dopo?', next: 'nicola_dopo' }] },
@@ -595,7 +595,7 @@ export const CONFIG = {
           options: [{ text: 'Volentieri.', action: 'end' }, { text: 'Meglio di no.', next: 'kappa_no' }] },
         kappa_no: { text: 'Troppo tardi, sei già in tre scatti. AAAAAAH, stai benissimo.' },
         // Brano 4: Kappa ti tira su e ti porta in mezzo alla sala
-        ctv_invito: { text: 'AAAAAAH, eccoti! Come ti va? Ti vedo moscio, sai: troppe domande, troppe scatole nere. Adesso basta pensare. Vieni in mezzo alla sala: tre minuti e mezzo per fare più giochi possibile. Da solo, contro il tempo. AAAAAAH!',
+        ctv_invito: { text: 'AAAAAAH, eccoti! Come ti va? Ti vedo moscio, sai: troppe domande, troppe scatole nere. Adesso basta pensare. Vieni in mezzo alla sala: un minuto per fare più giochi possibile. Da solo, contro il tempo. AAAAAAH!',
           options: [{ text: 'Andiamo!', action: 'serata:go' }] },
         kappa_ancora: { text: ['AAAAAAH, sei tornato! Mettiti vicino al biliardo, che c\'è una luce...', 'Al Ciabi c\'è il pienone, mi scrivono tutti. Io resto qui: qui è più vero.',
           'Zugo mi ha ripresa mentre scattavo. Adesso sono nel suo documentario. AAAAAAH.'],

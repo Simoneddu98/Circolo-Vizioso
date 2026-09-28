@@ -1,7 +1,7 @@
 // Regia della serata (modalità storia). I passi sono in CONFIG.serata.passi e usano la progressione normale:
 //   nicola -> presentazioni -> cinema -> fumo -> blackbox -> cometiva -> bicchiere -> spettacolo -> games (libero)
 // Per ogni brano: il personaggio dell'invito ti raggiunge camminando, ti parla (nodo *_invito del suo dialogo), con
-// "Andiamo" si va al buio nel posto del gioco, si prepara (sigaretta, scatola nera) e il gioco dura quanto il brano.
+// "Andiamo" si va al buio nel posto del gioco, si prepara (sigaretta, scatola nera) e il gioco dura un minuto (`gioco` del brano).
 // Durante i giochi il giocatore è fermo e il cursore è libero (pulsanti a schermo); un clic sulla scena è un tiro di
 // sigaretta. In gioco libero la regia non fa niente: tutto è sbloccato come a serata finita.
 import * as THREE from 'three';
@@ -471,9 +471,9 @@ export class Serata {
     this.game = GIOCHI[goal](api);
     const dur = await this.ov.music(brano);
     if (this.stage !== 'loading') return;                        // ricominciato nel frattempo
-    // il gioco dura quanto il brano; nel quinto solo la prima parte (`gioco`), il resto del brano è per il finale
+    // il gioco dura `gioco` secondi (un minuto); il quinto brano poi continua (`continua`) con il finale
     const gioco = brano.gioco ? Math.min(brano.gioco, dur) : dur;
-    this.trackLeft = brano.gioco ? dur : null;
+    this.trackLeft = brano.continua ? dur : null;
     api.durata = gioco;
     this.left = gioco;
     this.ov.setTime(gioco);
