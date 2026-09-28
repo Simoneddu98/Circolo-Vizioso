@@ -94,13 +94,13 @@ export function createBicchiere(api) {
     update(dt) {
       t += dt;
       if (fase === 'mostra') {
-        const k = Math.min(1, t / 1.8);
+        const k = Math.min(1, t / (cfg.mostra * 0.6));
         for (const g of glasses) {
           if (g.tipo === 'mezzoPieno') g.level = 0.5 * k;
           if (g.tipo === 'mezzoVuoto') g.level = 1 - 0.5 * k;
           draw(g);
         }
-        if (t >= 2.6) {
+        if (t >= cfg.mostra) {
           fase = 'mescola'; t = 0;
           glasses.forEach((g) => { g.el.querySelector('.lab').style.opacity = 0; });
           qEl.textContent = 'Occhio...';
@@ -120,7 +120,7 @@ export function createBicchiere(api) {
           idx++; t = 0;
           sfx({ freq: 2600, dur: 0.03, vol: 0.06, noise: 0.5 });
         }
-      } else if (fase === 'rivela' && t >= 1.6) nuovoGiro();
+      } else if (fase === 'rivela' && t >= 2.2) nuovoGiro();
     },
     key(e) {
       const m = /^(Digit|Numpad)([1-3])$/.exec(e.code);

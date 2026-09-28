@@ -75,7 +75,8 @@ export class Spettacolo {
       const walkRef = npc.userData.walk_speed ?? 1.1;
       const speed = Math.max(v, d > 0.1 ? 1.2 : 0);
       if (!moving) this._clip(r, 'idle', 1);
-      else this._clip(r, speed > 2.3 ? 'run' : 'walk', r.clip?.endsWith('_Run') ? speed / 3.2 : Math.min(2.6, speed / walkRef));
+      // passo della clip in proporzione alla velocità (alla fine si corre a perdifiato: camminata accelerata fino a 5x)
+      else this._clip(r, speed > 2.3 ? 'run' : 'walk', r.clip?.endsWith('_Run') ? Math.min(2.6, speed / 3.2) : Math.min(5, speed / walkRef));
     }
     return this.t >= this.cfg.durata;
   }

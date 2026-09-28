@@ -43,9 +43,11 @@ const CSS = `
   #srt table.score tr.tot td { border: 0; font: 700 22px var(--display, sans-serif); color: #ffe100; padding-top: 10px; }
   #srt .row { display: flex; flex-wrap: wrap; gap: 8px; }
   /* durante un gioco: niente obiettivi, i sottotitoli in alto a sinistra (i pulsanti stanno in basso e al centro) */
-  body.srt-on #goals, body.srt-on #crosshair, body.srt-on #prompt { display: none; }
-  body.srt-on #subtitle { left: 16px; top: 14px; bottom: auto; transform: none; width: min(380px, 32%); text-align: left; padding: 8px 12px; }
-  body.srt-on #sub-text { font-size: 17px; }
+  /* durante un gioco della serata non c'è nessuna card: obiettivi, sottotitoli, tasca, portafoglio, suggerimenti */
+  body.srt-on #hud, body.srt-on #wallet, body.srt-on #dlg { display: none !important; }
+  #srt .card ul { margin: 0 0 12px; padding-left: 20px; font-size: 17px; line-height: 1.45; }
+  #srt .card li { margin-bottom: 6px; }
+  @media (max-height: 520px), (max-width: 700px) { #srt .card ul { font-size: 13px; } }
   @media (max-height: 520px), (max-width: 700px) {
     #srt .bar { top: 6px; font-size: 12px; gap: 5px; } #srt .bar > div { padding: 4px 8px; }
     #srt h2 { font-size: 20px; } #srt p { font-size: 14px; } #srt button { font-size: 13px; padding: 6px 10px; }

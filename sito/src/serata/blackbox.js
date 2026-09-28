@@ -100,7 +100,7 @@ export function createBlackbox(api) {
         const bar = card.querySelector('.timer div');
         if (bar) bar.style.width = `${Math.max(0, 1 - t / cfg.tempo) * 100}%`;
         if (t >= cfg.tempo) risolvi(false, 0);
-      } else if (t >= (cur.tipo === 'ordina' ? 3 : 2.3)) next();
+      } else if (t >= (cur.tipo === 'ordina' ? 3.8 : 3.2)) next();   // il tempo di leggere la soluzione
     },
     key(e) {
       const n = /^(Digit|Numpad)([1-4])$/.exec(e.code);

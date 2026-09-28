@@ -130,8 +130,8 @@ export const CONFIG = {
 
   npc: {
     talkDistance: 2.0,
-    minPause: 8,                            // secondi minimi tra l'inizio di una battuta e la successiva
-    subtitleDuration: 4.5,
+    minPause: 16,                           // secondi minimi tra una battuta di sottofondo e la successiva
+    subtitleDuration: 6,
     names: ['Zio Peppino', 'Efisio', 'Gavino', 'Tziu Tore'],
     lines: [
       'Ohi, giovanotto, qui si gioca a scopa, mica a nascondino!',
@@ -543,7 +543,9 @@ export const CONFIG = {
           options: [{ text: 'A dopo.', action: 'end' }] },
         // Brano 1: Cronico ti porta davanti al maxischermo
         cinema_invito: { text: 'Eccoti! Allora, stasera niente partita: si fa cinema. Siediti davanti al maxischermo: domande facili, film d\'amore e qualcosa di più... caldo. Rispondi veloce, che i punti si sommano fino a fine serata.',
-          options: [{ text: 'Andiamo!', action: 'serata:go' }] },
+          options: [{ text: 'Dimmi come si gioca.', next: 'cinema_regole' }] },
+        cinema_regole: { text: 'Ti siedi davanti al maxischermo e compare una domanda su un film d\'amore, con quattro risposte: A, B, C e D. Rispondi con i tasti da 1 a 4, o con le lettere, o cliccando la risposta in basso. Hai dodici secondi a domanda: più sei veloce più punti fai, e se ne azzecchi tante di fila c\'è un bonus. Si gioca un minuto.',
+          options: [{ text: 'Ho capito. Andiamo!', action: 'serata:go' }] },
         ancora: { text: ['Tutto a posto? Goditi la serata.', 'Se ti serve qualcosa chiedi a Nicola, al bancone.',
           'Non farti battere a scopa da Peppino, che poi se ne vanta per un mese.', 'Presentati a tutti, poi ti vengo a prendere io.'],
           options: [{ text: 'Chi devo conoscere?', next: 'vecchi' }, { text: 'Raccontami del circolo.', next: 'storia' }, { text: 'A dopo.', action: 'end' }] },
@@ -563,8 +565,10 @@ export const CONFIG = {
           options: [{ text: 'Davvero? Cronico a Bologna?', next: 'fumo_invito2' }] },
         fumo_invito2: { text: 'Si ricorda ancora le sigarette fumate sotto i portici con gli amici, fino all\'alba. Truccate o meno, non si sa: lui dice di no. Posso dire? Io dico di sì.',
           options: [{ text: 'E adesso?', next: 'fumo_invito3' }] },
-        fumo_invito3: { text: 'Adesso vieni al tavolino in fondo: ci sono le sigarette, prendine una. Poi ti siedi, ti rilassi e ordiniamo da mangiare per tutti. Ho una fame...',
-          options: [{ text: 'Andiamo.', action: 'serata:go' }] },
+        fumo_invito3: { text: 'Adesso vieni al tavolino in fondo: ci sono le sigarette, prendine una. Poi ti siedi, ti fai due tiri e ordiniamo da mangiare per tutti. Ho una fame...',
+          options: [{ text: 'E come si ordina?', next: 'fumo_regole' }] },
+        fumo_regole: { text: 'Posso dire? È facile. Qualcuno del tavolo ti dice cosa vuole: leggilo bene. Tu scegli il volantino giusto, kebab, pizza o hamburger, componi l\'ordine rispettando quello che ha chiesto, poi chiami il numero scritto sul volantino e scegli l\'orario. Più rispetti la richiesta e più sei veloce, più punti fai. E il cibo arriva sul tavolino. Hai un minuto.',
+          options: [{ text: 'Ho capito. Andiamo.', action: 'serata:go' }] },
         rafka_bene: { text: 'Allora sei in buone mani. Io intanto mi prendo una birretta: Nicola la spina la tratta come un gioiello.',
           options: [{ text: 'Che consigli mi dai?', next: 'rafka_consigli' }, { text: 'A dopo.', action: 'end' }] },
         rafka_consigli: { text: 'Tre regole: al biliardino non si rulla, a scopa non si parla mentre Peppino conta, e i soldi tienili d\'occhio: tra slot e cocktail la serata finisce in fretta.',
@@ -596,7 +600,9 @@ export const CONFIG = {
         kappa_no: { text: 'Troppo tardi, sei già in tre scatti. AAAAAAH, stai benissimo.' },
         // Brano 4: Kappa ti tira su e ti porta in mezzo alla sala
         ctv_invito: { text: 'AAAAAAH, eccoti! Come ti va? Ti vedo moscio, sai: troppe domande, troppe scatole nere. Adesso basta pensare. Vieni in mezzo alla sala: un minuto per fare più giochi possibile. Da solo, contro il tempo. AAAAAAH!',
-          options: [{ text: 'Andiamo!', action: 'serata:go' }] },
+          options: [{ text: 'Che giochi?', next: 'ctv_regole' }] },
+        ctv_regole: { text: 'Tanti giochini, uno dopo l\'altro! In alto, in giallo, c\'è scritto cosa fare: premi la lettera, tocca il bicchiere pieno, ferma la barra nel verde, conta le sigarette, trova l\'intruso... Leggi con calma: la barra del tempo parte dopo un attimo. Ogni giochino vinto vale punti, e se ne vinci tanti di fila ancora di più.',
+          options: [{ text: 'Ho capito. Andiamo!', action: 'serata:go' }] },
         kappa_ancora: { text: ['AAAAAAH, sei tornato! Mettiti vicino al biliardo, che c\'è una luce...', 'Al Ciabi c\'è il pienone, mi scrivono tutti. Io resto qui: qui è più vero.',
           'Zugo mi ha ripresa mentre scattavo. Adesso sono nel suo documentario. AAAAAAH.'],
           options: [{ text: 'Com\'è il Ciabi?', next: 'kappa_ciabi' }, { text: 'Fammi vedere le foto.', next: 'kappa_foto' }, { text: 'A dopo.', action: 'end' }] },
@@ -617,7 +623,9 @@ export const CONFIG = {
           options: [{ text: 'Giochiamo!', action: 'challenge:patata' }, { text: 'Più tardi.', action: 'end' }] },
         // Brano 5: al bancone, tre bicchieri
         bic_invito: { text: 'Fratello, ultimo brano. Si gode. Vieni al bancone: Nicola ha tre bicchieri e una domanda sola. Mezzo pieno o mezzo vuoto? Dipende da come lo guardi. E da quanto sei veloce.',
-          options: [{ text: 'Andiamo.', action: 'serata:go' }] },
+          options: [{ text: 'Come si gioca?', next: 'bic_regole' }] },
+        bic_regole: { text: 'Guarda bene: Nicola riempie un bicchiere fino a metà, quello è il mezzo pieno. Io bevo metà di un altro, quello è il mezzo vuoto. Il terzo resta pieno. Poi li mescoliamo, sempre più veloci. Tu li segui con gli occhi e alla fine clicchi prima il mezzo pieno, poi il mezzo vuoto. Un minuto. Si gode.',
+          options: [{ text: 'Ho capito. Andiamo.', action: 'serata:go' }] },
         zucco_riprese: { text: 'Se vuoi ti riprendo mentre giochi a biliardino: slow motion sul gol, musica epica, dissolvenza sul mirto. Si gode.',
           options: [{ text: 'Magari dopo.', action: 'end' }] },
         zucco_ancora: { text: ['Hai visto la luce sul tavolo da biliardo? Si Godox.', 'Ho girato Peppino che mischia le carte: tre minuti di arte pura. Si gode.',
@@ -641,7 +649,9 @@ export const CONFIG = {
         bb_invito: { text: 'Ottimo: abbiamo mangiato, ci siamo divertiti. Ma ogni tanto è importante anche porsi delle domande più profonde, anche se il Circolo Vizioso non vuole. Hai mai pensato a come prendi le tue decisioni?',
           options: [{ text: 'Sinceramente no.', next: 'bb_invito2' }, { text: 'Ogni tanto.', next: 'bb_invito2' }] },
         bb_invito2: { text: 'Sul tavolino dove c\'erano le sigarette è comparsa una scatola nera. Di ogni cosa sai come comincia e come finisce: il difficile è capire cosa succede in mezzo. Vieni.',
-          options: [{ text: 'Andiamo.', action: 'serata:go' }] },
+          options: [{ text: 'E come funziona?', next: 'bb_regole' }] },
+        bb_regole: { text: 'Ti faccio vedere come comincia una storia e come finisce; in mezzo c\'è la scatola nera. A volte scegli cosa è successo tra tre risposte, a volte devi mettere in ordine i passaggi cliccandoli dal primo all\'ultimo. Ogni scatola ha il suo tempo, con calma: conta capire, non correre.',
+          options: [{ text: 'Ho capito. Andiamo.', action: 'serata:go' }] },
         lyuce_elegante: { text: 'Nicola, senza dubbio: divisa pulita, colori giusti. Il resto del circolo lo sto sistemando, un bottone alla volta.' },
         lyuce_ancora: { text: ['Hai visto Zugo? Prima o poi lo convinco a lasciare i kaki.', 'Kappa è l\'unica che si veste per lavorare. Rispetto.',
           'Cronico con quel cappellino... ci sto ancora pensando.'],
@@ -1005,6 +1015,8 @@ export const CONFIG = {
   },
 
   ui: {
+    // sottotitoli: in coda (non si sovrappongono), durata = base + caratteri / charsPerSecond (tra la durata data e max)
+    subtitles: { base: 2.2, charsPerSecond: 12, max: 10, gap: 0.6, queue: 2 },
     title: 'Circolo Vizioso',
     credits: 'Modelli 3D di terzi: "LED TV" di ragstorich (CC-BY 3.0), "Cigarette with Smoke" (Blend Swap #80373, CC-BY 3.0), "Drink Bar assets v.5" di b2przemo (CC-BY 3.0). Bersaglio, freccette, carte e parti mobili dei minigiochi realizzati per il progetto. Personaggi creati con Meshy AI; mani da Human Base Meshes di Blender Studio (CC0). Texture legno da Poly Haven (CC0). Hamburger e bibita da "Low Poly Beach Assets" di JosephBennett (Blend Swap #73900, CC0); telefono: modello iPhone 5s / SE.',
     subtitle: 'Una sera al circolo: si beve, si gioca, si ride. E poi si ricomincia.',

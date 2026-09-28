@@ -284,7 +284,7 @@ export class BarOrder {
     this.stream.material.color.setHex(dr.color);
     this.stream.material.opacity = Math.min(0.9, dr.opacity + 0.1);
     if (this.prevClip) { ctx.npcs.setLoop(this.barista, this.prevClip, 1, 0.3); this.prevClip = null; }
-    ctx.ui.subtitle(this.barista.userData.displayName, dr.line, 3.5);
+    ctx.ui.subtitle(this.barista.userData.displayName, dr.line, 3.5, { now: true });
     // bicchiere: bordo e centro
     const g = this.api.glass;
     g.updateWorldMatrix(true, true);

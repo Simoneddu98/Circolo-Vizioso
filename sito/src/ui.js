@@ -159,13 +159,31 @@ export class UI {
     }));
   }
 
-  subtitle(name, text, duration = 4) {
+  // Sottotitoli in coda: una battuta non copre quella prima, e resta a schermo il tempo di leggerla (in proporzione alla
+  // lunghezza). opts.now = subito, al posto di quella in corso (battute della storia, dialoghi dei minigiochi).
+  subtitle(name, text, duration = 4, opts = {}) {
+    const c = this.cfg.ui.subtitles ?? {};
+    if (!name) { clearTimeout(this._subTimer); this._subQ = []; this._subOn = false; this.el.subtitle.hidden = true; return; }
+    const read = Math.min(c.max ?? 10, Math.max(duration, (c.base ?? 2) + text.length / (c.charsPerSecond ?? 13)));
+    const item = { name, text, dur: read };
+    this._subQ ??= [];
+    if (opts.now || !this._subOn) { this._subQ = opts.now ? [] : this._subQ; this._showSub(item); return; }
+    if (this._subQ.some((q) => q.text === text)) return;          // la stessa battuta già in attesa
+    this._subQ.push(item);
+    if (this._subQ.length > (c.queue ?? 2)) this._subQ.shift();    // troppe in coda: si perde la più vecchia
+  }
+
+  _showSub(item) {
     clearTimeout(this._subTimer);
-    if (!name) { this.el.subtitle.hidden = true; return; }
-    this.el.subName.textContent = name;
-    this.el.subText.textContent = `«${text}»`;
+    this._subOn = true;
+    this.el.subName.textContent = item.name;
+    this.el.subText.textContent = `«${item.text}»`;
     this.el.subtitle.hidden = false;
-    this._subTimer = setTimeout(() => { this.el.subtitle.hidden = true; }, duration * 1000);
+    this._subTimer = setTimeout(() => {
+      const next = this._subQ?.shift();
+      if (next) { this.el.subtitle.hidden = true; this._subTimer = setTimeout(() => this._showSub(next), (this.cfg.ui.subtitles?.gap ?? 0.5) * 1000); }
+      else { this._subOn = false; this.el.subtitle.hidden = true; }
+    }, item.dur * 1000);
   }
 
   toast(text, duration = 3) {

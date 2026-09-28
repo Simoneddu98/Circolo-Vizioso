@@ -326,7 +326,7 @@ export class MinigameManager {
       power: (v, zone) => mgr.power(v, zone),
       finish: (r) => mgr.finish(r),
       banter: (ev) => mgr.banter(ev),
-      say: (name, text) => ctx.ui.subtitle(name, text, 4),
+      say: (name, text) => ctx.ui.subtitle(name, text, 4, { now: true }),
       npc: (name) => ctx.npcs.npcs.find((o) => o.userData.npc_name === name),
       stats: () => mgr.stats[mgr.game.id] ?? {},
       pointerLocked: () => document.pointerLockElement === ctx.renderer.domElement,
@@ -376,7 +376,7 @@ export class MinigameManager {
     const now = performance.now();
     if (ev !== 'win' && ev !== 'lose' && now - (this._lastBanter ?? 0) < 5000) return;
     this._lastBanter = now;
-    this.ctx.ui.subtitle(g.opponent, pick(lines), 4);
+    this.ctx.ui.subtitle(g.opponent, pick(lines), 4, { now: true });
   }
 
   _statsLine(id) {

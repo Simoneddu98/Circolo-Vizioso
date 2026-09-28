@@ -122,7 +122,7 @@ export class Serata {
   // parlando con il personaggio del prossimo brano (quando lo trovi) parte il suo invito
   startNode(npc) {
     const invito = this.story && this.cfg.inviti[this.progress.goal];
-    if (!invito?.cerca || this.stage !== 'idle' || npc.userData.npc_name !== invito.npc) return null;
+    if (!invito?.cerca || !['idle', 'vaAlPosto', 'aspetta'].includes(this.stage) || npc.userData.npc_name !== invito.npc) return null;
     this.guide = npc;
     npc.userData.directed = true;                               // resta fermo mentre ti parla
     this.ctx.camerawork?.stop(npc);
@@ -134,13 +134,57 @@ export class Serata {
   }
 
   // in attesa di essere trovato: quando ti avvicini ti chiama (una volta)
-  _waitToBeFound(invito) {
-    if (this.called === invito.npc) return;
+  // Il personaggio del prossimo brano va ad aspettarti nel punto più lontano da te (CONFIG.serata.attese): l'obiettivo dice
+  // dove, e sei tu a raggiungerlo.
+  _sendAway(invito) {
     const npc = this._npc(invito.npc);
     if (!npc) { this.progress.complete(this.progress.goal); return; }
+    const p = this.ctx.player.position;
+    const spots = this.cfg.attese.filter((s) => s !== this.lastSpot);
+    const spot = spots.reduce((a, b) => (Math.hypot(b.x - p.x, b.z - p.z) > Math.hypot(a.x - p.x, a.z - p.z) ? b : a));
+    this.lastSpot = spot;
+    this.progress.setWhere(this.progress.goal, spot.dove);
+    this.guide = npc;
     npc.visible = true;
-    const p = this.ctx.player.position, q = npc.getWorldPosition(new THREE.Vector3());
-    if (Math.hypot(p.x - q.x, p.z - q.z) < 3.5 && !this.ctx.dialogue.active) {
+    npc.userData.directed = true;
+    this.ctx.camerawork?.stop(npc);
+    this.ctx.npcs.stopAction(npc);
+    this.walkT = 0; this.stuckT = 0; this.bestD = Infinity; this.ghost = 0;
+    this.spot = spot;
+    const u = npc.userData;
+    if (u.walk_clip) this.ctx.npcs.setLoop(npc, u.walk_clip, u.walk_speed ? 1.2 / u.walk_speed : 1, 0.3);
+    this.stage = 'vaAlPosto';
+  }
+
+  // cammina fino al punto d'attesa (scivola lungo i mobili; se resta incastrato per un po' passa oltre)
+  _walkTo(dt) {
+    const ctx = this.ctx, npc = this.guide, q = npc.position, s = this.spot;
+    const dx = s.x - q.x, dz = s.z - q.z, d = Math.hypot(dx, dz);
+    this.walkT += dt;
+    if (d < 0.12 || this.walkT > 25) {
+      if (this.walkT > 25) { q.x = s.x; q.z = s.z; }
+      const u = npc.userData;
+      if (u.idle_clip) ctx.npcs.setLoop(npc, u.stand_clip ?? u.idle_clip, 1, 0.3);
+      this.stage = 'aspetta';
+      return;
+    }
+    const step = Math.min(d, 1.2 * dt);
+    if (d < this.bestD - 0.05) { this.bestD = d; this.stuckT = 0; } else this.stuckT += dt;
+    if (this.stuckT > 1.5) { this.ghost = 2; this.stuckT = 0; this.bestD = d; }
+    q.x += (dx / d) * step; q.z += (dz / d) * step;
+    if ((this.ghost = Math.max(0, this.ghost - dt)) <= 0) ctx.collisions?.resolve(q, 0.2);
+    let a = Math.atan2(dx, dz) - npc.rotation.y; a = Math.atan2(Math.sin(a), Math.cos(a));
+    npc.rotation.y += a * Math.min(1, dt * 7);
+  }
+
+  // fermo al suo posto: ti guarda quando sei vicino e ti chiama (una volta)
+  _waitToBeFound(invito) {
+    const npc = this.guide;
+    if (!npc) return;
+    const p = this.ctx.player.position, q = npc.position;
+    const d = Math.hypot(p.x - q.x, p.z - q.z);
+    if (d < 5) { let a = Math.atan2(p.x - q.x, p.z - q.z) - npc.rotation.y; a = Math.atan2(Math.sin(a), Math.cos(a)); npc.rotation.y += a * 0.08; }
+    if (this.called !== invito.npc && d < 3.5 && !this.ctx.dialogue.active) {
       this.called = invito.npc;
       this._say(invito.npc, invito.chiama, 4);
     }
@@ -149,6 +193,7 @@ export class Serata {
   key(e) {
     if (!this.freeze && this.stage !== 'result' && this.stage !== 'fine') return false;
     if (e.code === 'Escape') { this.ctx.pause?.(); return true; }
+    if (this.stage === 'pronto' && (e.code === 'Enter' || e.code === 'Space')) { this._go(); return true; }
     if (this.stage === 'play') this.game?.key?.(e);
     return true;
   }
@@ -166,7 +211,7 @@ export class Serata {
     if (this.trackLeft != null && this.stage !== 'play') {
       this.trackLeft -= dt;
       this.ov.setTime(this.trackLeft);
-      if (this.stage === 'ritorno' && this.trackLeft <= this.cfg.spettacolo.minimo && this._playerFree()) this._autoSeat();
+      if (this.stage === 'ritorno' && this.trackLeft <= this.cfg.spettacolo.durata && this._playerFree()) this._autoSeat();
     }
     if (this.stage === 'play' && this.game) {
       this.left -= dt;
@@ -194,10 +239,12 @@ export class Serata {
     }
     const invito = this.cfg.inviti[goal];
     if (invito) {
-      if (this.stage === 'idle' && invito.cerca) this._waitToBeFound(invito);
+      if (this.stage === 'idle' && invito.cerca) this._sendAway(invito);
+      else if (this.stage === 'vaAlPosto') this._walkTo(dt);
+      else if (this.stage === 'aspetta') this._waitToBeFound(invito);
       else if (this.stage === 'idle' && this._playerFree()) this._approach(invito);
       else if (this.stage === 'approach') this._walk(dt);
-      else if (this.stage === 'talk' && invito.cerca && !ctx.dialogue.active) { this._release(); this.stage = 'idle'; this.wait = 1; }
+      else if (this.stage === 'talk' && invito.cerca && !ctx.dialogue.active) { this.stage = 'aspetta'; this.wait = 1; }   // resta lì ad aspettarti
       else if (this.stage === 'talk' && !ctx.dialogue.active && this._playerFree()) {
         const q = this.guide.position, pp = ctx.player.position;
         if (Math.hypot(q.x - pp.x, q.z - pp.z) > 2.2) { this._approach(invito); return; }   // si è allontanato: ti segue
@@ -322,7 +369,7 @@ export class Serata {
 
   // battuta della storia: niente chiacchiere di sottofondo sopra finché non è finita
   _say(who, text, dur = 5) {
-    this.ctx.ui.subtitle(who, text, dur);
+    this.ctx.ui.subtitle(who, text, dur, { now: true });
     this.ctx.npcs.lastTime = this.ctx.npcs.clock + dur;
   }
 
@@ -469,6 +516,20 @@ export class Serata {
     };
     this.gameId = goal;
     this.game = GIOCHI[goal](api);
+    this.api = api;
+    // prima le regole: il tempo (e la musica) partono solo con Inizia
+    this.ov.setTime(brano.gioco ?? brano.durata);
+    this.stage = 'pronto';
+    this.ov.panel(`<h2>${this.cfg.ui.comeSiGioca}</h2><ul>${(brano.regole ?? []).map((r) => `<li>${r}</li>`).join('')}</ul>
+      <p style="opacity:.8">${this.cfg.ui.durata.replace('{s}', brano.gioco ?? brano.durata)}</p>`,
+    [{ label: this.cfg.ui.inizia, main: true, action: () => this._go() }]);
+  }
+
+  async _go() {
+    if (this.stage !== 'pronto') return;
+    const goal = this.gameId, brano = this.cfg.brani[goal], api = this.api;
+    this.stage = 'loading';
+    this.ov.clear();
     const dur = await this.ov.music(brano);
     if (this.stage !== 'loading') return;                        // ricominciato nel frattempo
     // il gioco dura `gioco` secondi (un minuto); il quinto brano poi continua (`continua`) con il finale
@@ -508,6 +569,7 @@ export class Serata {
     if (this.trackLeft == null) this.ov.showBar(null);           // il quinto brano va avanti: la barra resta col tempo
     this.box.visible = false;
     if (goal === 'fumo') this.food.clear();                      // si è mangiato: il tavolino si libera (arriva la scatola nera)
+    if (ctx.smoking.holding) ctx.smoking.putOut(ctx, this.cfg.indicazioni.spenta);   // la sigaretta della cena finisce nel posacenere
     const key = { cinema: 'cinemaFine', fumo: 'fumoFine', blackbox: 'bbFine', cometiva: 'ctvFine', bicchiere: 'bicFine' }[goal];
     const [who, line] = this.cfg.battute[key];
     this._say(who, this.decorate(this._npc(who), line), 5);
@@ -521,7 +583,7 @@ export class Serata {
     this.stage = goal === 'bicchiere' ? 'ritorno' : 'idle';
     this.called = null;
     this.wait = 4;
-    if (goal === 'bicchiere') setTimeout(() => { if (this.stage === 'ritorno') this._hint(this.cfg.indicazioni.siediti); }, 12000);
+    if (goal === 'bicchiere') setTimeout(() => { if (this.stage === 'ritorno') this._hint(this.cfg.indicazioni.siediti); }, 10500);
     this.progress.complete(goal);
   }
 
@@ -537,9 +599,8 @@ export class Serata {
     ctx.releaseLock();
     const [who, line] = this.cfg.battute.spettacolo;
     this._say(who, line, 6);
-    const c = this.cfg.spettacolo;
-    const durata = Math.max(c.minimo, this.trackLeft ?? c.minimo);
-    this.show = new Spettacolo(ctx, { ...c, durata, raduno: Math.min(c.raduno, durata * 0.2) });
+    ctx.smoking.endless = true;                                  // la sigaretta dura tutto lo spettacolo
+    this.show = new Spettacolo(ctx, this.cfg.spettacolo);
   }
 
   _endShow() {
@@ -548,9 +609,11 @@ export class Serata {
     this.trackLeft = null;
     this.ov.showBar(null);
     this.ov.stopMusic();
+    ctx.smoking.endless = false;
     this.ov.fade(true, () => {
       this.show.stop();
       this.show = null;
+      if (ctx.smoking.holding) ctx.smoking.putOut(ctx);
       ctx.ui.showHUD(false);                                     // il logo da solo: niente obiettivi, tasca o sottotitoli dietro
       ctx.wallet.show(false);
       ctx.ui.subtitle(null);

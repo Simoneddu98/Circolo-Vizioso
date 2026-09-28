@@ -12,11 +12,30 @@ export const SERATA = {
   // lì e la musica si ferma). Il quinto continua dopo il gioco (`continua`): si cercano le sigarette, ci si siede e c'è lo
   // spettacolo, fino alla fine del brano (`durata`).
   brani: {
-    cinema: { n: 1, titolo: 'Cinema', audio: null, durata: 60, gioco: 60 },
-    fumo: { n: 2, titolo: 'Fumo', audio: null, durata: 60, gioco: 60 },
-    blackbox: { n: 3, titolo: 'Black Box', audio: null, durata: 60, gioco: 60 },
-    cometiva: { n: 4, titolo: 'Come ti va', audio: null, durata: 60, gioco: 60 },
-    bicchiere: { n: 5, titolo: 'Mezzo pieno', audio: null, durata: 180, gioco: 60, continua: true },
+    // `regole`: la scheda "Come si gioca" prima di ogni gioco (il tempo parte solo quando premi Inizia)
+    cinema: { n: 1, titolo: 'Cinema', audio: null, durata: 60, gioco: 60, regole: [
+      'Sul maxischermo compare una domanda su un film d\'amore (o un po\' più caldo) con quattro risposte: A, B, C, D.',
+      'Rispondi con i tasti 1-4 o A-D, oppure clicca la risposta nei pulsanti in basso.',
+      '12 secondi per domanda: più sei veloce più punti fai, e le risposte giuste di fila danno un bonus.'] },
+    fumo: { n: 2, titolo: 'Fumo', audio: null, durata: 60, gioco: 60, regole: [
+      'In alto qualcuno del tavolo ti dice cosa vuole mangiare: leggilo bene.',
+      'Scegli il volantino (kebab, pizza o hamburger), componi l\'ordine rispettando la richiesta, poi "Chiama".',
+      'Componi sul telefono il numero scritto sul volantino (tastiera o numeri a schermo) e scegli l\'orario.',
+      'Punti se rispetti la richiesta, se il numero è giusto al primo colpo e se fai in fretta. Il cibo arriva sul tavolino.'] },
+    blackbox: { n: 3, titolo: 'Black Box', audio: null, durata: 60, gioco: 60, regole: [
+      'A sinistra c\'è come comincia una storia, a destra come finisce. In mezzo, la scatola nera.',
+      '"Cosa è successo in mezzo?": scegli la risposta giusta tra tre (clic o tasti 1-3).',
+      '"Metti in ordine": clicca i passaggi dal primo all\'ultimo (un secondo clic lo toglie).',
+      'Ogni scatola ha il suo tempo (la barra gialla): più sei veloce più punti fai.'] },
+    cometiva: { n: 4, titolo: 'Come ti va', audio: null, durata: 60, gioco: 60, regole: [
+      'Arrivano tanti giochini, uno dopo l\'altro. In giallo c\'è scritto cosa fare: leggilo, poi parte la barra del tempo.',
+      'Premi la lettera, tocca il bicchiere pieno, ferma la barra nel verde, conta le sigarette, trova l\'intruso...',
+      'Si gioca con il mouse (o il dito) sui pulsanti, oppure con la tastiera quando è indicato.',
+      'Ogni giochino vinto vale punti, di più se ne vinci tanti di fila. Più vai avanti, più sono veloci.'] },
+    bicchiere: { n: 5, titolo: 'Mezzo pieno', audio: null, durata: 180, gioco: 60, continua: true, regole: [
+      'Guarda i tre bicchieri: Nicola ne riempie uno fino a metà (mezzo pieno), Zugo ne beve metà di un altro (mezzo vuoto), il terzo resta pieno.',
+      'Poi i bicchieri si mescolano: seguili con gli occhi.',
+      'Alla fine clicca prima il mezzo pieno, poi il mezzo vuoto (o tasti 1-3 da sinistra). Ogni giro è più veloce.'] },
   },
 
   // a fine serata i punti diventano euro da spendere nel circolo: tornano al bancone, alle slot, ai gettoni...
@@ -40,6 +59,9 @@ export const SERATA = {
     brano: 'Brano {n}',
     punti: 'punti',
     continua: 'Continua',
+    comeSiGioca: 'Come si gioca',
+    inizia: 'Inizia (Invio)',
+    durata: 'Hai {s} secondi. Il tempo parte quando premi Inizia.',
     risultato: 'Brano {n} · {titolo}',
     totale: 'Punti della serata',
     esc: 'Esc: pausa',
@@ -56,12 +78,12 @@ export const SERATA = {
   passi: [
     { goal: 'nicola', text: 'Parla con Nicola al bancone', locked: 'Prima parla con Nicola al bancone' },
     { goal: 'presentazioni', text: 'Presentati a tutti ({n}/5): Cronico, Rafka, Kappa, Zugo, Lyuce', locked: 'Prima conosci tutti' },
-    { goal: 'cinema', text: 'Brano 1 · Cinema: segui Cronico', locked: 'Più tardi: adesso c\'è la serata' },
-    { goal: 'fumo', text: 'Brano 2 · Fumo: cerca Rafka nel circolo', locked: 'Più tardi: adesso c\'è la serata' },
-    { goal: 'blackbox', text: 'Brano 3 · Black Box: cerca Lyuce', locked: 'Più tardi: adesso c\'è la serata' },
-    { goal: 'cometiva', text: 'Brano 4 · Come ti va: cerca Kappa', locked: 'Più tardi: adesso c\'è la serata' },
-    { goal: 'bicchiere', text: 'Brano 5 · Mezzo pieno: cerca Zugo', locked: 'Più tardi: adesso c\'è la serata' },
-    { goal: 'spettacolo', text: 'Prendi una sigaretta dal tavolino in fondo e siediti sulla sedia accanto', locked: 'Prima goditi lo spettacolo' },
+    { goal: 'cinema', text: 'Brano 1 · Cinema: raggiungi Cronico ({dove})', locked: 'Più tardi: adesso c\'è la serata' },
+    { goal: 'fumo', text: 'Brano 2 · Fumo: raggiungi Rafka ({dove})', locked: 'Più tardi: adesso c\'è la serata' },
+    { goal: 'blackbox', text: 'Brano 3 · Black Box: raggiungi Lyuce ({dove})', locked: 'Più tardi: adesso c\'è la serata' },
+    { goal: 'cometiva', text: 'Brano 4 · Come ti va: raggiungi Kappa ({dove})', locked: 'Più tardi: adesso c\'è la serata' },
+    { goal: 'bicchiere', text: 'Brano 5 · Mezzo pieno: raggiungi Zugo ({dove})', locked: 'Più tardi: adesso c\'è la serata' },
+    { goal: 'spettacolo', text: 'Tavolino in fondo: prendi una sigaretta (E), poi siediti sulla sedia accanto (E)', locked: 'Prima goditi lo spettacolo' },
     { goal: 'games', text: 'Sei libero: gira per il circolo e sfida tutti' },
   ],
   requires: { smoke: 'cinema', minigame: 'spettacolo' },
@@ -69,7 +91,8 @@ export const SERATA = {
   indicazioni: {
     prendiSigaretta: 'Prendi una sigaretta dal tavolino',
     prendiScatola: 'Prendi la scatola nera sul tavolino',
-    siediti: 'Prendi una sigaretta dal tavolino e siediti sulla sedia accanto',
+    siediti: 'Al tavolino in fondo: prendi una sigaretta (E), poi siediti sulla sedia (E)',
+    spenta: 'Spegni la sigaretta nel posacenere',
     primaSigaretta: 'Prima prendi una sigaretta dal tavolino',
   },
   // chi bisogna conoscere (nodo iniziale del loro dialogo) prima che Cronico ti venga a prendere
@@ -79,10 +102,19 @@ export const SERATA = {
   // aggiunto alla prima battuta di Rafka, Kappa, Zugo e Lyuce finché non hai conosciuto tutti
   presentazioniCoda: 'Fatti un giro e conosci tutti: tra poco Cronico ti fa partire la prima attività.',
 
-  // chi ti invita a ogni brano, con quale nodo di dialogo. Cronico (primo brano) ti viene a prendere; gli altri li cerchi
-  // tu per il circolo: parlandoci parte il loro invito. `chiama` = cosa dicono quando li trovi (entro 3,5 m)
+  // chi ti invita a ogni brano, con quale nodo di dialogo. Tutti vanno ad aspettarti in un punto lontano dal giocatore
+  // (`attese`, l'obiettivo dice dove) e li raggiungi tu: parlandoci parte l'invito. `chiama` = cosa dicono quando arrivi
+  // vicino (entro 3,5 m)
+  attese: [
+    { x: -2.3, z: 3.2, dove: 'vicino alla porta' },
+    { x: 1.6, z: -2.9, dove: 'alle freccette' },
+    { x: 4.4, z: -2.7, dove: 'alle slot machine' },
+    { x: 2.75, z: 3.3, dove: 'dietro al tavolo da carte' },
+    { x: -4.0, z: 1.35, dove: 'in fondo al bancone' },
+    { x: -3.7, z: -3.0, dove: 'nell\'angolo sotto il maxischermo' },
+  ],
   inviti: {
-    cinema: { npc: 'Cronico', nodo: 'cinema_invito' },
+    cinema: { npc: 'Cronico', nodo: 'cinema_invito', cerca: true, chiama: 'Ohi! Eccoti, finalmente. Vieni, che si comincia.' },
     fumo: { npc: 'Rafka', nodo: 'fumo_invito', cerca: true, chiama: 'Ohi! Eccoti. Vieni qua, che ti devo dire una cosa.' },
     blackbox: { npc: 'Lyuce', nodo: 'bb_invito', cerca: true, chiama: 'Eccoti. Hai un minuto? Vieni.' },
     cometiva: { npc: 'Kappa', nodo: 'ctv_invito', cerca: true, chiama: 'AAAAAAH, finalmente! Vieni qui!' },
@@ -213,7 +245,7 @@ export const SERATA = {
   // Si sa com'è iniziata e com'è finita: si indovina cosa è successo in mezzo. 'scegli': la risposta giusta è la
   // prima (vengono mescolate); 'ordina': i passaggi sono già nell'ordine giusto (vengono mescolati).
   blackbox: {
-    tempo: 14,                              // secondi per scatola
+    tempo: 22,                              // secondi per scatola (il tempo di leggere inizio, fine e risposte)
     punti: 100, puntiOrdine: 150, bonusVelocita: 50,
     commenti: {
       giusta: ['Esatto. Visto che le cose non succedono per caso?', 'Brava testa.', 'Giusto. E tu come ci sei arrivato?'],
@@ -253,8 +285,9 @@ export const SERATA = {
 
   // ------------------------------------------------------------------ Brano 4: tutti i giochi che riesci, in fila
   cometiva: {
-    tempoBase: 5,                           // secondi per microgioco all'inizio...
-    tempoMin: 2.5,                          // ...e alla fine (si accelera)
+    tempoBase: 8,                           // secondi per microgioco all'inizio...
+    tempoMin: 5,                            // ...e alla fine (si accelera)
+    lettura: 1.2,                           // secondi per leggere cosa fare prima che parta la barra del tempo
     punti: 100, bonusSerie: 15,
     kappa: ['AAAAAAH! Vai così!', 'Più veloce! Più veloce!', 'Sei una bestia!', 'Non ti fermare!', 'AAAAAAH, che riflessi!'],
     colori: [['ROSSO', '#e0402a'], ['VERDE', '#2fa24a'], ['BLU', '#3a6ee8'], ['GIALLO', '#f2c230']],
@@ -263,9 +296,10 @@ export const SERATA = {
 
   // ------------------------------------------------------------------ Brano 5: mezzo pieno o mezzo vuoto?
   bicchiere: {
-    scambi: [5, 14],                        // scambi al primo giro e al giro più difficile
-    velocita: [0.5, 0.17],                  // secondi per scambio (all'inizio, alla fine)
-    giriAlMassimo: 4,                       // al quarto giro è già alla velocità massima (il gioco dura un minuto)
+    scambi: [3, 8],                         // scambi al primo giro e al giro più difficile
+    velocita: [0.7, 0.32],                  // secondi per scambio (all'inizio, alla fine)
+    mostra: 3.6,                            // secondi per guardare i bicchieri prima che si mescolino
+    giriAlMassimo: 5,
     punti: 100, bonusVelocita: 40,
     domande: ['Dov\'è il bicchiere mezzo pieno?', 'E quello mezzo vuoto?'],
     etichette: { pieno: 'Pieno', mezzoPieno: 'Mezzo pieno', mezzoVuoto: 'Mezzo vuoto' },
@@ -274,11 +308,11 @@ export const SERATA = {
 
   // ------------------------------------------------------------------ finale: il giro del circolo
   spettacolo: {
-    minimo: 45,                             // dura quanto resta del quinto brano, ma almeno questo (se non ti siedi entro allora ti
-                                            // ci porta Nicola)
-    raduno: 22,                             // secondi per mettersi in fila
-    passo: [1.0, 3.4],                      // metri al secondo: camminata all'inizio, corsa alla fine
-    corsaDa: 0.45,                          // frazione del tempo dopo il raduno in cui si comincia ad accelerare
+    durata: 60,                             // un minuto, dal momento in cui ti siedi (se il quinto brano sta per finire e non ti
+                                            // sei ancora seduto, Nicola ti accende una sigaretta e ti ci porta)
+    raduno: 12,                             // secondi per mettersi in fila
+    passo: [1.0, 6.5],                      // metri al secondo: camminata tranquilla all'inizio, corsa a perdifiato alla fine
+    corsaDa: 0.25,                          // frazione del tempo dopo il raduno in cui si comincia ad accelerare
     // anello attorno al biliardo, dove non ci sono ostacoli (x verso est, z verso sud)
     anello: { x: [-2.3, 2.6], z: [0.1, 3.0], raggio: 0.7 },
     chi: ['Cronico', 'Rafka', 'Kappa', 'Zugo', 'Lyuce', 'Efisio', 'Tonino', 'Peppino', 'Gavino'],

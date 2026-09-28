@@ -188,7 +188,7 @@ export function createCometiva(api) {
     micro = GIOCHI[id]();
     const k = Math.min(1, elapsed / (api.durata || 210));
     limit = lerp(cfg.tempoBase, cfg.tempoMin, k);
-    t = 0;
+    t = -(cfg.lettura ?? 0);                     // prima si legge cosa fare, poi parte la barra del tempo
     card.innerHTML = `<div class="head"><span>Gioco ${giocati + 1}</span><span>${vinti} vinti${serie > 1 ? ` · serie ×${serie}` : ''}</span></div>
       <div class="ist">${micro.ist}</div><div class="timer"><div></div></div><div class="area"></div>`;
     micro.build(card.querySelector('.area'));
@@ -210,7 +210,7 @@ export function createCometiva(api) {
       sfx({ freq: 160, dur: 0.18, vol: 0.18, noise: 0.2, type: 'sawtooth' });
     }
     micro = null;
-    pausa = 0.55;
+    pausa = 0.9;
     card.querySelectorAll('button').forEach((b) => { b.disabled = true; });
   }
 
@@ -221,9 +221,9 @@ export function createCometiva(api) {
       if (pausa > 0) { if ((pausa -= dt) <= 0) nextMicro(); return; }
       if (!micro) return;
       t += dt;
-      micro.update?.(dt);
+      if (t >= 0) micro.update?.(dt);
       const bar = card.querySelector('.timer div');
-      if (bar) bar.style.width = `${Math.max(0, 1 - t / limit) * 100}%`;
+      if (bar) bar.style.width = `${Math.max(0, Math.min(1, 1 - t / limit)) * 100}%`;
       if (t >= limit) finish(false);
     },
     key(e) { return micro?.key?.(e) ?? false; },

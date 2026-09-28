@@ -67,6 +67,7 @@ export function createSmokeHandler() {
     state: 'idle',              // idle | held | puff | done
     pack: null, left: 0, cig: null, ember: null, tip: null,
     t: 0, puffs: 0, tipAcc: 0, exhaleT: -1, fx: null, glow: 0,
+    endless: false,             // la serata, durante lo spettacolo: la sigaretta non finisce
   };
 
   function makeCigarette(ctx) {
@@ -124,6 +125,16 @@ export function createSmokeHandler() {
   return {
     get holding() { return s.state !== 'idle'; },
     get puffs() { return s.puffs; },               // tiri fatti con la sigaretta di adesso
+    set endless(v) { s.endless = v; },
+    // spegne la sigaretta in mano (nel posacenere), senza contarla come "fumata"
+    putOut(ctx, toast = null) {
+      if (!s.cig) return;
+      s.state = 'done';
+      s.back = false;
+      ctx.ui.setHeldHint(null);
+      if (toast) ctx.ui.toast(toast);
+      ctx.hands.hide(() => { s.cig?.removeFromParent(); s.cig = null; s.state = 'idle'; });
+    },
     // Cronico ti dà una sigaretta e te la accende
     give(ctx) {
       if (s.state !== 'idle' || ctx.hands.active) { ctx.ui.toast(ctx.config.minigames.handsBusy); return; }
@@ -197,7 +208,7 @@ export function createSmokeHandler() {
       if (s.t >= c.toMouth + c.hold + c.back) {
         s.back = false;
         s.puffs++;
-        if (s.puffs >= c.puffs) finish(ctx);
+        if (s.puffs >= c.puffs && !s.endless) finish(ctx);
         else { s.state = 'held'; ctx.ui.setHeldHint(ctx.config.ui.smokeHint); }
       }
     },

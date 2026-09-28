@@ -30,6 +30,9 @@ export class Progress {
 
   setCount(goal, n) { this.counts[goal] = n; this.ui.renderGoals(); }
 
+  // dove si trova chi devi raggiungere ({dove} nel testo del passo)
+  setWhere(goal, text) { (this.where ??= {})[goal] = text; this.ui.renderGoals(); }
+
   get steps() { return this.cfg.steps; }
 
   // indice del primo passo non completato (= passo corrente)
@@ -65,7 +68,10 @@ export class Progress {
     this.ui.renderGoals();
   }
 
-  text(step) { return step.text.replace('{n}', this.counts[step.goal] ?? 0); }
+  text(step) {
+    const where = this.where?.[step.goal];
+    return step.text.replace('{n}', this.counts[step.goal] ?? 0).replace(where ? '{dove}' : / ?\(\{dove\}\)/, where ?? '');
+  }
 
   reset() { this.done.clear(); this.counts = {}; this._save(); this.ui.renderGoals(); }
 
