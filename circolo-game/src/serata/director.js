@@ -38,6 +38,9 @@ export class Serata {
     this.scores = this._load();
     this.food = new Food(ctx, ctx.config.assets.food);
     ctx.npcs.decorate = (npc, text) => this.decorate(npc, text);
+    // titoli dei brani e logo finale: scaricati subito, così compaiono senza attese
+    this.preload = [...Object.values(this.cfg.brani).map((b) => b.titoloImg), './assets/logo.webp'].filter(Boolean)
+      .map((src) => { const i = new Image(); i.src = src; return i; });
     this._wrapBarista();
     this._makeBox();
     this._makeSeat();
@@ -73,6 +76,7 @@ export class Serata {
   }
 
   reset() {
+    clearTimeout(this.titleT);
     this._stopGame();
     this.show?.stop(); this.show = null;
     this.ov.clear(); this.ov.showBar(null); this.ov.big(null); this.ov.fade(false); this.ov.stopMusic();
@@ -109,7 +113,46 @@ export class Serata {
   action(what, npc) {
     if (what !== 'go' || this.stage !== 'talk') return;
     this.stage = 'going';
-    this.ov.fade(true, () => { this._place(this.progress.goal, npc); this.ov.fade(false); });
+    const goal = this.progress.goal;
+    this.ov.fade(true, () => { this._place(goal, npc); this._titolo(goal, npc); });
+  }
+
+  // Titolo del brano a tutto schermo (come "Benvenuti al Circolo Vizioso"): niente card, dialoghi o sottotitoli intorno,
+  // il giocatore fermo. Poi si prepara il gioco (sigaretta, scatola nera) o parte la scheda "Come si gioca".
+  _titolo(goal, npc) {
+    const ctx = this.ctx, img = this.cfg.brani[goal]?.titoloImg;
+    this.stage = 'titolo';
+    this.freeze = true;
+    ctx.player.clearInput();
+    ctx.ui.subtitle(null);
+    document.body.classList.add('srt-on');
+    this.ov.fade(false);
+    if (!img) { this._afterTitolo(goal, npc); return; }
+    this.ov.big(`<img src="${img}" alt="${this.cfg.brani[goal].titolo}">`);
+    clearTimeout(this.titleT);
+    this.titleT = setTimeout(() => {
+      this.ov.big(null);
+      this.titleT = setTimeout(() => this._afterTitolo(goal, npc), 700);   // il titolo sfuma, poi si continua
+    }, this.cfg.titoloDurata * 1000);
+  }
+
+  _afterTitolo(goal, npc) {
+    if (this.stage !== 'titolo') return;
+    const ctx = this.ctx;
+    this.freeze = false;
+    document.body.classList.remove('srt-on');
+    ctx.ui.subtitle(null);
+    ctx.npcs.lastTime = ctx.npcs.clock;                          // una pausa prima delle chiacchiere di sottofondo
+    if (goal === 'fumo') {
+      this.food.showPhone(true);
+      this.stage = 'prep'; this.prep = 'sigaretta';
+      this._hint(this.cfg.indicazioni.prendiSigaretta);
+      this._say(npc.userData.npc_name, 'Posso dire? Prendine una dal pacchetto sul tavolino. Offre la casa.', 4);
+    } else if (goal === 'blackbox') {
+      this.box.visible = true;
+      this.stage = 'prep'; this.prep = 'scatola';
+      this._hint(this.cfg.indicazioni.prendiScatola);
+    } else this._startGame(goal);
   }
 
   onDialogueClosed(npc) {
@@ -348,21 +391,10 @@ export class Serata {
       if (chair && screen) seatInFront(ctx, chair, screen);
       const tvc = screen ? new THREE.Box3().setFromObject(screen).getCenter(new THREE.Vector3()) : new THREE.Vector3(-1.5, 0, -4);
       this._placeNpc(npc, P.npc, tvc);
-      this._startGame(goal);
       return;
     }
     this._placePlayer(P.player, P.guarda, P.pitch ?? -0.3);
     this._placeNpc(npc, P.npc, ctx.player.position);
-    if (goal === 'fumo') {
-      this.food.showPhone(true);
-      this.stage = 'prep'; this.prep = 'sigaretta';
-      this._hint(this.cfg.indicazioni.prendiSigaretta);
-      ctx.npcs.say(npc, 'Posso dire? Prendine una dal pacchetto sul tavolino. Offre la casa.');
-    } else if (goal === 'blackbox') {
-      this.box.visible = true;
-      this.stage = 'prep'; this.prep = 'scatola';
-      this._hint(this.cfg.indicazioni.prendiScatola);
-    } else this._startGame(goal);
   }
 
   _hint(text) { this.ctx.ui.toast(text, 4); }

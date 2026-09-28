@@ -7,32 +7,33 @@
 export const SERATA = {
   storageKey: 'circolo.serata.v1',          // punti e record, salvati nel browser
   fade: 0.5,
+  titoloDurata: 3.5,                        // secondi del titolo del brano a tutto schermo, prima del gioco
 
   // `gioco` = quanto dura il gioco (secondi): 1 minuto per tutti, anche se il brano è più lungo (con l'audio, il gioco finisce
   // lì e la musica si ferma). Il quinto continua dopo il gioco (`continua`): si cercano le sigarette, ci si siede e c'è lo
   // spettacolo, fino alla fine del brano (`durata`).
   brani: {
     // `regole`: la scheda "Come si gioca" prima di ogni gioco (il tempo parte solo quando premi Inizia)
-    cinema: { n: 1, titolo: 'Cinema', audio: null, durata: 60, gioco: 60, regole: [
+    cinema: { titoloImg: './assets/titoli/cinema.png', n: 1, titolo: 'Cinema', audio: null, durata: 60, gioco: 60, regole: [
       'Sul maxischermo compare una domanda su un film d\'amore (o un po\' più caldo) con quattro risposte: A, B, C, D.',
       'Rispondi con i tasti 1-4 o A-D, oppure clicca la risposta nei pulsanti in basso.',
       '12 secondi per domanda: più sei veloce più punti fai, e le risposte giuste di fila danno un bonus.'] },
-    fumo: { n: 2, titolo: 'Fumo', audio: null, durata: 60, gioco: 60, regole: [
+    fumo: { titoloImg: './assets/titoli/fumo.png', n: 2, titolo: 'Fumo', audio: null, durata: 60, gioco: 60, regole: [
       'In alto qualcuno del tavolo ti dice cosa vuole mangiare: leggilo bene.',
       'Scegli il volantino (kebab, pizza o hamburger), componi l\'ordine rispettando la richiesta, poi "Chiama".',
       'Componi sul telefono il numero scritto sul volantino (tastiera o numeri a schermo) e scegli l\'orario.',
       'Punti se rispetti la richiesta, se il numero è giusto al primo colpo e se fai in fretta. Il cibo arriva sul tavolino.'] },
-    blackbox: { n: 3, titolo: 'Black Box', audio: null, durata: 60, gioco: 60, regole: [
+    blackbox: { titoloImg: './assets/titoli/blackbox.png', n: 3, titolo: 'Black Box', audio: null, durata: 60, gioco: 60, regole: [
       'A sinistra c\'è come comincia una storia, a destra come finisce. In mezzo, la scatola nera.',
       '"Cosa è successo in mezzo?": scegli la risposta giusta tra tre (clic o tasti 1-3).',
       '"Metti in ordine": clicca i passaggi dal primo all\'ultimo (un secondo clic lo toglie).',
       'Ogni scatola ha il suo tempo (la barra gialla): più sei veloce più punti fai.'] },
-    cometiva: { n: 4, titolo: 'Come ti va', audio: null, durata: 60, gioco: 60, regole: [
+    cometiva: { titoloImg: './assets/titoli/cometiva.png', n: 4, titolo: 'Come ti va', audio: null, durata: 60, gioco: 60, regole: [
       'Arrivano tanti giochini, uno dopo l\'altro. In giallo c\'è scritto cosa fare: leggilo, poi parte la barra del tempo.',
       'Premi la lettera, tocca il bicchiere pieno, ferma la barra nel verde, conta le sigarette, trova l\'intruso...',
       'Si gioca con il mouse (o il dito) sui pulsanti, oppure con la tastiera quando è indicato.',
       'Ogni giochino vinto vale punti, di più se ne vinci tanti di fila. Più vai avanti, più sono veloci.'] },
-    bicchiere: { n: 5, titolo: 'Mezzo pieno', audio: null, durata: 180, gioco: 60, continua: true, regole: [
+    bicchiere: { titoloImg: './assets/titoli/bicchiere.png', n: 5, titolo: 'Mezzo pieno', audio: null, durata: 180, gioco: 60, continua: true, regole: [
       'Guarda i tre bicchieri: Nicola ne riempie uno fino a metà (mezzo pieno), Zugo ne beve metà di un altro (mezzo vuoto), il terzo resta pieno.',
       'Poi i bicchieri si mescolano: seguili con gli occhi.',
       'Alla fine clicca prima il mezzo pieno, poi il mezzo vuoto (o tasti 1-3 da sinistra). Ogni giro è più veloce.'] },
