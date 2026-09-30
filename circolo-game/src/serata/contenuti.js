@@ -292,7 +292,6 @@ export const SERATA = {
     punti: 100, bonusSerie: 15,
     kappa: ['AAAAAAH! Vai così!', 'Più veloce! Più veloce!', 'Sei una bestia!', 'Non ti fermare!', 'AAAAAAH, che riflessi!'],
     colori: [['ROSSO', '#e0402a'], ['VERDE', '#2fa24a'], ['BLU', '#3a6ee8'], ['GIALLO', '#f2c230']],
-    prezzi: [['Mirto', 3.5], ['Birretta', 3], ['Grappa', 4], ['Cocktail', 10], ['Caffè', 1.2]],
   },
 
   // ------------------------------------------------------------------ Brano 5: mezzo pieno o mezzo vuoto?

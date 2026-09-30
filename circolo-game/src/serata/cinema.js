@@ -100,6 +100,21 @@ export function createCinema(api) {
   return {
     canvas,
     start() {
+      if (!document.getElementById('cinema-css')) {
+        const css = document.createElement('style');
+        css.id = 'cinema-css';
+        css.textContent = `
+          #srt .answers button { background: #1c0826; border: 2px solid #ff17e4; color: #fff; font-size: 17px; padding: 12px 10px;
+            box-shadow: 0 6px 18px rgba(0,0,0,.6); text-shadow: 0 1px 2px #000; }
+          #srt .answers button b { color: #ffe100; font-size: 20px; }
+          #srt .answers button:hover:not(:disabled), #srt .answers button:focus-visible { background: #4a1360; border-color: #ffe100; }
+          #srt .answers button.ok { background: #1f7a3a; border-color: #7be08f; }
+          #srt .answers button.ko { background: #7a1f14; border-color: #ff8a70; }
+          #srt .answers button:disabled { opacity: 1; }
+          #srt .answers button:disabled:not(.ok):not(.ko) { opacity: .55; }
+          @media (max-height: 520px), (max-width: 700px) { #srt .answers button { font-size: 13px; padding: 7px 6px; } }`;
+        document.head.appendChild(css);
+      }
       const bar = api.overlay.el('', 'answers');
       Object.assign(bar.style, { position: 'absolute', left: '50%', bottom: '18px', transform: 'translateX(-50%)', display: 'grid',
         gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '8px', width: 'min(900px, calc(100% - 24px))' });

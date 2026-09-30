@@ -32,7 +32,6 @@ const CSS = `
 let cssDone = false;
 
 const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
-const euro = (v) => `${v.toFixed(2).replace('.', ',')} €`;
 
 // bicchiere in SVG: livello da 0 a 1
 export function glassSvg(level, w = 60, color = '#c9243f') {
@@ -152,20 +151,6 @@ export function createCometiva(api) {
           a.append(d);
         },
         key(e) { if (e.code === 'Space' && !e.repeat) { hit(); return true; } return false; },
-      };
-    },
-    conto() {
-      const [a1, p1] = pick(cfg.prezzi), [a2, p2] = pick(cfg.prezzi);
-      const tot = Math.round((p1 + p2) * 100) / 100;
-      const sbagli = shuffle([0.5, -0.5, 1, -1, 1.5, 2].map((x) => Math.round((tot + x) * 100) / 100).filter((x) => x > 0 && x !== tot)).slice(0, 2);
-      return {
-        ist: 'Fai il conto!',
-        build(a) {
-          const d = document.createElement('div');
-          d.innerHTML = `<div class="word" style="font-size:40px">${a1} + ${a2}</div>`;
-          d.append(opts([tot, ...sbagli], tot, euro));
-          a.append(d);
-        },
       };
     },
     intruso() {
