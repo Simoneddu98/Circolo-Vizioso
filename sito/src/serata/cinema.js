@@ -3,14 +3,15 @@
 import { shuffle, mescolaRisposte, puntiRisposta } from './regole.js';
 import { pick } from '../minigames/util.js';
 
-const W = 1024, H = 576;
+const W = 1024, H = 576, RES = 2;                  // si disegna in 1024x576, il canvas è RES volte più fitto (scritte nitide)
 const LETTERE = ['A', 'B', 'C', 'D'];
 
 export function createCinema(api) {
   const cfg = api.cfg.cinema;
   const canvas = document.createElement('canvas');
-  canvas.width = W; canvas.height = H;
+  canvas.width = W * RES; canvas.height = H * RES;
   const g = canvas.getContext('2d');
+  g.scale(RES, RES);
   const deck = shuffle(cfg.domande);
   let i = -1, q = null, t = 0, fase = 'domanda', scelta = -1, serie = 0, giuste = 0, fatte = 0, punti = 0;
   let buttons = [];

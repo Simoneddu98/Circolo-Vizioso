@@ -55,6 +55,7 @@ export async function setupScreen(root, config) {
         const t = new THREE.CanvasTexture(canvas);
         t.colorSpace = THREE.SRGBColorSpace;
         t.flipY = false;
+        t.anisotropy = 16;                    // lo schermo si guarda un po' di lato: scritte nitide anche così
         override = { tex: t, draw };
         setMaps(t);
       } else setMaps(tex);

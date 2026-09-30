@@ -398,16 +398,22 @@ export class Serata {
     this._placeNpc(npc, P.npc, ctx.player.position);
   }
 
-  // Maxischermo più grande durante il quiz del cinema (si legge meglio), poi torna com'era. Si ingrandisce in
-  // larghezza e altezza intorno al centro dell'immagine; in profondità no, così non entra nel muro.
+  // Durante il quiz del cinema il maxischermo si ingrandisce e scende davanti alla sedia, all'altezza degli occhi,
+  // così si legge dritto e non di sbieco; poi torna com'era. In profondità non cambia, così non entra nel muro.
   _bigScreen(on) {
-    const screen = this.ctx.root.getObjectByName('TV_Screen'), k = this.cfg.cinema.schermo ?? 1;
-    if (!screen || k === 1 || !!this.screenBase === on) return;
+    const screen = this.ctx.root.getObjectByName('TV_Screen'), S = this.cfg.cinema.schermo;
+    if (!screen || !S || !!this.screenBase === on) return;
     if (on) {
-      const disp = screen.getObjectByName('TV_Screen_Display');
       this.screenBase = { pos: screen.position.clone(), scale: screen.scale.clone() };
-      screen.scale.set(this.screenBase.scale.x * k, this.screenBase.scale.y * k, this.screenBase.scale.z);
-      if (disp) screen.position.y -= disp.position.y * this.screenBase.scale.y * (k - 1);
+      const k = S.scala, b = this.screenBase.scale;
+      screen.scale.set(b.x * k, b.y * k, b.z);
+      screen.updateMatrixWorld(true);
+      const disp = screen.getObjectByName('TV_Screen_Display') ?? screen;
+      const c = new THREE.Box3().setFromObject(disp).getCenter(new THREE.Vector3());
+      const chair = this.ctx.root.getObjectByName(this.cfg.posti.cinema.sedia);
+      const x = chair ? chair.getWorldPosition(new THREE.Vector3()).x : c.x;
+      screen.position.x += x - c.x;
+      screen.position.y += S.altezza - c.y;
     } else {
       screen.position.copy(this.screenBase.pos);
       screen.scale.copy(this.screenBase.scale);
