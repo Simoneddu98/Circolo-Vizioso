@@ -443,7 +443,7 @@ export class Serata {
     const g = new THREE.Group();
     g.name = 'Serata_BlackBox';
     const body = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.12, 0.17),
-      new THREE.MeshStandardMaterial({ color: 0x050507, roughness: 0.18, metalness: 0.4 }));
+      new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.85, metalness: 0, envMapIntensity: 0 }));
     body.position.y = 0.06;
     const seam = new THREE.Mesh(new THREE.BoxGeometry(0.174, 0.006, 0.174),
       new THREE.MeshStandardMaterial({ color: 0x220018, emissive: 0xff17e4, emissiveIntensity: 1.6 }));
