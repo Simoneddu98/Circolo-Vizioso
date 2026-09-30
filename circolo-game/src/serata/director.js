@@ -388,6 +388,7 @@ export class Serata {
     if (goal === 'cinema') {
       const chair = ctx.root.getObjectByName(P.sedia), screen = ctx.root.getObjectByName('TV_Screen');
       if (ctx.player.seated) ctx.player.stand();
+      this._bigScreen(true);
       if (chair && screen) seatInFront(ctx, chair, screen);
       const tvc = screen ? new THREE.Box3().setFromObject(screen).getCenter(new THREE.Vector3()) : new THREE.Vector3(-1.5, 0, -4);
       this._placeNpc(npc, P.npc, tvc);
@@ -395,6 +396,24 @@ export class Serata {
     }
     this._placePlayer(P.player, P.guarda, P.pitch ?? -0.3);
     this._placeNpc(npc, P.npc, ctx.player.position);
+  }
+
+  // Maxischermo più grande durante il quiz del cinema (si legge meglio), poi torna com'era. Si ingrandisce in
+  // larghezza e altezza intorno al centro dell'immagine; in profondità no, così non entra nel muro.
+  _bigScreen(on) {
+    const screen = this.ctx.root.getObjectByName('TV_Screen'), k = this.cfg.cinema.schermo ?? 1;
+    if (!screen || k === 1 || !!this.screenBase === on) return;
+    if (on) {
+      const disp = screen.getObjectByName('TV_Screen_Display');
+      this.screenBase = { pos: screen.position.clone(), scale: screen.scale.clone() };
+      screen.scale.set(this.screenBase.scale.x * k, this.screenBase.scale.y * k, this.screenBase.scale.z);
+      if (disp) screen.position.y -= disp.position.y * this.screenBase.scale.y * (k - 1);
+    } else {
+      screen.position.copy(this.screenBase.pos);
+      screen.scale.copy(this.screenBase.scale);
+      this.screenBase = null;
+    }
+    screen.updateMatrixWorld(true);
   }
 
   _hint(text) { this.ctx.ui.toast(text, 4); }
@@ -578,6 +597,7 @@ export class Serata {
     if (!this.game) return;
     this.game.dispose?.();
     this.game = null;
+    this._bigScreen(false);
     if (!keepMusic) this.ov.stopMusic();
   }
 

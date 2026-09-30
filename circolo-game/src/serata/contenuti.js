@@ -151,6 +151,7 @@ export const SERATA = {
 
   // ------------------------------------------------------------------ Brano 1: quiz sul cinema, sul maxischermo
   cinema: {
+    schermo: 1.8,                           // quanto si ingrandisce il maxischermo durante il quiz (1 = com'è)
     tempoDomanda: 12,                       // secondi per rispondere
     pausa: 2.2,                             // secondi con la risposta giusta in evidenza
     punti: 100, bonusVelocita: 60, bonusSerie: 20,   // bonus per ogni risposta giusta di fila (dalla seconda)
