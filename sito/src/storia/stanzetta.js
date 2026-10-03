@@ -176,6 +176,23 @@ export class Stanzetta {
     this.pack = posa(ctx, 'Cigarette_Pack', g, tx, tz, top, 0.35);   // in mezzo al tavolo
     if (this.pack) this.pack.name = 'Stanzetta_Pack';
     this.armchair = poltrona(g, ...S.poltrona);
+    // poster appesi alla parete di fondo: le proporzioni vengono dall'immagine, un filo staccati dal muro
+    const loader = new THREE.TextureLoader();
+    for (const P of S.poster ?? []) {
+      const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.85 });
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+      m.name = 'Stanzetta_Poster';
+      m.position.set(P.x, P.y, -D / 2 + 0.012);
+      m.rotation.z = P.storto ?? 0;
+      m.scale.set(P.w, P.w, 1);
+      g.add(m);
+      loader.load(P.img, (tex) => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.anisotropy = 8;
+        mat.map = tex; mat.needsUpdate = true;
+        m.scale.y = P.w * tex.image.height / tex.image.width;
+      });
+    }
     // lampada sopra il tavolo: paralume e luce calda; un filo di luce ambiente
     const shade = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.22, 24, 1, true), new THREE.MeshStandardMaterial({ color: 0x1f4a2e, roughness: 0.5, side: THREE.DoubleSide }));
     shade.position.set(tx, H - 0.75, tz);

@@ -75,6 +75,11 @@ export const STORIA = {
     porta: [1.3],                           // x della porta, sulla parete di fondo (z = profondità/2)
     rafka: [-1.2, -0.2],                    // dove sta Rafka
     poltrona: [-1.55, 1.25, 2.4],
+    // poster sulla parete di fronte alla sedia (z = -profondità/2): x del centro, altezza del centro, larghezza (m), un filo storti
+    poster: [
+      { img: './assets/poster/pratello.webp', x: -0.85, y: 1.75, w: 1.05, storto: 0.02 },
+      { img: './assets/poster/foras.webp', x: 0.75, y: 1.7, w: 0.82, storto: -0.025 },
+    ],
     posti: [[-0.28, 0.24], [0.3, 0.2], [-0.3, -0.26], [0.02, 0.33]],   // dove arriva il cibo sul tavolo (il centro è del pacchetto)           // poltrona: x, z, verso cui guarda (radianti: verso il tavolo)
   },
   tiri: 2,
