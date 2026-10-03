@@ -68,7 +68,9 @@ export function createScatola(api) {
     const box = card.querySelector('.idee');
     if (!box) return;
     box.innerHTML = (mia ? `<div class="idea mia"><b>${cfg.tu}</b>${esc(mia)}</div>` : '')
-      + altri.map((x) => `<div class="idea"><b>${esc(x.chi ?? cfg.qualcuno)}</b>${esc(x.testo)}</div>`).join('');
+      + (altri.length ? altri.map((x) => `<div class="idea"><b>${esc(x.chi ?? cfg.qualcuno)}</b>${esc(x.testo)}</div>`).join('')
+        : `<p style="opacity:.8">${cfg.vuota}</p>`);
+    if (!altri.length) card.querySelector('.idee').previousElementSibling.hidden = true;   // niente "ci sono già le idee di…"
   }
 
   return {

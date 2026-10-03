@@ -10,12 +10,12 @@ test('pulizia: niente link, spazi doppi, lunghezza massima', () => {
   assert.equal(pulisci('a'.repeat(300), 160).length, 160);
 });
 
-test('senza archivio: le idee dei personaggi, e quelle troppo corte non passano', async () => {
+test('senza archivio: nessuna risposta già pronta; le idee troppo corte non passano', async () => {
   const I = new Idee(cfg(null));
-  assert.equal(await I.invia('ritorno', 'no'), false);
-  assert.equal(await I.invia('ritorno', 'La porta, sempre aperta.'), true);
-  const altri = await I.leggi('ritorno', 3);
-  assert.ok(altri.length >= 1 && altri.every((x) => x.chi));      // solo i semi (la propria idea la mostra il gioco)
+  assert.equal(await I.invia('paura', 'no'), false);
+  assert.equal(await I.invia('paura', 'Ho smesso di guardarla.'), true);
+  assert.equal((await I.leggi('paura', 3)).length, 0);
+  for (const d of STORIA.blackbox.domande) assert.ok(!d.semi && d.inizio && d.fine && d.domanda, d.id);
 });
 
 test('foglio Google: scrive con POST testo semplice e legge con ?domanda=', async () => {
@@ -39,11 +39,10 @@ test('foglio Google: scrive con POST testo semplice e legge con ?domanda=', asyn
   delete globalThis.fetch;
 });
 
-test('foglio irraggiungibile: restano le idee dei personaggi', async () => {
+test('foglio irraggiungibile: l\'idea resta nel browser e non si rompe niente', async () => {
   globalThis.fetch = async () => { throw new Error('offline'); };
   const I = new Idee(cfg({ tipo: 'foglio', url: 'https://example.invalid/exec' }));
-  assert.equal(await I.invia('amici', 'Una rivincita'), true);
-  const altri = await I.leggi('amici', 3);
-  assert.ok(altri.length >= 1);
+  assert.equal(await I.invia('casa', 'Una voce che conosci'), true);
+  assert.deepEqual(await I.leggi('casa', 3), []);
   delete globalThis.fetch;
 });

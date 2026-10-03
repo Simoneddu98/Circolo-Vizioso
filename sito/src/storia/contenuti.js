@@ -2,6 +2,7 @@
 // Primo capitolo: come nella serata si parla con Nicola e ci si presenta a tutti; poi Cronico ti aspetta alla porta
 // d'ingresso, la apri e ti ritrovi in un cinema. Hai un biglietto: trovi il tuo posto, ti siedi, le luci si spengono e
 // parte il film (il quiz del cinema sul grande schermo). Finito il film esci dalla porta verde e torni al circolo.
+import { ASSET_VERSION } from '../version.js';
 
 export const STORIA = {
   storageKey: 'circolo.progress.storia.v1',
@@ -22,7 +23,10 @@ export const STORIA = {
     { goal: 'lyuce', text: 'È rimasta solo Lyuce, accanto al biliardo', locked: 'Più tardi' },
     { goal: 'scatola', text: 'Apri la scatola nera in mezzo al biliardo', locked: 'Più tardi' },
     { goal: 'idee', text: 'Black Box: lascia le tue idee nella scatola', locked: 'Più tardi' },
-    { goal: 'continua', text: 'Fine del terzo capitolo. Il circolo è aperto: gira e gioca' },
+    { goal: 'rientro', text: 'La porta si riapre: rientrano tutti', locked: 'Più tardi' },
+    { goal: 'kappa', text: 'Parla con Kappa, alla porta accanto al tavolo da carte', locked: 'Più tardi' },
+    { goal: 'strada', text: 'Apri la porta accanto al tavolo da carte ed esci', locked: 'Più tardi' },
+    { goal: 'continua', text: 'Fine del quarto capitolo: sei in strada. Guardati intorno' },
   ],
   requires: { minigame: 'idee', smoke: 'nicola' },
   ui: { label: 'La storia', sub: 'Sperimentale: capitolo 1, il cinema' },
@@ -109,7 +113,39 @@ export const STORIA = {
   },
   bbLogo: './assets/titoli/blackbox.png',
   apriScatola: 'Apri la scatola nera',
-  ritornoTutti: 'Più tardi la porta si riapre: rientrano tutti, come ogni sera.',
+  ritornoTutti: 'La porta si riapre: rientrano tutti, come ogni sera.',
+  // capitolo 4: rientrano tutti dalla porta d'ingresso; Kappa va ad aspettarti alla porta nuova, dove prima c'era il
+  // tavolino con le sigarette (accanto al tavolo da carte), e da lì si esce in strada
+  rientro: { intervallo: 1.3, attesa: 5 },     // secondi tra un ingresso e l'altro; attesa dopo la scatola
+  portaEst: {
+    centro: [6.0, 0.42],                    // sul muro est, a filo della parete interna
+    larghezza: 0.95, altezza: 2.12,
+    // in questa modalità il tavolino con sigarette e posacenere (e la sedia lì accanto) non c'è più
+    togli: ['Side_Table', 'Ashtray_Side', 'Cigarette_Pack', 'Cigarette_Lit', 'Serata_Chair'],
+    collisioni: ['COL_Side_Table', 'COL_Serata_Chair'],
+  },
+  kappa: {
+    posto: [5.0, -0.8],                     // accanto alla porta nuova
+    nodo: 'storia_kappa',
+    chiama: 'Ehi! Vieni, ti aspettavo.',
+    vai: 'Dai, apri la porta. Io ti seguo tra un attimo.',
+    fuori: 'Eccoci. Senti che aria? Le foto più belle stanno sempre fuori dalla porta.',
+  },
+  esciLabel: 'Apri la porta ed esci',
+  strada: {
+    url: `./assets/strada.glb?v=${ASSET_VERSION}`,
+    origine: [-200, 0, 0],                  // lontano dal circolo, come il cinema e la stanzetta
+    nascondi: ['Cube223'],                  // il cubo che avvolge la scena di Blender: il cielo è lo sfondo
+    limiti: [-19, 15, -8.2, 8.2],           // x min, x max, z min, z max (marciapiedi e carreggiata)
+    alberi: [[4.6, -4.5], [-4.6, -4.5], [14.1, -4.5], [-14, -4.6], [4.6, 4.5], [-4.6, 4.4], [13.9, 4.5], [-14, 4.5]],   // tronchi
+    arrivo: [9.0, -6.6],                    // sul marciapiede nord, tra due alberi, lontano da pali e cestini
+    guarda: [9.0, 4],
+    kappa: [10.2, -5.3],                     // dove compare Kappa, poco dopo di te
+    cielo: 0x9db8d8, luce: 1.4, sole: 1.6,
+    lontano: 140,                           // distanza di disegno in strada (nel circolo basta molto meno)
+    titolo: 'Fuori',
+    arrivoHint: 'Sei fuori dal circolo. Per adesso la storia finisce qui: guardati intorno.',
+  },
   blackbox: {
     titolo: 'Black Box',
     quante: 3,                              // domande per partita (a caso tra quelle sotto)
@@ -117,7 +153,8 @@ export const STORIA = {
     placeholder: 'Scrivi la tua idea, in poche parole…',
     invia: 'Lascia la tua idea',
     salta: 'Salta',
-    altri: 'Nella scatola ci sono già queste idee:',
+    altri: 'Nella scatola ci sono già le idee di altre persone:',
+    vuota: 'Nessun altro ha ancora scritto su questa domanda. La tua idea resta qui, ad aspettare il prossimo.',
     avanti: 'Avanti',
     chiudi: 'Chiudi la scatola',
     tu: 'Tu',
@@ -128,27 +165,23 @@ export const STORIA = {
     //   archivio: { tipo: 'foglio', url: 'https://script.google.com/macros/s/…/exec' }
     // (lo script e le istruzioni sono in strumenti/idee-foglio/). Vedi src/storia/idee.js.
     archivio: null,
-    // semi: le prime idee, dei personaggi del circolo, così la scatola non è mai vuota
+    // domande esistenziali: di ognuna si conosce l'inizio e la fine, il mezzo lo scrive chi gioca. Nessuna risposta già
+    // pronta: si leggono solo le idee di altre persone (quando c'è l'archivio online)
     domande: [
-      { id: 'ritorno', inizio: 'Ogni sera giuri: «stasera è l\'ultima volta».', fine: 'Ogni sera sei di nuovo qui.',
-        domanda: 'Cosa c\'è in mezzo, tra la promessa e il ritorno?',
-        semi: [['Cronico', 'La porta. Si apre sempre più facilmente di come si chiude.'], ['Nicola', 'Un bicchiere che si riempie da solo, quando non guardi.'],
-          ['Kappa', 'AAAAAAH, la paura di perdermi la foto più bella.']] },
-      { id: 'nascita', inizio: 'Nasci.', fine: 'Sei qui, stasera, al circolo.',
-        domanda: 'Di tutto quello che è successo in mezzo, cosa ti ha portato davvero qui?',
-        semi: [['Peppino', 'Le carte. E un amico che non c\'è più.'], ['Lyuce', 'Una scelta piccola: una porta aperta invece che chiusa.'],
-          ['Rafka', 'Posso dire? Bologna. Poi la nostalgia di Bologna.']] },
-      { id: 'decisione', inizio: 'Hai un dubbio.', fine: 'Hai deciso.',
-        domanda: 'Cosa succede dentro di te, in quel mezzo che non si vede?',
-        semi: [['Lyuce', 'Una voce smette di parlare e un\'altra alza il volume.'], ['Zugo', 'Il montaggio: tagli tutto quello che fa paura. Si gode.'],
-          ['Gavino', 'Ci dormi sopra. Decide il cuscino.']] },
-      { id: 'amici', inizio: 'Non conoscevi nessuno, qui dentro.', fine: 'Li chiami amici.',
-        domanda: 'Cosa è successo nel mezzo?',
-        semi: [['Cronico', 'Una rivincita persa apposta.'], ['Kappa', 'Una foto venuta male in cui ridevano tutti.'], ['Tonino', 'Un giro offerto. Poi un altro.']] },
-      { id: 'notte', inizio: 'Vai a dormire con un pensiero.', fine: 'Ti svegli e hai cambiato idea.',
-        domanda: 'Chi ha lavorato nel buio, mentre dormivi?',
-        semi: [['Zugo', 'Il regista dei sogni. Lavora gratis.'], ['Efisio', 'La notte porta consiglio, diceva mia madre. A volte porta anche il mal di testa.'],
-          ['Rafka', 'Posso dire? Il silenzio.']] },
+      { id: 'lasciare', inizio: 'Un giorno impari a camminare.', fine: 'Un giorno impari ad andartene.',
+        domanda: 'Cosa ti ha insegnato, nel mezzo, a lasciare andare?' },
+      { id: 'paura', inizio: 'Hai paura di qualcosa.', fine: 'Non ne hai più paura.',
+        domanda: 'Cosa è cambiato nel mezzo: tu, o la cosa?' },
+      { id: 'sconosciuti', inizio: 'Due persone si guardano per la prima volta.', fine: 'Anni dopo non si riconoscono più.',
+        domanda: 'Dove si perde, di solito, una persona?' },
+      { id: 'sogno', inizio: 'Da bambino sapevi cosa volevi diventare.', fine: 'Oggi sei quello che sei.',
+        domanda: 'Cosa è successo, in mezzo, a quel sogno?' },
+      { id: 'ricordo', inizio: 'Un ricordo è nitidissimo.', fine: 'Anni dopo non sai più se è andata davvero così.',
+        domanda: 'Chi riscrive i ricordi mentre non guardi?' },
+      { id: 'persempre', inizio: 'Dici «per sempre».', fine: 'Finisce.',
+        domanda: 'Cosa resta di un «per sempre», quando finisce?' },
+      { id: 'casa', inizio: 'Ti senti solo in mezzo a tanta gente.', fine: 'Ti senti a casa accanto a una persona sola.',
+        domanda: 'Cosa fa la differenza, nel mezzo?' },
     ],
   },
   film: {

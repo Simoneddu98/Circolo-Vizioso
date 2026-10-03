@@ -1,6 +1,6 @@
 // La scatola nera raccoglie le idee di chi gioca (capitolo 3 della storia). Ogni idea è legata a una domanda.
-// - Senza archivio online (STORIA.blackbox.archivio = null) le idee restano nel browser di chi gioca, insieme alle idee
-//   di partenza dei personaggi (STORIA.blackbox.domande[].semi): la scatola non è mai vuota.
+// - Senza archivio online (STORIA.blackbox.archivio = null) le idee restano nel browser di chi gioca: nessuna risposta già
+//   pronta, si leggono solo le idee di altre persone.
 // - Con un archivio online le idee di tutti finiscono lì e ognuno legge quelle degli altri. Due possibilità:
 //   { tipo: 'foglio', url } — un foglio Google con lo script di strumenti/idee-foglio/ pubblicato come app web
 //     (GET ?domanda=<id> → [{ domanda, testo }], POST { domanda, testo } come testo semplice: niente richieste preliminari)
@@ -46,9 +46,8 @@ export class Idee {
     return true;
   }
 
-  // le idee degli altri per una domanda: dall'archivio online se c'è, altrimenti quelle dei personaggi (+ le proprie già date)
+  // le idee di altre persone per una domanda (dall'archivio online; senza archivio non ce ne sono)
   async leggi(domanda, n = 4) {
-    const semi = (this.cfg.domande.find((d) => d.id === domanda)?.semi ?? []).map(([chi, testo]) => ({ chi, testo }));
     let altri = [];
     if (this.foglio) {
       try {
@@ -64,7 +63,7 @@ export class Idee {
       } catch { /* fuori linea: si usano i semi */ }
     }
     const miei = new Set((this.local[domanda] ?? []).map((x) => x.testo));
-    const pool = [...altri.filter((x) => !miei.has(x.testo)), ...semi];
+    const pool = altri.filter((x) => !miei.has(x.testo));
     // un po' a caso, ma prima le più recenti
     const out = [];
     for (const x of pool) { if (out.length >= n) break; if (Math.random() < 0.8 || pool.length - pool.indexOf(x) <= n - out.length) out.push(x); }

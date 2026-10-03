@@ -118,7 +118,7 @@ export const SERATA = {
     cinema: { npc: 'Cronico', nodo: 'cinema_invito', cerca: true, chiama: 'Ohi! Eccoti, finalmente. Vieni, che si comincia.' },
     fumo: { npc: 'Rafka', nodo: 'fumo_invito', cerca: true, chiama: 'Ohi! Eccoti. Vieni qua, che ti devo dire una cosa.' },
     blackbox: { npc: 'Lyuce', nodo: 'bb_invito', cerca: true, chiama: 'Eccoti. Hai un minuto? Vieni.' },
-    cometiva: { npc: 'Kappa', nodo: 'ctv_invito', cerca: true, chiama: 'AAAAAAH, finalmente! Vieni qui!' },
+    cometiva: { npc: 'Kappa', nodo: 'ctv_invito', cerca: true, chiama: 'Finalmente! Vieni qui!' },
     bicchiere: { npc: 'Zugo', nodo: 'bic_invito', cerca: true, chiama: 'Fratello! Ti stavo aspettando. Si gode.' },
   },
   // dove si finisce dopo "andiamo" (coordinate del circolo: x verso est, z verso sud; yaw = dove si guarda)
@@ -140,7 +140,7 @@ export const SERATA = {
     fumoFame: ['Rafka', 'Posso dire? Ho una fame che non ci vedo. Ordiniamo qualcosa? Il telefono è lì, i volantini pure.'],
     fumoFine: ['Rafka', 'Posso dire? Si è mangiato da re. Quasi come a Bologna. Lyuce ti cercava, sai? Trovala.'],
     bbFine: ['Lyuce', 'Visto? L\'inizio e la fine li conosciamo tutti. È il mezzo che ci frega. Adesso vai da Kappa, che ti tira su.'],
-    ctvFine: ['Kappa', 'AAAAAAH! Sei una macchina! Adesso respira, fatti un giro e poi cerca Zugo.'],
+    ctvFine: ['Kappa', 'Sei una macchina! Adesso respira, fatti un giro e poi cerca Zugo.'],
     bicFine: ['Zugo', 'Posso dirti un segreto? Erano lo stesso bicchiere. Dipende da come lo guardi. Da adesso sei libero di circolare e di sfidare tutti. Si gode.'],
     bicLibero: ['Nicola', 'Adesso vai al tavolino in fondo: prenditi una sigaretta, siediti sulla sedia e rilassati. Goditi lo spettacolo.'],
     spettacolo: ['Cronico', 'Tutti in fila! Un giro del circolo, come ogni sera. E come ogni sera, un altro giro.'],
@@ -233,7 +233,7 @@ export const SERATA = {
     richieste: [
       { chi: 'Tu', testo: 'E tu? Ordina quello che vuoi, ma presto: hai fame.', quando: 'presto' },
       { chi: 'Rafka', testo: 'Posso dire? Io voglio un kebab. Piccante. Ma piccante vero.', locale: 'kebab', serve: ['piccante'] },
-      { chi: 'Kappa', testo: 'Niente carne per me! AAAAAAH, e con almeno tre cose sopra.', evita: ['carne'], almeno: 3 },
+      { chi: 'Kappa', testo: 'Niente carne per me! E con almeno tre cose sopra.', evita: ['carne'], almeno: 3 },
       { chi: 'Zugo', testo: 'Cipolla. Tanta cipolla. Si gode.', serve: ['cipolla'] },
       { chi: 'Lyuce', testo: 'Niente salse, per carità: la camicia è di seta. E niente cipolla.', evita: ['salsa', 'cipolla'] },
       { chi: 'Cronico', testo: 'Formaggio, tanto formaggio. Sul mio conto. Ma dopo la partita, non prima.', serve: ['formaggio'], quando: 'tardi' },
@@ -291,7 +291,7 @@ export const SERATA = {
     tempoMin: 5,                            // ...e alla fine (si accelera)
     lettura: 1.2,                           // secondi per leggere cosa fare prima che parta la barra del tempo
     punti: 100, bonusSerie: 15,
-    kappa: ['AAAAAAH! Vai così!', 'Più veloce! Più veloce!', 'Sei una bestia!', 'Non ti fermare!', 'AAAAAAH, che riflessi!'],
+    kappa: ['Vai così!', 'Più veloce! Più veloce!', 'Sei una bestia!', 'Non ti fermare!', 'Che riflessi!'],
     colori: [['ROSSO', '#e0402a'], ['VERDE', '#2fa24a'], ['BLU', '#3a6ee8'], ['GIALLO', '#f2c230']],
   },
 
