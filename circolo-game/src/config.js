@@ -570,6 +570,11 @@ export const CONFIG = {
       nodes: {
         rafka_ciao: { text: 'Ohi! Tu devi essere quello nuovo. Io sono Rafka: qui dentro ci passo più tempo che a casa.',
           options: [{ text: 'Ci vediamo dopo, allora.', next: 'rafka_bene' }, { text: 'Consigli?', next: 'rafka_consigli' }] },
+        // "La storia", capitolo 2: la porta accanto al maxischermo
+        storia_rafka: { text: 'Posso dire? Hai visto la porta accanto al maxischermo? Nessuno la apre mai. Dietro c\'è una stanzetta: un tavolo, un posacenere, silenzio. Il posto giusto per una sigaretta e due chiacchiere. E magari qualcosa da mangiare.',
+          options: [{ text: 'E come si ordina?', next: 'storia_rafka_regole' }] },
+        storia_rafka_regole: { text: 'Posso dire? È facile. Prima una sigaretta e due tiri, con calma. Poi qualcuno del tavolo ti dice cosa vuole: tu scegli il volantino giusto, componi l\'ordine, chiami il numero scritto sul volantino e scegli l\'orario. Più rispetti la richiesta e più sei veloce, più punti fai. Hai un minuto.',
+          options: [{ text: 'Apro la porta.', action: 'serata:apri' }, { text: 'Aspetta un attimo.', action: 'end' }] },
         // Brano 2: Bologna, le sigarette di Cronico, e da mangiare
         fumo_invito: { text: 'Posso dire? Bologna è la città più bella del mondo. I portici, le torri, le tagliatelle alle tre di notte, la gente che ti parla come se ti conoscesse da sempre. Cronico ci è legatissimo, sai? Ci ha passato anni.',
           options: [{ text: 'Davvero? Cronico a Bologna?', next: 'fumo_invito2' }] },

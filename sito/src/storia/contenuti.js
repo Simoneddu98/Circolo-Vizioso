@@ -11,10 +11,15 @@ export const STORIA = {
     { goal: 'porta', text: 'Cronico ti aspetta alla porta d\'ingresso', locked: 'Più tardi: adesso c\'è la storia' },
     { goal: 'biglietto', text: 'Trova il tuo posto: fila {fila}, posto {posto}', locked: 'Più tardi' },
     { goal: 'film', text: 'Goditi il film', locked: 'Più tardi' },
-    { goal: 'uscita', text: 'Esci dalla porta verde in fondo alla sala', locked: 'Più tardi' },
-    { goal: 'continua', text: 'Fine del primo capitolo. Il circolo è aperto: gira e gioca' },
+    { goal: 'uscita', text: 'Esci dal cinema: le tende rosse in fondo alla sala', locked: 'Più tardi' },
+    // capitolo 2: il fumo
+    { goal: 'rafka', text: 'Raggiungi Rafka ({dove})', locked: 'Più tardi' },
+    { goal: 'stanzetta', text: 'Apri la porta accanto al maxischermo', locked: 'Più tardi' },
+    { goal: 'fumo', text: 'Fumo: prendi una sigaretta, siediti, ordina da mangiare', locked: 'Più tardi' },
+    { goal: 'uscita2', text: 'Esci dalla stanzetta', locked: 'Più tardi' },
+    { goal: 'continua', text: 'Fine del secondo capitolo. Il circolo è aperto: gira e gioca' },
   ],
-  requires: { minigame: 'uscita', smoke: 'nicola' },
+  requires: { minigame: 'uscita2', smoke: 'nicola' },
   ui: { label: 'La storia', sub: 'Sperimentale: capitolo 1, il cinema' },
   presentazioni: { Cronico: 'benvenuto', Rafka: 'rafka_ciao', Kappa: 'kappa_ciao', Zugo: 'zucco_ciao', Lyuce: 'lyuce_ciao' },
   presentazioniCoda: 'Fatti un giro e conosci tutti: poi Cronico ti porta in un posto.',
@@ -50,6 +55,30 @@ export const STORIA = {
   uscitaLabel: 'Esci dal cinema',
   ritorno: 'Sei di nuovo al circolo. Cronico ti guarda come se niente fosse.',
   cronicoDopo: 'Bello, eh? Il cinema c\'è sempre stato, solo che non lo trova nessuno. La prossima volta ti porto più lontano.',
+  // ---- capitolo 2: Rafka ti aspetta in giro, ti chiede di aprire la porta accanto al maxischermo; dietro c'è la stanzetta
+  rafka: {
+    nodo: 'storia_rafka',
+    chiama: 'Posso dire? Eccoti! Vieni qua, che ti devo chiedere una cosa.',
+    vai: 'Posso dire? Aprila tu, io ti raggiungo.',
+    dentro: 'Posso dire? Benvenuto nella stanzetta. Qui non ci viene mai nessuno: prendi una sigaretta dal tavolo.',
+    siediti: 'Siediti, rilassati. Fatti due tiri con calma, che la serata è lunga.',
+    fame: 'Posso dire? Ho una fame che non ci vedo. Ordiniamo qualcosa? Il telefono è lì, i volantini pure.',
+    fine: 'Posso dire? Si è mangiato da re. Quasi come a Bologna. Andiamo, che di là ci aspettano.',
+    dopo: 'Posso dire? Quella stanzetta non la conosce nessuno. Tienitela per te.',
+  },
+  portaTv: { centro: [0.15, -4.0], larghezza: 0.96, altezza: 2.18 },   // la porta accanto al maxischermo (parete nord)
+  fumoLogo: './assets/titoli/fumo.png',
+  stanzetta: {
+    origine: [140, 0, 0],
+    larghezza: 4.4, profondita: 4.0, altezza: 3.0,
+    tavolo: [0, -0.4],                      // centro del tavolo
+    porta: [1.3],                           // x della porta, sulla parete di fondo (z = profondità/2)
+    rafka: [-1.2, -0.2],                    // dove sta Rafka
+  },
+  tiri: 2,
+  ingresso: 0.75,                           // a quanti metri dalla porta aperta (accanto alla TV) si entra nella stanzetta
+  esciStanzetta: 'Esci dalla stanzetta',
+  fumoGioco: 60,
   film: {
     titolo: 'Il film',
     regole: [

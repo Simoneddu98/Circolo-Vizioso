@@ -14,11 +14,11 @@ const COLORI = {
 const mat = (color, rough = 0.8) => new THREE.MeshStandardMaterial({ color, roughness: rough });
 
 export class Food {
-  constructor(ctx, url) {
+  // table: il tavolo dove arriva il cibo (di norma il tavolino in fondo al circolo; la storia usa quello della stanzetta)
+  constructor(ctx, url, table = ctx.root.getObjectByName('Side_Table')) {
     this.ctx = ctx;
     this.items = [];
     this.models = null;
-    const table = ctx.root.getObjectByName('Side_Table');
     const box = table ? new THREE.Box3().setFromObject(table) : null;
     this.top = box ? box.max.y : 0.6;
     this.center = box ? box.getCenter(new THREE.Vector3()) : new THREE.Vector3(5.4, 0, 0.8);

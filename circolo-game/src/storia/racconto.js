@@ -3,7 +3,11 @@
 // mette al posto della serata, che resta com'è. Usa l'interfaccia della serata (overlay) e il quiz del cinema.
 import * as THREE from 'three';
 import { CinemaRoom } from './cinemaroom.js';
+import { Stanzetta } from './stanzetta.js';
 import { createCinema } from '../serata/cinema.js';
+import { createCibo } from '../serata/cibo.js';
+import { Food } from '../serata/cibo3d.js';
+import { creaPorta } from '../porta.js';
 import { yawTo, pitchTo } from '../player.js';
 import { saltaPresentazioni } from '../serata/director.js';
 
@@ -25,7 +29,15 @@ export class Racconto {
       locked: s.locked }));
     ctx.config.items.biglietto ??= { name: `${this.cfg.item} ${B.fila}${B.posto}` };
     this.room = new CinemaRoom(ctx.scene, this.cfg);
-    new Image().src = this.cfg.logo;
+    // capitolo 2: la porta accanto al maxischermo (su un muro pieno: riquadro nero, l'anta si apre verso la stanza) e la
+    // stanzetta che c'è dietro, con il suo tavolo per il cibo
+    const PT = this.cfg.portaTv;
+    this.portaTv = creaPorta(ctx, { name: 'Porta_TV', width: PT.larghezza, height: PT.altezza, swing: 'in', inset: true,
+      center: new THREE.Vector3(PT.centro[0], 0, PT.centro[1]), inward: new THREE.Vector3(0, 0, 1) });
+    this.stanza = new Stanzetta(ctx, this.cfg.stanzetta);
+    this.food2 = new Food(ctx, ctx.config.assets.food, this.stanza.tableObject);
+    this.inStanza = false;
+    for (const src of [this.cfg.logo, this.cfg.fumoLogo]) new Image().src = src;
     this._wrapBarista();
     this._targets();
   }
@@ -48,12 +60,16 @@ export class Racconto {
         setTimeout(() => { this.ctx.npcs.say(n, 'Ohi, tu! Vieni al bancone, che ti spiego come funziona.'); this.ctx.npcs.lastTime = this.ctx.npcs.clock + 6; }, 900);
       }
     }
-    // a metà del capitolo (ricaricando la pagina) si riparte dalla porta
-    if (['biglietto', 'film', 'uscita'].includes(this.progress.goal)) { this.progress.done.delete('porta'); this.progress.done.delete('biglietto'); this.progress.done.delete('film'); this.progress.ui.renderGoals(); }
+    // a metà di un capitolo (ricaricando la pagina) si riparte dall'inizio del capitolo
+    if (['biglietto', 'film', 'uscita'].includes(this.progress.goal)) { for (const g of ['porta', 'biglietto', 'film']) this.progress.done.delete(g); this.progress.ui.renderGoals(); }
+    if (['stanzetta', 'fumo', 'uscita2'].includes(this.progress.goal)) { for (const g of ['rafka', 'stanzetta', 'fumo']) this.progress.done.delete(g); this.progress.ui.renderGoals(); }
   }
 
   // PROVA: i punti a cui si può saltare dal menu di pausa
-  get provaPunti() { return [['porta', 'Cronico alla porta'], ['biglietto', 'Dentro il cinema'], ['uscita', 'Dopo il film (uscita)']]; }
+  get provaPunti() {
+    return [['porta', 'Cronico alla porta'], ['biglietto', 'Dentro il cinema'], ['uscita', 'Dopo il film (uscita)'],
+      ['rafka', 'Capitolo 2: Rafka'], ['fumo', 'Dentro la stanzetta']];
+  }
 
   jumpTo(goal) {
     if (!this.story) return;
@@ -66,6 +82,9 @@ export class Racconto {
     this._release();
     ctx.porta?.close();
     if (this.inCinema) this._leaveCinema(false);
+    if (this.inStanza) this._leaveStanza(false);
+    this.portaTv?.close();
+    if (ctx.smoking.holding) ctx.smoking.putOut(ctx);
     ctx.player.collisions = ctx.collisions;
     if (ctx.player.seated) ctx.player.stand();
     const steps = this.progress.steps;
@@ -73,7 +92,8 @@ export class Racconto {
     for (const s of steps) { if (s.goal === goal) break; this.progress.done.add(s.goal); }
     this.progress._save(); this.progress.ui.renderGoals();
     this.wait = 0.3;
-    if (goal === 'porta') { this.stage = 'idle'; return; }
+    if (goal === 'porta' || goal === 'rafka') { this.stage = 'idle'; return; }
+    if (goal === 'fumo') { this.progress.done.delete('stanzetta'); this._enterStanzetta(); return; }
     // dentro il cinema (al posto, oppure all'uscita dopo il film)
     this.progress.done.delete('porta');
     this.stage = 'going';
@@ -86,7 +106,10 @@ export class Racconto {
     this.ctx.player.collisions = this.ctx.collisions;            // di nuovo le collisioni del circolo
     this.ctx.porta?.close();
     this._stopFilm();
+    this._stopFumo();
     if (this.inCinema) this._leaveCinema(false);
+    if (this.inStanza) this._leaveStanza(false);
+    this.portaTv?.close();
     this._release();
     this.ov.clear(); this.ov.showBar(null); this.ov.big(null); this.ov.fade(false);
     this._setFree(false);
@@ -105,15 +128,21 @@ export class Racconto {
   }
 
   startNode(npc) {
-    if (!this.story || this.progress.goal !== 'porta' || npc.userData.npc_name !== 'Cronico' || !['vaAllaPorta', 'aspetta'].includes(this.stage)) return null;
-    this.stage = 'talk';
-    return this.cfg.cronico.nodo;
+    if (!this.story || !['vaAllaPorta', 'aspetta'].includes(this.stage)) return null;
+    const goal = this.progress.goal, name = npc.userData.npc_name;
+    if (goal === 'porta' && name === 'Cronico') { this.stage = 'talk'; return this.cfg.cronico.nodo; }
+    if (goal === 'rafka' && name === 'Rafka') { this.stage = 'talk'; return this.cfg.rafka.nodo; }
+    return null;
   }
 
   action(what) {
-    if (what !== 'segui' || this.stage !== 'talk') return;
-    this.stage = 'porta';
-    this._say('Cronico', this.cfg.cronico.apri, 5);
+    if (this.stage !== 'talk') return;
+    if (what === 'segui') { this.stage = 'porta'; this._say('Cronico', this.cfg.cronico.apri, 5); }
+    if (what === 'apri') {                                       // Rafka: "apri la porta accanto al maxischermo"
+      this.progress.complete('rafka');
+      this.stage = 'porta2';
+      this._say('Rafka', this.cfg.rafka.vai, 5);
+    }
   }
 
   onDialogueClosed() {}
@@ -124,7 +153,9 @@ export class Racconto {
     if (!this.freeze && this.stage !== 'result') return false;
     if (e.code === 'Escape') { this.ctx.pause?.(); return true; }
     if (this.stage === 'pronto' && (e.code === 'Enter' || e.code === 'Space')) { this._goFilm(); return true; }
+    if (this.stage === 'prontoFumo' && (e.code === 'Enter' || e.code === 'Space')) { this._goFumo(); return true; }
     if (this.stage === 'film') this.film?.key?.(e);
+    if (this.stage === 'fumoGioco') this.fumo?.key?.(e);
     return true;
   }
 
@@ -135,6 +166,21 @@ export class Racconto {
     const ctx = this.ctx;
     this.t += dt;
     if (this.inCinema) this.room.update(dt, this.t);
+    this.portaTv?.update(dt);
+    this.stanza.door?.update(dt);
+    this.food2.update(dt);
+    if (this.stage === 'aperta2') {                              // porta accanto alla TV aperta: ci si entra camminando
+      const s = this.portaTv.soglia, p = ctx.player.position;
+      if (Math.hypot(p.x - s.x, p.z - s.z) < this.cfg.ingresso) this._enterStanzetta();
+    }
+    if (this.stage === 'fumoGioco') {
+      this.left -= dt;
+      this.ov.setTime(this.left);
+      this.fumo.update(dt);
+      if (this.left <= 0) this._endFumo();
+      return;
+    }
+    if (this.stage === 'prepFumo' && this.wait <= 0) this._prepFumo();
     if (this.stage === 'aperta') {                               // porta aperta: oltre la soglia, nel buio, si arriva al cinema
       const s = ctx.porta?.soglia;
       if (!s || ctx.player.position.z > s.z + this.cfg.buio) this._enterCinema();
@@ -161,11 +207,11 @@ export class Racconto {
         this.metT = (this.metT ?? 0) + dt;
         if (this.metT >= this.cfg.attesa) { this.metT = 0; this.progress.complete('presentazioni'); }
       }
-    } else if (goal === 'porta') {
-      if (this.stage === 'idle') this._cronicoAllaPorta();
+    } else if (goal === 'porta' || goal === 'rafka') {
+      if (this.stage === 'idle') goal === 'porta' ? this._cronicoAllaPorta() : this._rafkaInGiro();
       else if (this.stage === 'vaAllaPorta') this._walk(dt);
       else if (this.stage === 'aspetta') this._aspetta();
-      else if (this.stage === 'talk' && !ctx.dialogue.active) this.stage = 'aspetta';   // chiuso senza "ti seguo": resta lì
+      else if (this.stage === 'talk' && !ctx.dialogue.active) this.stage = 'aspetta';   // chiuso senza partire: resta lì
     }
   }
 
@@ -178,9 +224,21 @@ export class Racconto {
     this.ctx.npcs.lastTime = this.ctx.npcs.clock + dur;
   }
 
-  _cronicoAllaPorta() {
-    const npc = this._npc('Cronico');
-    if (!npc) { this.progress.complete('porta'); return; }
+  _cronicoAllaPorta() { this._mandaA('Cronico', this.cfg.cronico.porta, this.cfg.cronico.chiama, 'porta'); }
+
+  // Rafka va ad aspettarti nel punto del circolo più lontano da te; l'obiettivo dice dove
+  _rafkaInGiro() {
+    const p = this.ctx.player.position;
+    const spots = this.serata.cfg.attese;
+    const spot = spots.reduce((a, b) => (Math.hypot(b.x - p.x, b.z - p.z) > Math.hypot(a.x - p.x, a.z - p.z) ? b : a));
+    this.progress.setWhere('rafka', spot.dove);
+    this._mandaA('Rafka', [spot.x, spot.z], this.cfg.rafka.chiama, 'rafka');
+  }
+
+  _mandaA(name, dest, chiama, goal) {
+    const npc = this._npc(name);
+    if (!npc) { this.progress.complete(goal); return; }
+    this.dest = dest; this.chiama = chiama; this.guideName = name;
     this.guide = npc;
     npc.visible = true;
     npc.userData.directed = true;
@@ -193,7 +251,7 @@ export class Racconto {
   }
 
   _walk(dt) {
-    const ctx = this.ctx, npc = this.guide, q = npc.position, [sx, sz] = this.cfg.cronico.porta;
+    const ctx = this.ctx, npc = this.guide, q = npc.position, [sx, sz] = this.dest;
     const dx = sx - q.x, dz = sz - q.z, d = Math.hypot(dx, dz);
     this.walkT += dt;
     if (d < 0.12 || this.walkT > 25) {
@@ -216,7 +274,7 @@ export class Racconto {
     const npc = this.guide, p = this.ctx.player.position, q = npc.position;
     const d = Math.hypot(p.x - q.x, p.z - q.z);
     if (d < 6) { let a = Math.atan2(p.x - q.x, p.z - q.z) - npc.rotation.y; a = Math.atan2(Math.sin(a), Math.cos(a)); npc.rotation.y += a * 0.08; }
-    if (!this.called && d < 4 && !this.ctx.dialogue.active) { this.called = true; this._say('Cronico', this.cfg.cronico.chiama, 4); }
+    if (!this.called && d < 4 && !this.ctx.dialogue.active) { this.called = true; this._say(this.guideName, this.chiama, 4); }
   }
 
   _release() {
@@ -263,6 +321,177 @@ export class Racconto {
       action: () => { if (this.progress.goal === 'uscita') this._exitCinema(); },
     });
     I.addTarget(this.room.door, 'storia_uscita');
+    // capitolo 2: la porta accanto al maxischermo, il pacchetto sul tavolo della stanzetta, la porta per uscire
+    I.register('storia_portatv', {
+      range: 2.4,
+      label: () => (this.story && this.progress.goal === 'stanzetta' && this.stage === 'porta2' ? this.cfg.portaLabel : null),
+      action: () => { if (this.stage === 'porta2') { this.portaTv.open(); this.stage = 'aperta2'; } },
+    });
+    if (this.portaTv) I.addTarget(this.portaTv.group, 'storia_portatv');
+    if (this.stanza.pack) I.addTarget(this.stanza.pack, 'smoke');
+    I.register('storia_esci2', {
+      range: 2.4,
+      label: () => (this.inStanza && this.progress.goal === 'uscita2' ? this.cfg.esciStanzetta : null),
+      action: () => { if (this.progress.goal === 'uscita2') this._exitStanzetta(); },
+    });
+    if (this.stanza.door) I.addTarget(this.stanza.door.group, 'storia_esci2');
+  }
+
+  // ------------------------------------------------------------------ capitolo 2: la stanzetta e il fumo
+
+  _enterStanzetta() {
+    const ctx = this.ctx, S = this.stanza;
+    this.stage = 'going';
+    this.ov.fade(true, () => {
+      this._release();
+      this.progress.complete('stanzetta');
+      this.portaTv?.close();
+      S.show(true);
+      this.inStanza = true;
+      this._playerWorld(S.collisionBoxes(), S.bounds());
+      if (ctx.player.seated) ctx.player.stand();
+      ctx.interactions.setModal(null);
+      const a = S.arrivo;
+      ctx.player.position.set(a.x, 0, a.z); ctx.player.velocity.set(0, 0, 0);
+      ctx.player.yaw = yawTo(ctx.player.position, S.tablePos); ctx.player.pitch = -0.25;
+      ctx.player.update(0);
+      // Rafka è già lì, accanto al tavolo
+      const rf = this._npc('Rafka');
+      if (rf) {
+        this.guide = rf; rf.visible = true; rf.userData.directed = true;
+        this.ctx.camerawork?.stop(rf); this.ctx.npcs.stopAction(rf);
+        const rp = rf.parent.worldToLocal(S.rafkaPos.clone());
+        rf.position.set(rp.x, rf.userData.stand_lift ?? rf.position.y, rp.z);
+        rf.rotation.y = Math.atan2(a.x - S.rafkaPos.x, a.z - S.rafkaPos.z);
+        if (rf.userData.idle_clip) ctx.npcs.setLoop(rf, rf.userData.stand_clip ?? rf.userData.idle_clip, 1, 0.3);
+      }
+      // la scritta FUMO a tutto schermo
+      this.stage = 'titolo';
+      this.freeze = true;
+      ctx.player.clearInput();
+      ctx.ui.subtitle(null);
+      document.body.classList.add('srt-on');
+      this.ov.fade(false);
+      this.ov.big(`<img src="${this.cfg.fumoLogo}" alt="Fumo">`);
+      this.titleT = setTimeout(() => {
+        this.ov.big(null);
+        this.titleT = setTimeout(() => {
+          this.freeze = false;
+          document.body.classList.remove('srt-on');
+          this.stage = 'prepFumo'; this.prep = 'sigaretta'; this.wait = 0;
+          this._say('Rafka', this.cfg.rafka.dentro, 5);
+          ctx.ui.toast('Prendi una sigaretta dal tavolo', 4);
+        }, 700);
+      }, this.cfg.logoDurata * 1000);
+    });
+  }
+
+  // come nella serata: sigaretta, ci si siede, due tiri, poi a Rafka viene fame e si ordina
+  _prepFumo() {
+    const ctx = this.ctx, S = this.stanza;
+    if (this.prep === 'sigaretta' && ctx.smoking.holding && !ctx.hands.busy) {
+      this.prep = 'tiri';
+      const c = S.chairPos, t = S.tablePos;
+      const eye = new THREE.Vector3(c.x, ctx.config.player.seatedEyeHeight, c.z + 0.05);
+      ctx.player.sit({ eye, yaw: yawTo(eye, t), pitch: pitchTo(eye, t) });
+      this._say('Rafka', this.cfg.rafka.siediti, 5);
+      ctx.ui.toast(`Fai ${this.cfg.tiri} tiri (clic)`, 4);
+    } else if (this.prep === 'tiri' && (ctx.smoking.puffs >= this.cfg.tiri || !ctx.smoking.holding) && !ctx.hands.busy) {
+      this.prep = 'fame';
+      this._say('Rafka', this.cfg.rafka.fame, 5);
+      this.wait = 3;
+    } else if (this.prep === 'fame') {
+      this.prep = null;
+      this._fumoCard();
+    }
+  }
+
+  _fumoCard() {
+    const B = this.serata.cfg.brani.fumo;
+    this.points = 0;
+    this._setFree(true);
+    this.ov.showBar({ label: 'Fumo' });
+    this.ov.setPoints(0);
+    this.ov.setTime(this.cfg.fumoGioco);
+    this.stage = 'prontoFumo';
+    this.ov.panel(`<h2>${this.serata.cfg.ui.comeSiGioca}</h2><ul>${B.regole.map((r) => `<li>${r}</li>`).join('')}</ul>`,
+      [{ label: this.serata.cfg.ui.inizia, main: true, action: () => this._goFumo() }]);
+  }
+
+  _goFumo() {
+    if (this.stage !== 'prontoFumo') return;
+    this.ov.clear();
+    this.food2.showPhone(true);
+    const api = {
+      ctx: this.ctx, cfg: this.serata.cfg, overlay: this.ov, npc: 'Rafka', durata: this.cfg.fumoGioco, food: this.food2,
+      add: (p) => { this.points += p; this.ov.setPoints(this.points); },
+      say: () => {},
+    };
+    this.fumo = createCibo(api);
+    this.fumo.start();
+    this.left = this.cfg.fumoGioco;
+    this.stage = 'fumoGioco';
+  }
+
+  _stopFumo() {
+    if (!this.fumo) return;
+    this.fumo.dispose?.();
+    this.fumo = null;
+  }
+
+  _endFumo() {
+    const summary = this.fumo.summary?.() ?? '';
+    this._stopFumo();
+    this.stage = 'result';
+    this.ov.panel(`<h2>Fumo</h2><p>${summary}</p><table class="score"><tr class="tot"><td>Punti</td><td>${this.points}</td></tr></table>`,
+      [{ label: this.serata.cfg.ui.continua, main: true, action: () => this._afterFumo() }]);
+  }
+
+  _afterFumo() {
+    const ctx = this.ctx;
+    this.ov.clear();
+    this.ov.showBar(null);
+    if (ctx.smoking.holding) ctx.smoking.putOut(ctx, this.serata.cfg.indicazioni.spenta);
+    if (ctx.player.seated) ctx.player.stand();
+    this._setFree(false);
+    this.stage = 'stanza';
+    this.progress.complete('fumo');
+    this._say('Rafka', this.cfg.rafka.fine, 5);
+  }
+
+  _leaveStanza(placeAtDoor = true) {
+    const ctx = this.ctx;
+    this.stanza.show(false);
+    this.inStanza = false;
+    this.food2.clear();
+    ctx.player.collisions = ctx.collisions;
+    if (ctx.player.seated) ctx.player.stand();
+    if (placeAtDoor) {
+      const s = this.portaTv?.soglia ?? new THREE.Vector3(0.15, 0, -4);
+      ctx.player.position.set(s.x, 0, s.z + 1.1); ctx.player.velocity.set(0, 0, 0);
+      ctx.player.yaw = Math.PI; ctx.player.pitch = 0;          // di spalle alla porta, verso il circolo
+      ctx.player.update(0);
+    }
+    // Rafka torna nel circolo, accanto alla porta, e riprende il suo giro
+    const rf = this._npc('Rafka');
+    if (rf && this.guide === rf) {
+      const s = this.portaTv?.soglia ?? new THREE.Vector3(0.15, 0, -4);
+      const rp = rf.parent.worldToLocal(new THREE.Vector3(s.x + 0.9, 0, s.z + 1.2));
+      rf.position.set(rp.x, rf.userData.stand_lift ?? rf.position.y, rp.z);
+    }
+    this._release();
+  }
+
+  _exitStanzetta() {
+    const ctx = this.ctx;
+    this.stage = 'going';
+    this.ov.fade(true, () => {
+      this._leaveStanza(true);
+      this.progress.complete('uscita2');
+      this.ov.fade(false);
+      this.stage = 'fine';
+      setTimeout(() => this._say('Rafka', this.cfg.rafka.dopo, 6), 1500);
+    });
   }
 
   // ------------------------------------------------------------------ dentro il cinema
@@ -437,7 +666,8 @@ export class Racconto {
       this._leaveCinema(true);
       this.progress.complete('uscita');
       this.ov.fade(false);
-      this.stage = 'fine';
+      this.stage = 'idle';                                       // capitolo 2: Rafka va ad aspettarti da qualche parte
+      this.wait = 6;
       ctx.ui.toast(this.cfg.ritorno, 5);
       const cr = this._npc('Cronico');
       if (cr) setTimeout(() => this._say('Cronico', this.cfg.cronicoDopo, 6), 1800);
