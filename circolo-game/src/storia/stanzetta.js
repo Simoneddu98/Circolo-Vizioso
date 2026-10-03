@@ -17,6 +17,49 @@ export function copia(src, keep = null) {
   return out;
 }
 
+// Nel modello del tavolo da carte le gambe sono ruotate di 45° intorno al centro: stanno a metà dei lati, fuori dal
+// telaio, invece che agli angoli. Si riportano agli angoli ruotando ogni gamba (le parti che toccano terra) di 45°
+// intorno al centro del tavolo. La geometria è la stessa del tavolo del circolo, che così si aggiusta anche lui.
+export function raddrizzaGambe(mesh) {
+  const geo = mesh?.geometry;
+  if (!geo || geo.userData.gambeDritte) return;
+  geo.userData.gambeDritte = true;
+  const pos = geo.attributes.position, nor = geo.attributes.normal, n = pos.count;
+  // parti della mesh: vertici uniti dai triangoli e dalle posizioni uguali
+  const par = new Int32Array(n).map((_, i) => i);
+  const find = (a) => { while (par[a] !== a) { par[a] = par[par[a]]; a = par[a]; } return a; };
+  const join = (a, b) => { a = find(a); b = find(b); if (a !== b) par[b] = a; };
+  const same = new Map();
+  for (let i = 0; i < n; i++) {
+    const k = `${pos.getX(i).toFixed(5)},${pos.getY(i).toFixed(5)},${pos.getZ(i).toFixed(5)}`;
+    if (same.has(k)) join(same.get(k), i); else same.set(k, i);
+  }
+  const idx = geo.index;
+  if (idx) for (let t = 0; t < idx.count; t += 3) { join(idx.getX(t), idx.getX(t + 1)); join(idx.getX(t), idx.getX(t + 2)); }
+  geo.computeBoundingBox();
+  const bb = geo.boundingBox, cx = (bb.min.x + bb.max.x) / 2, cz = (bb.min.z + bb.max.z) / 2;
+  const floor = bb.min.y + (bb.max.y - bb.min.y) * 0.02, half = (bb.max.x - bb.min.x) / 2;
+  const parts = new Map();
+  for (let i = 0; i < n; i++) { const r = find(i); if (!parts.has(r)) parts.set(r, []); parts.get(r).push(i); }
+  const k = Math.SQRT1_2;
+  for (const ids of parts.values()) {
+    let x = 0, z = 0, low = Infinity;
+    for (const i of ids) { x += pos.getX(i) - cx; z += pos.getZ(i) - cz; low = Math.min(low, pos.getY(i)); }
+    x /= ids.length; z /= ids.length;
+    // una gamba: tocca terra, sta lontano dal centro e su un asse (a metà di un lato)
+    if (low > floor || Math.hypot(x, z) < half * 0.6 || Math.min(Math.abs(x), Math.abs(z)) > half * 0.15) continue;
+    for (const i of ids) {
+      const px = pos.getX(i) - cx, pz = pos.getZ(i) - cz;
+      pos.setX(i, cx + (px - pz) * k); pos.setZ(i, cz + (px + pz) * k);
+      if (nor) { const nx = nor.getX(i), nz = nor.getZ(i); nor.setX(i, (nx - nz) * k); nor.setZ(i, (nx + nz) * k); }
+    }
+  }
+  pos.needsUpdate = true;
+  if (nor) nor.needsUpdate = true;
+  geo.computeBoundingBox();
+  geo.computeBoundingSphere();
+}
+
 // copia appoggiata con la base al centro (x, z) sul pavimento della stanza
 function posa(ctx, name, group, x, z, y = 0, rotY = 0, keep = null) {
   const src = ctx.root.getObjectByName(name);
@@ -112,6 +155,7 @@ export class Stanzetta {
     // una sedia, posacenere con la sigaretta, il pacchetto in mezzo al tavolo
     const [tx, tz] = S.tavolo;
     const legno = (m) => /Noce|Legno|Wood/i.test([m.material].flat().map((x) => x.name).join(' '));
+    ctx.root.getObjectByName('Card_Table')?.traverse((m) => { if (m.isMesh && legno(m)) raddrizzaGambe(m); });
     this.table = posa(ctx, 'Card_Table', g, tx, tz, 0, 0, legno);
     g.updateMatrixWorld(true);
     const tb = this.table ? new THREE.Box3().setFromObject(this.table) : null;
