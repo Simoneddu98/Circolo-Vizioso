@@ -1134,6 +1134,8 @@ export class Racconto {
         #cruscotto .kmh { background: rgba(20,12,6,.72); border: 1px solid rgba(230,190,120,.5); border-radius: 12px; padding: 6px 12px;
           font-size: 30px; font-weight: 700; min-width: 92px; text-align: right; }
         #cruscotto .kmh small { display: block; font-size: 11px; letter-spacing: .12em; opacity: .7; }
+        #cruscotto .kmh .casa { display: block; font-size: 14px; font-weight: 600; color: #ffd27a; white-space: nowrap; }
+        #cruscotto .kmh .casa:empty { display: none; }
         #cruscotto .kmh.turbo { border-color: #ff17e4; box-shadow: 0 0 16px rgba(255,23,228,.5); }
         #cruscotto button { pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; border-radius: 50%;
           width: 74px; height: 74px; border: 1px solid #e6be78; background: rgba(28,18,11,.82); color: #f1e6d2; font: 700 13px var(--display, sans-serif); }
@@ -1142,7 +1144,7 @@ export class Racconto {
       document.head.appendChild(css);
     }
     const el = document.createElement('div'); el.id = 'cruscotto';
-    el.innerHTML = '<div class="kmh">0<small>km/h</small></div>';
+    el.innerHTML = '<div class="kmh">0<small>km/h</small><span class="casa"></span></div>';
     if (this.ctx.touch) {
       const btn = (label, cls, down, up) => {
         const b = document.createElement('button'); b.textContent = label; if (cls) b.className = cls;
@@ -1157,12 +1159,14 @@ export class Racconto {
     document.body.appendChild(el);
     this.cruscotto = el;
     this.kmhEl = el.querySelector('.kmh');
+    this.casaEl = el.querySelector('.casa');
   }
 
   _updateStrada(dt) {
     const A = this.cfg.auto, S = this.strada, ctx = this.ctx;
     this.auto.update(dt);
     const percorso = ['macchina', 'guida', 'casa'].includes(this.progress.goal);
+    if (S.segnaOn !== percorso) S.segnaCasa(percorso);
     if (this.ostacoli) {
       if (this.ostacoli.attivi !== percorso) this.ostacoli.mostra(percorso);
       this.ostacoli.update(dt, this.auto);
@@ -1170,6 +1174,9 @@ export class Racconto {
     if (this.kmhEl) {
       this.kmhEl.firstChild.textContent = String(this.auto.kmh);
       this.kmhEl.classList.toggle('turbo', !!this.auto.turbo);
+      // quanto manca a casa (o quanto l'hai superata)
+      const fine = S.cfg.casa * 40 + S.cfg.porta[0] + 20, m = Math.round(fine - (S.seg * 40 + this.auto.s));
+      this.casaEl.textContent = !percorso ? '' : Math.abs(m) < 6 ? 'Casa: sei arrivato' : m > 0 ? `Casa: ${m} m` : `Casa: ${-m} m indietro`;
     }
     // il percorso: quanto manca a casa (in percentuale); arrivati davanti a casa, si scende
     if (this.progress.goal === 'guida') {
@@ -1179,6 +1186,7 @@ export class Racconto {
       if (S.seg === S.cfg.casa && Math.abs(fatto - fine) < 12) {
         this.progress.complete('guida');
         this._say('Tu', A.arrivato, 5);
+        ctx.ui.toast(A.fermati, 5);
       }
     } else if (this.progress.goal === 'casa' && this.auto.driving && S.seg > S.cfg.casa && !this.oltreDetto) {
       this.oltreDetto = true;

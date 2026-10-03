@@ -141,7 +141,7 @@ export class Strada {
       const luce = new THREE.PointLight(0xffc27a, 5, 6, 1.6); luce.position.set(0, 2.6, 0.7);
       const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffe2b0 }));
       lamp.position.set(0, 2.45, 0.25);
-      this.porta.group.add(luce, lamp);
+      this.porta.group.add(luce, lamp, this._segnoCasa());
       // la porta sta dentro la copia del suo tratto (coordinate del modello: le copie dritte non sono piegate)
       // il tratto 0 sta nel gruppo senza spostamenti né rotazioni: coordinate del tratto = mondo - origine del gruppo
       this.disponi(0);
@@ -152,6 +152,57 @@ export class Strada {
       }
     }
     this.disponi(0);
+  }
+
+  // casa si deve vedere da lontano: una colonna di luce calda sopra il portone, l'insegna CASA e un rettangolo luminoso
+  // sulla strada davanti (dove fermarsi). Coordinate della porta: z verso la strada. Solo al portone d'arrivo.
+  _segnoCasa() {
+    const g = new THREE.Group();
+    g.name = 'Segno_Casa';
+    const caldo = 0xffd27a;
+    const add = (m) => { m.frustumCulled = false; g.add(m); return m; };
+    // colonna di luce: piena e calda (sul cielo chiaro una luce "additiva" sparirebbe)
+    const fascio = add(new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.6, 46, 24, 1, true),
+      new THREE.MeshBasicMaterial({ color: 0xffa62b, transparent: true, opacity: 0.5, fog: false, depthWrite: false, side: THREE.DoubleSide })));
+    fascio.position.set(0, 23 + 3.4, 1.6);
+    // la scritta CASA sospesa sopra il portone, sempre girata verso chi guarda: si vede da lontano
+    const sc = document.createElement('canvas'); sc.width = 512; sc.height = 220;
+    const x2 = sc.getContext('2d');
+    x2.fillStyle = 'rgba(30,16,4,.85)'; x2.beginPath(); x2.roundRect(8, 8, 496, 204, 40); x2.fill();
+    x2.lineWidth = 10; x2.strokeStyle = '#ffb03a'; x2.stroke();
+    x2.font = '700 150px "Bebas Neue", Impact, sans-serif'; x2.textAlign = 'center'; x2.textBaseline = 'middle';
+    x2.fillStyle = '#ffe9b0'; x2.fillText('⌂ CASA', 256, 118);
+    const st = new THREE.CanvasTexture(sc); st.colorSpace = THREE.SRGBColorSpace;
+    const sprite = add(new THREE.Sprite(new THREE.SpriteMaterial({ map: st, fog: false, depthTest: false, toneMapped: false })));
+    sprite.scale.set(4.6, 2.0, 1);
+    sprite.position.set(0, 7.2, 1.2);
+    sprite.renderOrder = 10;
+    const cv = document.createElement('canvas'); cv.width = 512; cv.height = 192;
+    const c = cv.getContext('2d');
+    c.fillStyle = '#1a1006'; c.fillRect(0, 0, 512, 192);
+    c.font = '700 132px "Bebas Neue", Impact, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.shadowColor = '#ffb03a'; c.shadowBlur = 30; c.fillStyle = '#fff1c9';
+    for (let i = 0; i < 3; i++) c.fillText('CASA', 256, 102);
+    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+    const insegna = add(new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.64), new THREE.MeshBasicMaterial({ map: tex, fog: false, toneMapped: false })));
+    insegna.position.set(0, 3.15, 0.2);
+    // sulla strada, davanti alla porta: la corsia vicina al marciapiede di casa (centro della via a 8,9 m dalla porta)
+    const r = add(new THREE.Mesh(new THREE.PlaneGeometry(3.2, 5.2), new THREE.MeshBasicMaterial({ color: caldo, transparent: true,
+      opacity: 0.38, fog: false, depthWrite: false, blending: THREE.AdditiveBlending })));
+    r.rotation.x = -Math.PI / 2;
+    r.position.set(0, -0.17, 7.4);
+    this.segno = g;
+    g.visible = false;
+    return g;
+  }
+
+  // il segno di casa si accende (durante il percorso) solo quando la porta è al portone d'arrivo
+  segnaCasa(on) { this.segnaOn = on; this._aggiornaSegno(); }
+
+  _aggiornaSegno() {
+    if (!this.segno) return;
+    const t = this.tiles.find((x) => x.obj === this.porta?.group.parent);
+    this.segno.visible = !!this.segnaOn && t?.seg === this.cfg.casa;
   }
 
   // il locale con l'insegna accesa (sul portone con i gradini del marciapiede nord), in ogni copia
@@ -214,6 +265,7 @@ export class Strada {
       const t = this.tiles.find((x) => x.seg === 0 || x.seg === C.casa);
       this.porta.group.visible = !!t; if (this.porta.inset) this.porta.inset.visible = !!t;
       if (t && this.porta.group.parent !== t.obj) { t.obj.add(this.porta.group); if (this.porta.inset) t.obj.add(this.porta.inset); }
+      this._aggiornaSegno();
     }
   }
 

@@ -27,8 +27,8 @@ export const STORIA = {
     { goal: 'kappa', text: 'Parla con Kappa, alla porta accanto al tavolo da carte', locked: 'Più tardi' },
     { goal: 'strada', text: 'Apri la porta accanto al tavolo da carte ed esci', locked: 'Più tardi' },
     { goal: 'macchina', text: 'Fai due passi: la tua macchina è parcheggiata più avanti, sulla strada', locked: 'Più tardi' },
-    { goal: 'guida', text: 'Torna a casa in macchina, schivando gli ostacoli ({n}%)', locked: 'Più tardi' },
-    { goal: 'casa', text: 'Scendi (E) ed entra a casa: il portone con la luce accesa', locked: 'Più tardi' },
+    { goal: 'guida', text: 'Torna a casa in macchina, schivando gli ostacoli ({n}%): cerca la colonna di luce', locked: 'Più tardi' },
+    { goal: 'casa', text: 'Scendi (E) ed entra a casa: il portone con l\'insegna CASA e la colonna di luce', locked: 'Più tardi' },
     { goal: 'continua', text: 'Fine del quarto capitolo. Casa... è il circolo. Gira e gioca' },
   ],
   requires: { minigame: 'idee', smoke: 'nicola' },
@@ -185,6 +185,7 @@ export const STORIA = {
     comandi: 'W/S o frecce: gas e freno · A/D: sterzo · Shift: turbo · C: visuale · E: scendi',
     // il percorso fino a casa: casa è nel tratto `arrivo` (dritto), sul portone ad arco come quello da cui sei uscito
     arrivato: 'Eccola. Casa. Finalmente.',
+    fermati: 'Fermati sul rettangolo luminoso, scendi (E) e apri la porta con l\'insegna CASA.',
     oltre: 'Casa è rimasta indietro: torna un po\' indietro.',
     // ostacoli in mezzo alla strada: [tratto, metri lungo la via, di traverso, tipo] (cono, barile, transenna)
     ostacoli: [
