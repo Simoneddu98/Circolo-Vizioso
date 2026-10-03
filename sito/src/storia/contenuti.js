@@ -26,7 +26,10 @@ export const STORIA = {
     { goal: 'rientro', text: 'La porta si riapre: rientrano tutti', locked: 'Più tardi' },
     { goal: 'kappa', text: 'Parla con Kappa, alla porta accanto al tavolo da carte', locked: 'Più tardi' },
     { goal: 'strada', text: 'Apri la porta accanto al tavolo da carte ed esci', locked: 'Più tardi' },
-    { goal: 'continua', text: 'Fine del quarto capitolo: sei in strada. Guardati intorno' },
+    { goal: 'macchina', text: 'Fai due passi: la tua macchina è parcheggiata più avanti, sulla strada', locked: 'Più tardi' },
+    { goal: 'guida', text: 'Fai un giro in macchina: tre giri dell\'isolato ({n}/3)', locked: 'Più tardi' },
+    { goal: 'locale', text: 'Scendi dalla macchina (E) ed entra nel locale con l\'insegna accesa', locked: 'Più tardi' },
+    { goal: 'continua', text: 'Fine del quarto capitolo. Sei di nuovo al circolo: gira e gioca' },
   ],
   requires: { minigame: 'idee', smoke: 'nicola' },
   ui: { label: 'La storia', sub: 'Sperimentale: capitolo 1, il cinema' },
@@ -129,22 +132,44 @@ export const STORIA = {
     nodo: 'storia_kappa',
     chiama: 'Ehi! Vieni, ti aspettavo.',
     vai: 'Dai, apri la porta. Io ti seguo tra un attimo.',
-    fuori: 'Eccoci. Senti che aria? Le foto più belle stanno sempre fuori dalla porta.',
+    fuori: 'Respira. Senti che aria? Fai due passi, svagati. Ma quella macchina verde laggiù non è la tua?',
   },
   esciLabel: 'Apri la porta ed esci',
   strada: {
     url: `./assets/strada.glb?v=${ASSET_VERSION}`,
     origine: [-200, 0, 0],                  // lontano dal circolo, come il cinema e la stanzetta
     nascondi: ['Cube223'],                  // il cubo che avvolge la scena di Blender: il cielo è lo sfondo
-    limiti: [-19, 15, -8.2, 8.2],           // x min, x max, z min, z max (marciapiedi e carreggiata)
+    limiti: [-21, 21, -8.2, 8.2],           // x min, x max, z min, z max (marciapiedi e carreggiata)
+    periodo: 40,                            // lunghezza del tratto che si ripete (a piedi e in macchina)
+    nebbia: [18, 55],                       // la via sfuma nel cielo tra questi metri: il cielo non la taglia mai
     alberi: [[4.6, -4.5], [-4.6, -4.5], [14.1, -4.5], [-14, -4.6], [4.6, 4.5], [-4.6, 4.4], [13.9, 4.5], [-14, 4.5]],   // tronchi
     arrivo: [9.0, -6.6],                    // sul marciapiede nord, tra due alberi, lontano da pali e cestini
     guarda: [9.0, 4],
     kappa: [10.2, -5.3],                     // dove compare Kappa, poco dopo di te
     cielo: 0x9db8d8, luce: 1.4, sole: 1.6,
-    lontano: 140,                           // distanza di disegno in strada (nel circolo basta molto meno)
-    titolo: 'Fuori',
-    arrivoHint: 'Sei fuori dal circolo. Per adesso la storia finisce qui: guardati intorno.',
+    lontano: 90,                            // distanza di disegno in strada (nel circolo basta molto meno)
+    arrivoHint: 'Sei fuori. Prenditi una boccata d\'aria: la tua macchina è parcheggiata più avanti.',
+    locale: { porta: [-6.4, -9.0], altezza: 3.3, insegna: 'BAR' },   // il portone con i gradini, marciapiede nord
+    localeLabel: 'Entra nel locale',
+    localeChiuso: 'Prima fatti un giro, dai.',
+  },
+  // la tua macchina: Dodge Challenger del 1970 (assets/macchina.glb), coordinate della strada
+  auto: {
+    url: `./assets/macchina.glb?v=${ASSET_VERSION}`,
+    parcheggio: [-10, -2.2, 0],             // x, z, direzione (0 = verso +x, lungo la via)
+    quota: -0.2,                            // la carreggiata è 20 cm sotto i marciapiedi
+    carreggiata: [-2.2, 2.2],               // dove può stare il centro della macchina (le ruote restano sulla strada)
+    accelerazione: 5, freno: 11, attrito: 2.2, retro: 4, massima: 17,   // m/s² e m/s (17 m/s ≈ 60 km/h)
+    sterzo: 0.55, passo: 2.9,
+    dietro: [6.5, 2.3],                     // telecamera da dietro: distanza e altezza
+    guidatore: [-0.4, 1.08, 0.25],          // occhi al posto di guida (modello: x a destra, y su, z indietro)
+    inseguimento: 5,
+    giri: 3,
+    tratti: 5,                              // un giro dell'isolato = 5 tratti di strada (200 m)
+    sali: 'Sali in macchina',
+    comandi: 'W/S o frecce: gas e freno · A/D: sterzo · C: visuale · E: scendi',
+    fineGiri: 'Strano: è sempre la stessa strada. Quel bar con l\'insegna accesa, l\'avrai visto tre volte.',
+    rientro: 'Ci hai messo un po\'. Hai visto? Da qualunque porta entri, finisci sempre qui.',
   },
   blackbox: {
     titolo: 'Black Box',

@@ -609,9 +609,9 @@ export const CONFIG = {
         kappa_pero: { text: 'Guarda i vecchi che giocano a carte! Questa luce gialla, le facce, le bottiglie... al Ciabi queste foto non le fai.',
           options: [{ text: 'Fammi vedere le foto.', next: 'kappa_foto' }, { text: 'Ci vediamo dopo.', action: 'end' }] },
         // La storia, capitolo 4: Kappa ti aspetta alla porta nuova, accanto al tavolo da carte
-        storia_kappa: { text: 'Sono tornati tutti, hai visto? Escono, rientrano, si risiedono negli stessi posti. Io stasera ho fatto cento foto, e sono tutte di questa stanza.',
-          options: [{ text: 'E allora?', next: 'storia_kappa2' }, { text: 'Non ti piace qui?', next: 'storia_kappa2' }] },
-        storia_kappa2: { text: 'Mi piace, è questo il problema. Si sta così bene che non esci più. Questa porta dà sulla strada: c\'è un mondo, là fuori. Vieni a vedere con me?',
+        storia_kappa: { text: 'Ehi. Ti vedo pensieroso: quella scatola nera ti ha lasciato addosso qualcosa, eh? Succede. Però adesso basta domande.',
+          options: [{ text: 'Forse hai ragione.', next: 'storia_kappa2' }, { text: 'Ci sto ancora pensando.', next: 'storia_kappa2' }] },
+        storia_kappa2: { text: 'Hai bisogno di cambiare aria. Svagarti, divertirti, prendere una boccata d\'aria. Questa porta dà sulla strada: esci, cammina un po\'. Io ti seguo.',
           options: [{ text: 'Andiamo.', action: 'serata:strada' }, { text: 'Un attimo.', action: 'end' }] },
         kappa_circolo: { text: 'È perfetto! Sembra un set. Nicola al bancone è fotogenico da far paura, e il biliardo ha una luce da film.',
           options: [{ text: 'E il Ciabi?', next: 'kappa_ciabi' }, { text: 'A dopo.', action: 'end' }] },
