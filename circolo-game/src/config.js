@@ -1,6 +1,7 @@
 // Tutte le costanti regolabili del gioco. Unità: metri, secondi, radianti.
 import { ASSET_VERSION } from './version.js';
 import { SERATA } from './serata/contenuti.js';
+import { STORIA } from './storia/contenuti.js';
 
 // ?v=: dopo ogni pubblicazione il browser scarica gli asset nuovi invece di usare quelli in cache
 const v = (path) => `${path}?v=${ASSET_VERSION}`;
@@ -541,6 +542,9 @@ export const CONFIG = {
           options: [{ text: 'Raccontami del circolo.', next: 'storia' }, { text: 'A dopo.', action: 'end' }] },
         storia: { text: 'Il circolo l\'ha aperto mio nonno nel sessantotto. Il biliardo è quello originale; il maxischermo no, quello l\'abbiamo preso per i mondiali. Da allora qui è sempre la stessa sera. Ed è una bella sera.',
           options: [{ text: 'A dopo.', action: 'end' }] },
+        // "La storia": Cronico ti aspetta alla porta d'ingresso
+        storia_invito: { text: 'Eccoti. Senti: stasera niente partita e niente bancone. Ti porto in un posto che al circolo non conosce nessuno. È qui, oltre la porta. Te la senti?',
+          options: [{ text: 'Ti seguo.', action: 'serata:segui' }, { text: 'Aspetta un attimo.', action: 'end' }] },
         // Brano 1: Cronico ti porta davanti al maxischermo
         cinema_invito: { text: 'Eccoti! Allora, stasera niente partita: si fa cinema. Siediti davanti al maxischermo: domande facili, film d\'amore e qualcosa di più... caldo. Rispondi veloce, che i punti si sommano fino a fine serata.',
           options: [{ text: 'Dimmi come si gioca.', next: 'cinema_regole' }] },
@@ -972,6 +976,7 @@ export const CONFIG = {
   },
 
   serata: SERATA,
+  storia: STORIA,                           // "La storia", modalità sperimentale (src/storia/)
 
   smoke: {
     count: 22,

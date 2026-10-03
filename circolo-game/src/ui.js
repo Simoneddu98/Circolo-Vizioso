@@ -7,7 +7,7 @@ export class UI {
     this.cfg = config;
     this.el = {
       start: $('start'), progress: $('load-fill'), loadLabel: $('load-label'), enter: $('enter'),
-      enterFree: $('enter-free'), touch: $('touch-msg'), controls: $('controls'), hud: $('hud'), prompt: $('prompt'), promptText: $('prompt-text'),
+      enterFree: $('enter-free'), enterStory: $('enter-story'), touch: $('touch-msg'), controls: $('controls'), hud: $('hud'), prompt: $('prompt'), promptText: $('prompt-text'),
       goals: $('goals'), inventory: $('inventory'), invList: $('inv-list'), subtitle: $('subtitle'),
       subName: $('sub-name'), subText: $('sub-text'), toast: $('toast'), held: $('held-hint'),
       pause: $('pause'), resume: $('resume'), restart: $('restart'), sens: $('sens'), sensVal: $('sens-val'),
@@ -22,6 +22,9 @@ export class UI {
       $('mode-q').textContent = S.scegli;
       this.el.enter.innerHTML = `${S.storia}<small>${S.storiaSub}</small>`;
       this.el.enterFree.innerHTML = `${S.libero}<small>${S.liberoSub}</small>`;
+      const T = config.storia?.ui;
+      if (T && this.el.enterStory) this.el.enterStory.innerHTML = `${T.label}<small>${T.sub}</small>`;
+      else this.el.enterStory?.remove();
     } else this.el.enter.textContent = config.ui.enterLabel;
     this.el.touch.textContent = config.ui.touchMessage;
     this.el.lockHint.textContent = config.ui.pointerLockHint;
@@ -75,6 +78,7 @@ export class UI {
     this.setProgress(1);
     this.el.enter.disabled = false;
     if (this.el.enterFree) this.el.enterFree.disabled = false;
+    if (this.el.enterStory) this.el.enterStory.disabled = false;
   }
 
   loadError(msg) {

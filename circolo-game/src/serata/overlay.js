@@ -80,7 +80,7 @@ export class Overlay {
   showBar(brano) {
     this.bar.hidden = !brano;
     if (!brano) return;
-    this.bar.querySelector('.n').textContent = `${this.cfg.ui.brano.replace('{n}', brano.n)} · ${brano.titolo}`;
+    this.bar.querySelector('.n').textContent = brano.label ?? `${this.cfg.ui.brano.replace('{n}', brano.n)} · ${brano.titolo}`;
   }
 
   setTime(sec) {

@@ -29,6 +29,7 @@ import { BarOrder } from './bar.js';
 import { CameraWork } from './camerawork.js';
 import { isTouchDevice, TouchControls } from './touch.js';
 import { Serata } from './serata/director.js';
+import { Racconto } from './storia/racconto.js';
 
 const DEBUG = new URLSearchParams(location.search).get('debug') === '1';
 const ui = new UI(CONFIG);
@@ -74,7 +75,7 @@ let dragMode = false;                                // ripiego se il browser ri
 let spawn = null;
 let interactions, npcs, tv, smoke;
 
-let minigames = null, foosDemo = null, dialogue = null, routines = [], barOrder = null, barHandlers = null, camerawork = null, serata = null;
+let minigames = null, foosDemo = null, dialogue = null, routines = [], barOrder = null, barHandlers = null, camerawork = null, serata = null, racconto = null;
 const ctx = {
   config: CONFIG, scene, camera, player, ui, renderer, progress, wallet, occluders: [], requestLock: () => requestLock(),
   releaseLock: () => { if (document.pointerLockElement === canvas) document.exitPointerLock(); },
@@ -166,6 +167,7 @@ async function load() {
   }
   serata = optional('serata', () => new Serata(ctx, tv));    // la serata a brani (modalità storia)
   ctx.serata = serata;
+  racconto = serata && optional('storia', () => new Racconto(ctx, serata));   // "La storia": prende il posto della serata se scelta
   smoke = new SmokeSystem(root, CONFIG);
   player.spawn(spawn.pos, spawn.yaw, spawn.eye);
   renderer.shadowMap.needsUpdate = true;
@@ -246,6 +248,9 @@ async function requestLock() {
 function enter(mode = 'storia') {
   if (state !== 'start') return;
   gameMode = serata ? mode : 'libero';
+  if (mode === 'racconto') {
+    if (racconto) { serata = racconto; ctx.serata = racconto; } else gameMode = 'libero';
+  }
   ui.showStart(false);
   ui.showHUD(true);
   state = 'playing';
@@ -310,6 +315,7 @@ function restart() {
 
 ui.el.enter.addEventListener('click', () => enter('storia'));
 ui.el.enterFree?.addEventListener('click', () => enter('libero'));
+ui.el.enterStory?.addEventListener('click', () => enter('racconto'));
 ui.bindPause({
   onResume: resume, onRestart: restart,
   onSensitivity: (v) => { player.sensitivity = v; },
