@@ -125,6 +125,7 @@ export class NPCManager {
   }
 
   say(npc, text) {
+    if (this.zitti) return;                    // (la storia, in strada: chi è rimasto nel circolo non si sente)
     this.lastTime = this.clock;
     text = this.decorate?.(npc, text) ?? text;
     this.ui.subtitle(npc.userData.displayName, text, this.cfg.subtitleDuration);

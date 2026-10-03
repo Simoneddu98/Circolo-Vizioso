@@ -16,6 +16,22 @@
 // un nuovo modulo (es. il biliardo giocabile) si aggiunge senza toccare questo file.
 import * as THREE from 'three';
 
+const _s = new THREE.Sphere();
+const _b = new THREE.Box3(), _p = new THREE.Vector3(), _q = new THREE.Vector3();
+
+// personaggi animati: three.js, per sapere se il raggio li tocca, rifà la posa di ogni vertice (15 ms a personaggio).
+// Basta un parallelepipedo attorno alla persona, dai piedi alla testa
+function raggioPersonaggio(root) {
+  return function (raycaster, intersects) {
+    root.getWorldPosition(_p);
+    _b.min.set(_p.x - 0.32, _p.y, _p.z - 0.32); _b.max.set(_p.x + 0.32, _p.y + 1.85, _p.z + 0.32);
+    if (!raycaster.ray.intersectBox(_b, _q)) return;
+    const distance = raycaster.ray.origin.distanceTo(_q);
+    if (distance < raycaster.near || distance > raycaster.far) return;
+    intersects.push({ distance, point: _q.clone(), object: this });
+  };
+}
+
 export class InteractionSystem {
   constructor(ctx) {
     this.ctx = ctx;
@@ -53,6 +69,7 @@ export class InteractionSystem {
     for (const m of meshes) {
       m.userData.interactionTarget = target;
       prepareHighlight(m, this.cfg);
+      if (m.isSkinnedMesh) m.raycast = raggioPersonaggio(object);
     }
     this.targets.push(target);
     handler.setup?.(target, this.ctx);
@@ -63,11 +80,25 @@ export class InteractionSystem {
 
   _pick() {
     const meshes = [];
-    for (const t of this.targets) if (t.enabled && t.object.visible) meshes.push(...t.meshes);
+    // solo i bersagli davvero visibili (anche i genitori: un gruppo nascosto, come la strada della storia lontano dal
+    // circolo, non va provato triangolo per triangolo)
+    const visible = (o) => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
+    for (const t of this.targets) if (t.enabled && visible(t.object)) meshes.push(...t.meshes);
     if (!meshes.length) return null;
     this.raycaster.setFromCamera(this.center, this.ctx.camera);
+    // three.js guarda la distanza massima del raggio solo dopo aver provato i triangoli: si scartano prima i pezzi
+    // troppo lontani (la sfera che li contiene è oltre la portata)
+    const eye = this.raycaster.ray.origin, far = this.raycaster.far;
+    const vicino = (m) => {
+      const g = m.geometry;
+      if (!g) return false;
+      if (m.isSkinnedMesh) return true;                       // personaggi: il loro raggio è già un parallelepipedo
+      if (!g.boundingSphere) g.computeBoundingSphere();
+      _s.copy(g.boundingSphere).applyMatrix4(m.matrixWorld);
+      return _s.center.distanceTo(eye) - _s.radius <= far;
+    };
     // anche i muri e gli arredi bloccano il raggio: non si interagisce attraverso il bancone o una parete
-    const hits = this.raycaster.intersectObjects([...meshes, ...this.ctx.occluders], false);
+    const hits = this.raycaster.intersectObjects([...meshes, ...this.ctx.occluders].filter(vicino), false);
     for (const h of hits) {
       const t = h.object.userData.interactionTarget;
       if (!t) return null;

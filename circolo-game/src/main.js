@@ -113,6 +113,13 @@ async function load() {
   ctx.root = root;
   // piani e oggetti dei minigiochi che non si vedono in esplorazione
   root.traverse((o) => { if (o.userData.marker_plane || o.userData.start_hidden) o.visible = false; });
+  // vetri "a trasmissione" (bottiglie, bicchieri): costringono three.js a disegnare tutta la scena due volte a ogni
+  // fotogramma. Vetro trasparente normale: quasi uguale da vedere, metà del lavoro
+  root.traverse((o) => {
+    for (const m of o.isMesh ? [].concat(o.material) : []) {
+      if (m.transmission > 0) { m.transmission = 0; m.transparent = true; m.opacity = Math.min(m.opacity, 0.45); m.depthWrite = false; }
+    }
+  });
   root.updateMatrixWorld(true);
 
   setupLights(root);

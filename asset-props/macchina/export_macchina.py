@@ -132,9 +132,16 @@ for k, names in figli.items():
     bpy.context.scene.cursor.location = (xe * 0.86, ymax - 0.02, 0)
     bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
 
+# ---- il volante, a parte (nel gioco gira con lo sterzo): origine al centro
+v = bpy.data.objects.get('steering_wheel')
+if v:
+    v.name = 'Volante'
+    bpy.ops.object.select_all(action='DESELECT'); v.select_set(True); bpy.context.view_layer.objects.active = v
+    bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='BOUNDS')
+
 # ---- carrozzeria: tutto il resto in un oggetto solo
 bpy.ops.object.select_all(action='DESELECT')
-rest = [o for o in bpy.context.view_layer.objects if o.type == 'MESH' and not o.name.startswith(('Ruota_', 'Portiera_'))]
+rest = [o for o in bpy.context.view_layer.objects if o.type == 'MESH' and not o.name.startswith(('Ruota_', 'Portiera_', 'Volante'))]
 for o in rest: o.select_set(True)
 bpy.context.view_layer.objects.active = bpy.data.objects['body']
 bpy.ops.object.join()

@@ -1,6 +1,7 @@
 // "La storia", capitolo 4: la tua macchina, una Dodge Challenger del 1970 (assets/macchina.glb; script in
 // asset-props/macchina/). È parcheggiata in strada: E apre la portiera sinistra e sali; WASD o le frecce (o la levetta
-// sul telefono) per guidare, C cambia visuale (da dietro / dal posto di guida), E per scendere (solo sui rettilinei).
+// sul telefono) per guidare, Shift (o il pulsante TURBO sul telefono) per andare più forte, C cambia visuale (da dietro /
+// dal posto di guida), E per scendere (solo sui rettilinei). Il volante gira con lo sterzo.
 //
 // La macchina vive nelle coordinate del tracciato (vedi strada.js): s = metri dall'inizio del tratto di riferimento,
 // d = di traverso (come z nel modello della strada), psi = angolo rispetto alla via. Così resta sulla carreggiata anche in
@@ -14,6 +15,32 @@ import { L } from './strada.js';
 
 const RUOTE = ['Ruota_AS', 'Ruota_AD', 'Ruota_PS', 'Ruota_PD'];
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+
+// asse del volante: la direzione in cui la sua forma è più sottile (autovettore minore della covarianza dei vertici)
+function asseSottile(geo) {
+  const p = geo.attributes.position, c = new THREE.Vector3(), v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) c.add(v.fromBufferAttribute(p, i));
+  c.divideScalar(p.count);
+  const m = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i).sub(c);
+    const a = [v.x, v.y, v.z];
+    for (let r = 0; r < 3; r++) for (let q = 0; q < 3; q++) m[r][q] += a[r] * a[q];
+  }
+  // Jacobi: rotazioni finché la matrice è diagonale; le colonne di V sono gli autovettori
+  const V = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+  for (let it = 0; it < 30; it++) {
+    for (const [i, j] of [[0, 1], [0, 2], [1, 2]]) {
+      if (Math.abs(m[i][j]) < 1e-12) continue;
+      const th = 0.5 * Math.atan2(2 * m[i][j], m[j][j] - m[i][i]), cs = Math.cos(th), sn = Math.sin(th);
+      for (let k = 0; k < 3; k++) { const a = m[k][i], b = m[k][j]; m[k][i] = cs * a - sn * b; m[k][j] = sn * a + cs * b; }
+      for (let k = 0; k < 3; k++) { const a = m[i][k], b = m[j][k]; m[i][k] = cs * a - sn * b; m[j][k] = sn * a + cs * b; }
+      for (let k = 0; k < 3; k++) { const a = V[k][i], b = V[k][j]; V[k][i] = cs * a - sn * b; V[k][j] = sn * a + cs * b; }
+    }
+  }
+  const k = [0, 1, 2].reduce((a, b) => (m[b][b] < m[a][a] ? b : a));
+  return new THREE.Vector3(V[0][k], V[1][k], V[2][k]).normalize();
+}
 
 export class Auto {
   constructor(ctx, cfg, strada) {
@@ -65,7 +92,22 @@ export class Auto {
       pivot.add(door);
       this.cardine = pivot;
     }
+    // il volante: gira attorno al suo asse (dal posto di guida si vede)
+    const vol = model.getObjectByName('Volante');
+    const volMesh = vol?.isMesh ? vol : vol?.getObjectByProperty('isMesh', true);
+    if (volMesh) {
+      this.volante = vol;
+      this.volanteAsse = asseSottile(volMesh.geometry);
+      if (volMesh !== vol) this.volanteAsse.applyQuaternion(volMesh.quaternion);
+      this.volanteBase = vol.quaternion.clone();
+      // l'asse punta verso il guidatore (+z nel modello): così sterzare a destra fa girare il volante in senso orario
+      if (this.volanteAsse.clone().applyQuaternion(this.volanteBase).z < 0) this.volanteAsse.negate();
+    }
     this.root.add(model);
+    // bersaglio per "Apri la macchina": una scatola invisibile (provare il raggio sui 56 mila triangoli costa troppo)
+    this.hit = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.3, 4.9), new THREE.MeshBasicMaterial({ visible: false }));
+    this.hit.position.y = 0.65;
+    this.root.add(this.hit);
     this.strada.group.add(this.root);
     this._place();
   }
@@ -150,6 +192,10 @@ export class Auto {
       this.eye.set(o.x + p.x - fx * lz - fz * lx, C.quota + ly, o.z + p.z - fz * lz + fx * lx);
       this.hc = p.h;
     }
+    if (this.scossa) {                                        // urto: la visuale trema un attimo
+      const a = this.scossa * 0.25;
+      this.eye.x += (Math.random() - 0.5) * a; this.eye.y += (Math.random() - 0.5) * a; this.eye.z += (Math.random() - 0.5) * a;
+    }
     const pl = this.ctx.player, seat = pl.seat;
     if (seat && this.driving) {
       const yaw = -this.hc - Math.PI / 2;
@@ -191,10 +237,13 @@ export class Auto {
       const p = this.ctx.player, inp = p.input, an = p.analog;
       let gas = (inp.f ? 1 : 0) - (inp.b ? 1 : 0), dir = (inp.r ? 1 : 0) - (inp.l ? 1 : 0);
       if (an && !gas && !dir && Math.hypot(an.x, an.y) > 0.15) { gas = an.y; dir = an.x; }
-      if (gas > 0) this.v += (this.v < 0 ? C.freno : C.accelerazione) * gas * dt;
+      // turbo: Shift sul computer, il pulsante TURBO sul telefono
+      this.turbo = !!inp.run && gas > 0;
+      const acc = this.turbo ? C.accelerazioneTurbo : C.accelerazione, vmax = this.turbo ? C.turbo : C.massima;
+      if (gas > 0) this.v += (this.v < 0 ? C.freno : (this.v > vmax ? -C.attrito : acc)) * gas * dt;
       else if (gas < 0) this.v += (this.v > 0 ? -C.freno : -C.accelerazione * 0.6) * -gas * dt;
       else this.v -= Math.sign(this.v) * Math.min(Math.abs(this.v), C.attrito * dt);
-      this.v = THREE.MathUtils.clamp(this.v, -C.retro, C.massima);
+      this.v = THREE.MathUtils.clamp(this.v, -C.retro, C.turbo);
       // sterzo: più stretto da fermi, più dolce veloci
       const max = C.sterzo / (1 + Math.abs(this.v) * 0.06);
       this.steer += (dir * max - this.steer) * Math.min(1, dt * 5);
@@ -226,6 +275,11 @@ export class Auto {
       w.rotation.x -= (this.v / this.radius) * dt;
       w.rotation.y = i < 2 ? -this.steer : 0;
     }
+    if (this.volante) {
+      this._q ??= new THREE.Quaternion();
+      this.volante.quaternion.copy(this.volanteBase).multiply(this._q.setFromAxisAngle(this.volanteAsse, -this.steer * this.cfg.volante));
+    }
+    if (this.scossa) this.scossa = Math.max(0, this.scossa - dt);
     if (this.driving) this._camera(dt);
     return nuovo;
   }

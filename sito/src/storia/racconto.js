@@ -13,6 +13,7 @@ import { Idee } from './idee.js';
 import { createScatola } from './scatola.js';
 import { Strada } from './strada.js';
 import { Auto } from './auto.js';
+import { Ostacoli } from './ostacoli.js';
 import { yawTo, pitchTo } from '../player.js';
 import { saltaPresentazioni } from '../serata/director.js';
 
@@ -54,6 +55,7 @@ export class Racconto {
     for (const src of [this.cfg.logo, this.cfg.fumoLogo, this.cfg.bbLogo]) new Image().src = src;
     this._wrapBarista();
     this._targets();
+    if (new URLSearchParams(location.search).get('debug') === '1') window.__storia = this;   // per le prove
   }
 
   get progress() { return this.ctx.progress; }
@@ -82,7 +84,7 @@ export class Racconto {
     if (['stanzetta', 'fumo', 'uscita2'].includes(this.progress.goal)) { for (const g of ['rafka', 'stanzetta', 'fumo']) this.progress.done.delete(g); this.progress.ui.renderGoals(); }
     if (['lyuce', 'scatola', 'idee'].includes(this.progress.goal)) { for (const g of ['esodo', 'lyuce', 'scatola']) this.progress.done.delete(g); this.progress.ui.renderGoals(); }
     if (this.progress.goal === 'esodo') { this.stage = 'esodoAttesa'; this.wait = 1; }
-    if (['rientro', 'kappa', 'strada', 'macchina', 'guida', 'locale'].includes(this.progress.goal)) {   // tutti dentro, Kappa alla porta
+    if (['rientro', 'kappa', 'strada', 'macchina', 'guida', 'casa'].includes(this.progress.goal)) {   // tutti dentro, Kappa alla porta
       for (const g of ['rientro', 'kappa', 'strada', 'macchina', 'guida']) this.progress.done.delete(g);
       this.progress.ui.renderGoals();
       this._kappaAspetta(true);
@@ -94,7 +96,7 @@ export class Racconto {
     return [['porta', 'Cronico alla porta'], ['biglietto', 'Dentro il cinema'], ['uscita', 'Dopo il film (uscita)'],
       ['rafka', 'Capitolo 2: Rafka'], ['fumo', 'Dentro la stanzetta'], ['esodo', 'Capitolo 3: se ne vanno tutti'],
       ['lyuce', 'Capitolo 3: Lyuce e la scatola'], ['rientro', 'Capitolo 4: rientrano tutti'], ['kappa', 'Capitolo 4: Kappa'],
-      ['strada', 'Capitolo 4: in strada'], ['guida', 'Capitolo 4: in macchina'], ['locale', 'Capitolo 4: il locale']];
+      ['strada', 'Capitolo 4: in strada'], ['guida', 'Capitolo 4: in macchina'], ['casa', 'Capitolo 4: davanti a casa']];
   }
 
   jumpTo(goal) {
@@ -135,7 +137,7 @@ export class Racconto {
       return;
     }
     if (goal === 'kappa') { this._kappaAspetta(true); return; }
-    if (['strada', 'macchina', 'guida', 'locale'].includes(goal)) { this._enterStrada(goal); return; }
+    if (['strada', 'macchina', 'guida', 'casa'].includes(goal)) { this._enterStrada(goal); return; }
     if (goal === 'lyuce') {                                      // tutti già usciti, Lyuce già al suo posto
       this.esodo.start(ctx.porta?.soglia ?? new THREE.Vector3(-3.5, 0, 4.15), { Lyuce: this.cfg.lyuce.posto });
       this.esodo.skip();
@@ -239,6 +241,11 @@ export class Racconto {
     this.strada.porta?.update(dt);
     if (this.inStrada) this._updateStrada(dt);
     if (this.portaleOn && !this.inStrada) this.portaleP?.render();
+    if (this.stage === 'casaAperta') {                           // dalla porta di casa si vede il circolo; oltre la soglia ci si è
+      const S = this.strada, [px, pz] = S.cfg.porta, p = this.strada.local(ctx.player.position);
+      this.portaleP.renderInverso();
+      if (p.z < pz + 0.12 && Math.abs(p.x - px) < 0.6) this._tornaACasa();
+    }
     if (this.stage === 'aperta3') {                              // porta nuova aperta: oltre la soglia si è in strada
       const s = this.portaEst.soglia, p = ctx.player.position;
       if (p.x > s.x - 0.1 && Math.abs(p.z - s.z) < 0.6) this._attraversa();
@@ -1009,6 +1016,8 @@ export class Racconto {
     S.disponi(0);
     S.show(true);
     this.inStrada = true;
+    ctx.ui.subtitle(null);                                       // niente battute del circolo rimaste in coda
+    ctx.npcs.zitti = true;
     this._mondoStrada();
     this.progress.done.add('kappa');
     this.progress.complete('strada');
@@ -1035,7 +1044,7 @@ export class Racconto {
   }
 
   // oltre la porta nuova: la strada (con una dissolvenza, come per il cinema). Kappa arriva subito dopo.
-  // salto: per le prove si può arrivare già in macchina ('guida') o davanti al locale ('locale')
+  // salto: per le prove si può arrivare già in macchina ('guida') o davanti a casa ('casa')
   _enterStrada(salto = null) {
     const ctx = this.ctx, S = this.strada;
     this.stage = 'going';
@@ -1051,9 +1060,13 @@ export class Racconto {
       ctx.player.update(0);
       this.ov.fade(false);
       if (salto === 'guida') { this.progress.complete('macchina'); this._sali(); return; }
-      if (salto === 'locale') {
-        const [lx, lz] = this.cfg.strada.locale.porta, l = S.world(lx, lz + 3.2);
-        ctx.player.position.set(l.x, 0, l.z); ctx.player.yaw = yawTo(ctx.player.position, S.world(lx, lz)); ctx.player.update(0);
+      if (salto === 'casa') {                                    // arrivati: la macchina davanti a casa, tu sul marciapiede
+        S.disponi(S.cfg.casa);
+        this.auto.s = 28; this.auto.d = 1.9; this.auto.psi = 0; this.auto._place();
+        if (this.kappaFuori) this.kappaFuori.visible = false;
+        this._mondoStrada();
+        const [px, pz] = S.cfg.porta;
+        ctx.player.position.copy(S.world(px, pz + 2.5)); ctx.player.yaw = yawTo(ctx.player.position, S.world(px, pz)); ctx.player.update(0);
       }
     });
   }
@@ -1067,25 +1080,22 @@ export class Racconto {
   _targetsStrada() {
     if (this.stradaPronta) return;
     this.stradaPronta = true;
-    const ctx = this.ctx, I = ctx.interactions, A = this.cfg.auto;
+    const ctx = this.ctx, I = ctx.interactions, A = this.cfg.auto, S = this.strada;
+    this.ostacoli = new Ostacoli(S, A.ostacoli, A.quota);
+    this.ostacoli.mostra(false);
     I.register('storia_auto', {
       range: 3.2,
       label: () => (this.inStrada && this.stage === 'strada' && !this.auto.driving ? A.sali : null),
       action: () => { if (this.inStrada && this.stage === 'strada') this._sali(); },
     });
-    I.addTarget(this.auto.root, 'storia_auto');
-    I.register('storia_locale', {
-      range: 3.4,
-      label: () => {
-        if (!this.inStrada || this.stage !== 'strada') return null;
-        return this.progress.goal === 'locale' || this.progress.isDone('locale') ? this.cfg.strada.localeLabel : null;
-      },
-      action: () => {
-        if (!this.inStrada || this.stage !== 'strada') return;
-        if (this.progress.goal === 'locale') this._entraNelLocale();
-      },
+    I.addTarget(this.auto.hit, 'storia_auto');
+    // casa: la stessa porta da cui sei uscito, alla fine del percorso
+    I.register('storia_casa', {
+      range: 3,
+      label: () => (this.inStrada && this.stage === 'strada' && this.progress.goal === 'casa' && S.seg === S.cfg.casa ? S.cfg.casaLabel : null),
+      action: () => { if (this.inStrada && this.stage === 'strada' && this.progress.goal === 'casa') this._apriCasa(); },
     });
-    for (const l of this.strada.locali ?? []) I.addTarget(l, 'storia_locale');
+    if (S.porta) I.addTarget(S.porta.group, 'storia_casa');
   }
 
   _sali() {
@@ -1096,6 +1106,7 @@ export class Racconto {
       this.progress.complete('macchina');
       this.stage = 'guida';
       if (this.kappaFuori) this.kappaFuori.visible = false;      // Kappa resta lì a fare foto
+      this._cruscotto(true);
       if (!this.comandiVisti) { this.comandiVisti = true; ctx.ui.toast(this.cfg.auto.comandi, 7); }
     });
   }
@@ -1104,50 +1115,121 @@ export class Racconto {
     const ctx = this.ctx;
     if (!this.auto.puoiScendere) { ctx.ui.toast(this.cfg.auto.soloRettilinei, 3); return; }
     this.auto.scendi();
+    this._cruscotto(false);
     ctx.interactions.suspended = false;
     this.stage = 'strada';
     this._mondoStrada();
     ctx.player.collisions.resolve(ctx.player.position, ctx.config.player.radius);
     ctx.player.update(0);
-    if (this.progress.goal === 'locale') ctx.ui.toast(this.cfg.strada.localeLabel + ': il portone con l\'insegna BAR.', 5);
+  }
+
+  // in macchina: la velocità; sul telefono anche i pulsanti TURBO, VISUALE e SCENDI
+  _cruscotto(on) {
+    if (!on) { this.cruscotto?.remove(); this.cruscotto = null; this.ctx.player.input.run = false; return; }
+    if (this.cruscotto) return;
+    if (!document.getElementById('cruscotto-css')) {
+      const css = document.createElement('style'); css.id = 'cruscotto-css';
+      css.textContent = `#cruscotto { position: fixed; z-index: 16; right: 16px; bottom: 16px; display: flex; gap: 10px; align-items: flex-end;
+          pointer-events: none; font-family: var(--display, sans-serif); color: #f1e6d2; }
+        #cruscotto .kmh { background: rgba(20,12,6,.72); border: 1px solid rgba(230,190,120,.5); border-radius: 12px; padding: 6px 12px;
+          font-size: 30px; font-weight: 700; min-width: 92px; text-align: right; }
+        #cruscotto .kmh small { display: block; font-size: 11px; letter-spacing: .12em; opacity: .7; }
+        #cruscotto .kmh.turbo { border-color: #ff17e4; box-shadow: 0 0 16px rgba(255,23,228,.5); }
+        #cruscotto button { pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; border-radius: 50%;
+          width: 74px; height: 74px; border: 1px solid #e6be78; background: rgba(28,18,11,.82); color: #f1e6d2; font: 700 13px var(--display, sans-serif); }
+        #cruscotto button.turbo { width: 96px; height: 96px; background: rgba(255,23,228,.75); border-color: #ffd6fa; font-size: 16px; }
+        #cruscotto button.on { background: #ff17e4; }`;
+      document.head.appendChild(css);
+    }
+    const el = document.createElement('div'); el.id = 'cruscotto';
+    el.innerHTML = '<div class="kmh">0<small>km/h</small></div>';
+    if (this.ctx.touch) {
+      const btn = (label, cls, down, up) => {
+        const b = document.createElement('button'); b.textContent = label; if (cls) b.className = cls;
+        b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); b.classList.add('on'); down(); });
+        for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(ev, (e) => { e.stopPropagation(); b.classList.remove('on'); up?.(); });
+        el.prepend(b);
+      };
+      btn('Scendi', '', () => this._scendi());
+      btn('Visuale', '', () => this.auto.cambiaVista());
+      btn('Turbo', 'turbo', () => { this.ctx.player.input.run = true; }, () => { this.ctx.player.input.run = false; });
+    }
+    document.body.appendChild(el);
+    this.cruscotto = el;
+    this.kmhEl = el.querySelector('.kmh');
   }
 
   _updateStrada(dt) {
-    const A = this.cfg.auto;
-    if (this.auto.update(dt) && this.progress.goal === 'guida') {
-      const n = Math.min(A.giri, Math.floor(this.auto.tratti / A.tratti));   // auto.tratti conta i tratti percorsi
-      if (n !== this.progress.counts.guida) this.progress.setCount('guida', n);
-      if (n >= A.giri) {
-        this.progress.complete('guida');
-        this._say('Tu', A.fineGiri, 6);
-      }
+    const A = this.cfg.auto, S = this.strada, ctx = this.ctx;
+    this.auto.update(dt);
+    const percorso = ['macchina', 'guida', 'casa'].includes(this.progress.goal);
+    if (this.ostacoli) {
+      if (this.ostacoli.attivi !== percorso) this.ostacoli.mostra(percorso);
+      this.ostacoli.update(dt, this.auto);
     }
-    this.strada.cull(this.ctx.camera);                           // dopo la telecamera: solo i tratti inquadrati
+    if (this.kmhEl) {
+      this.kmhEl.firstChild.textContent = String(this.auto.kmh);
+      this.kmhEl.classList.toggle('turbo', !!this.auto.turbo);
+    }
+    // il percorso: quanto manca a casa (in percentuale); arrivati davanti a casa, si scende
+    if (this.progress.goal === 'guida') {
+      const fine = S.cfg.casa * 40 + S.cfg.porta[0] + 20, fatto = S.seg * 40 + this.auto.s;
+      const n = Math.max(0, Math.min(100, Math.round((100 * fatto) / fine)));
+      if (n !== this.progress.counts.guida) this.progress.setCount('guida', n);
+      if (S.seg === S.cfg.casa && Math.abs(fatto - fine) < 12) {
+        this.progress.complete('guida');
+        this._say('Tu', A.arrivato, 5);
+      }
+    } else if (this.progress.goal === 'casa' && this.auto.driving && S.seg > S.cfg.casa && !this.oltreDetto) {
+      this.oltreDetto = true;
+      ctx.ui.toast(A.oltre, 4);
+    }
+    S.cull(ctx.camera);                                          // dopo la telecamera: solo i tratti inquadrati
   }
 
-  // il locale con l'insegna: si entra... e si è di nuovo al circolo, dalla porta d'ingresso
-  _entraNelLocale() {
-    const ctx = this.ctx;
-    this.stage = 'going';
-    this.ov.fade(true, () => {
-      this._leaveStrada();
-      this.progress.complete('locale');
-      const [x, z] = this.cfg.cronico.porta;
-      ctx.player.position.set(x - 0.45, 0, z - 0.6); ctx.player.velocity.set(0, 0, 0);
-      ctx.player.yaw = 0; ctx.player.pitch = 0;               // verso l'interno del circolo
-      ctx.player.update(0);
-      ctx.porta?.open();
-      setTimeout(() => ctx.porta?.close(), 900);              // la porta si richiude alle tue spalle
-      this.stage = 'idle';
-      this.ov.fade(false);
-      setTimeout(() => this._say('Kappa', this.cfg.auto.rientro, 6), 1800);
-    });
+  // casa: la porta si apre e dietro... c'è il circolo (lo stesso portale, al contrario)
+  _apriCasa() {
+    const ctx = this.ctx, S = this.strada, P = this.portaleP;
+    if (!P || !S.porta) return;
+    S.porta.open();
+    this.portaEst?.open(); this.portaEst?.update(5);             // dall'altra parte la porta del circolo è aperta
+    if (this.portaEst?.inset && this.insetNero) this.portaEst.inset.material = this.insetNero;
+    this.portaleOn = false;
+    if (S.porta.inset) { this.insetStrada ??= S.porta.inset.material; S.porta.inset.material = P.mat2; }
+    // si può entrare nel vano della porta
+    const [px, pz] = S.cfg.porta, o = S.group.position, w = S.cfg.portaLarga / 2 + 0.02, B = S.bounds();
+    const box = (name, x0, x1) => ({ name, cx: o.x + (x0 + x1) / 2, cz: o.z + pz + 0.2, ux: 1, uz: 0, vx: 0, vz: 1, hx: (x1 - x0) / 2, hz: 0.75, minY: 0, maxY: 3 });
+    this._playerWorld([...S.collisionBoxes(), this.auto.collisionBox(), box('Casa_O', -25, px - w), box('Casa_E', px + w, 25)], { ...B, minZ: o.z + pz - 0.8 });
+    this.stage = 'casaAperta';
+    this._say('Tu', this.cfg.auto.casa, 5);
+  }
+
+  // passata la soglia di casa si è nel circolo, nello stesso punto e con lo stesso sguardo, dalla porta nuova
+  _tornaACasa() {
+    const ctx = this.ctx, S = this.strada, P = this.portaleP, pl = ctx.player;
+    const q = P.inverso(pl.position);
+    this._cruscotto(false);
+    if (S.porta?.inset && this.insetStrada) S.porta.inset.material = this.insetStrada;
+    S.porta?.close();
+    this._leaveStrada();
+    pl.position.set(Math.min(q.x, 5.55), 0, q.z);
+    pl.yaw += P.ang;
+    this._varco(true);
+    pl.update(0);
+    this.progress.complete('casa');
+    this.stage = 'idle';
+    setTimeout(() => { this.portaEst?.close(); }, 1500);
+    setTimeout(() => { if (this.stage === 'idle' && !this.inStrada) this._varco(false); }, 3200);
+    setTimeout(() => this._say('Kappa', this.cfg.auto.rientro, 7), 2200);
   }
 
   _leaveStrada() {
     const ctx = this.ctx;
     clearTimeout(this.titleT);
     if (this.auto.driving) { this.auto.driving = false; ctx.player.seat = null; }
+    this._cruscotto(false);
+    this.ostacoli?.reset(); this.ostacoli?.mostra(false);
+    this.oltreDetto = false;
     ctx.interactions.suspended = false;
     this.auto.driving = false;                                   // la macchina torna al suo parcheggio
     this.auto.parcheggia();
@@ -1155,6 +1237,7 @@ export class Racconto {
     if (this.auto.loaded) this.auto._place();
     this.strada.show(false);
     this.inStrada = false;
+    ctx.npcs.zitti = false;
     ctx.player.collisions = ctx.collisions;
     const k = this.kappaFuori;
     if (k) {                                                     // Kappa torna nel circolo, al suo giro di foto

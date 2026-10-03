@@ -35,12 +35,14 @@ export function arco(k, s) {
 // uK: curvatura); g restituisce di quanto gira la via in quel punto (per le normali)
 const PIEGA = `
 uniform vec2 uO; uniform float uA; uniform float uK;
+varying float vS;
 vec3 piega(vec3 wp, out float g) {
   vec2 d = wp.xz - uO;
   float ca = cos(uA), sa = sin(uA);
   float s = d.x * ca + d.y * sa;
   float z = -d.x * sa + d.y * ca;
   g = uK * s;
+  vS = s;
   vec2 p = vec2(s, 0.0), n = vec2(0.0, 1.0);
   if (abs(uK) > 1e-6) { p = vec2(sin(g) / uK, (1.0 - cos(g)) / uK); n = vec2(-sin(g), cos(g)); }
   vec2 l = p + z * n;
@@ -61,6 +63,10 @@ function piegabile(mat, U) {
           vec3 wn = mat3(modelMatrix) * objectNormal; float c = cos(gN), sn = sin(gN);
           wn = vec3(wn.x * c - wn.z * sn, wn.y, wn.x * sn + wn.z * c);
           transformedNormal = normalize(mat3(viewMatrix) * wn); }`);
+    // ogni copia disegna solo i suoi 40 m: il modello sporge di qualche metro e si sovrapporrebbe al tratto vicino
+    sh.fragmentShader = sh.fragmentShader.replace('void main() {', `varying float vS;
+void main() {
+  if (vS < -0.02 || vS > ${L.toFixed(1)} + 0.02) discard;`);
   };
   mat.customProgramCacheKey = () => 'piega';
 }
@@ -130,7 +136,21 @@ export class Strada {
     const [px, pz] = C.porta;
     this.porta = creaPorta(this.ctx, { name: 'Porta_Strada', width: C.portaLarga, height: C.portaAlta, swing: 'in', inset: true,
       center: this.world(px, pz), inward: new THREE.Vector3(0, 0, 1) });
-    if (this.porta) { g.attach(this.porta.group); if (this.porta.inset) g.attach(this.porta.inset); }
+    if (this.porta) {
+      // una luce calda sopra la porta: è anche la porta di casa, alla fine del percorso
+      const luce = new THREE.PointLight(0xffc27a, 5, 6, 1.6); luce.position.set(0, 2.6, 0.7);
+      const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffe2b0 }));
+      lamp.position.set(0, 2.45, 0.25);
+      this.porta.group.add(luce, lamp);
+      // la porta sta dentro la copia del suo tratto (coordinate del modello: le copie dritte non sono piegate)
+      // il tratto 0 sta nel gruppo senza spostamenti né rotazioni: coordinate del tratto = mondo - origine del gruppo
+      this.disponi(0);
+      const casa = this.tiles.find((t) => t.seg === 0);
+      for (const o of [this.porta.group, this.porta.inset].filter(Boolean)) {
+        const lp = o.position.clone().sub(g.position);
+        casa.obj.add(o); o.position.copy(lp);
+      }
+    }
     this.disponi(0);
   }
 
@@ -189,10 +209,11 @@ export class Strada {
       t.obj.rotation.y = -f.a;
       t.U.uO.value.set(o.x + f.x, o.z + f.z); t.U.uA.value = f.a; t.U.uK.value = this.k(j);
     });
-    // la porta d'uscita dal circolo c'è solo nel tratto di casa (il primo del giro)
+    // la porta (da cui si esce dal circolo, e casa alla fine del percorso) va nella copia del tratto 0 o di quello d'arrivo
     if (this.porta) {
-      const casa = seg % C.tracciato.length === 0;
-      this.porta.group.visible = casa; if (this.porta.inset) this.porta.inset.visible = casa;
+      const t = this.tiles.find((x) => x.seg === 0 || x.seg === C.casa);
+      this.porta.group.visible = !!t; if (this.porta.inset) this.porta.inset.visible = !!t;
+      if (t && this.porta.group.parent !== t.obj) { t.obj.add(this.porta.group); if (this.porta.inset) t.obj.add(this.porta.inset); }
     }
   }
 
@@ -299,6 +320,34 @@ export class Strada {
         .replace('#include <map_fragment>', 'diffuseColor *= texture2D( map, gl_FragCoord.xy / uRes );');
     };
     P.mat.customProgramCacheKey = () => 'portale';
+    // al contrario: dalla porta della strada (casa) si vede il circolo
+    P.inverso = (p, out = new THREE.Vector3()) => {
+      const dx = p.x - S.x, dz = p.z - S.z, c = Math.cos(-ang), s = Math.sin(-ang);
+      return out.set(centro.x + dx * c - dz * s, p.y, centro.z + dx * s + dz * c);
+    };
+    P.mat2 = P.mat.clone();
+    P.mat2.onBeforeCompile = P.mat.onBeforeCompile; P.mat2.customProgramCacheKey = P.mat.customProgramCacheKey;
+    P.mat2.map = P.rt.texture;
+    P.clip2 = [new THREE.Plane(new THREE.Vector3(-fuori.x, 0, -fuori.z), fuori.x * centro.x + fuori.z * centro.z - 0.08)];
+    P.renderInverso = () => {
+      const ctx = this.ctx, cam = ctx.camera, v = P.cam;
+      r.getDrawingBufferSize(P.res);
+      const q = this.cfg.portaleQualita;
+      const w = Math.max(4, Math.round(P.res.x * q)), h = Math.max(4, Math.round(P.res.y * q));
+      if (P.rt.width !== w || P.rt.height !== h) P.rt.setSize(w, h);
+      const sv = this.saved;                                     // il circolo: il suo sfondo, niente nebbia
+      v.fov = cam.fov; v.aspect = cam.aspect; v.near = cam.near; v.far = sv?.far ?? 40; v.updateProjectionMatrix();
+      P.inverso(cam.position, v.position);
+      v.rotation.set(cam.rotation.x, cam.rotation.y + ang, cam.rotation.z, 'YXZ');
+      v.updateMatrixWorld();
+      const bg = ctx.scene.background, fog = ctx.scene.fog, clip = r.clippingPlanes, target = r.getRenderTarget();
+      ctx.scene.background = sv?.bg ?? bg; ctx.scene.fog = sv ? sv.fog : null; this.group.visible = false;
+      r.clippingPlanes = P.clip2;
+      r.setRenderTarget(P.rt); r.clear(); r.render(ctx.scene, v);
+      r.setRenderTarget(target);
+      r.clippingPlanes = clip;
+      ctx.scene.background = bg; ctx.scene.fog = fog; this.group.visible = true;
+    };
     // disegna la strada vista dal punto corrispondente alla telecamera del giocatore
     P.render = () => {
       const ctx = this.ctx, cam = ctx.camera, v = P.cam;

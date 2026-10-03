@@ -27,9 +27,9 @@ export const STORIA = {
     { goal: 'kappa', text: 'Parla con Kappa, alla porta accanto al tavolo da carte', locked: 'Più tardi' },
     { goal: 'strada', text: 'Apri la porta accanto al tavolo da carte ed esci', locked: 'Più tardi' },
     { goal: 'macchina', text: 'Fai due passi: la tua macchina è parcheggiata più avanti, sulla strada', locked: 'Più tardi' },
-    { goal: 'guida', text: 'Fai un giro in macchina: tre giri del quartiere ({n}/3)', locked: 'Più tardi' },
-    { goal: 'locale', text: 'Scendi dalla macchina (E) ed entra nel locale con l\'insegna accesa', locked: 'Più tardi' },
-    { goal: 'continua', text: 'Fine del quarto capitolo. Sei di nuovo al circolo: gira e gioca' },
+    { goal: 'guida', text: 'Torna a casa in macchina, schivando gli ostacoli ({n}%)', locked: 'Più tardi' },
+    { goal: 'casa', text: 'Scendi (E) ed entra a casa: il portone con la luce accesa', locked: 'Più tardi' },
+    { goal: 'continua', text: 'Fine del quarto capitolo. Casa... è il circolo. Gira e gioca' },
   ],
   requires: { minigame: 'idee', smoke: 'nicola' },
   ui: { label: 'La storia', sub: 'Sperimentale: capitolo 1, il cinema' },
@@ -162,28 +162,49 @@ export const STORIA = {
     telefono: { avanti: 2, nebbia: [12, 46], lontano: 60, portaleQualita: 0.45 },   // sui telefoni: meno strada da disegnare
     arrivoHint: 'Sei fuori. Prenditi una boccata d\'aria: la tua macchina è parcheggiata più avanti.',
     locale: { porta: [-6.4, -9.0], altezza: 3.3, insegna: 'BAR' },   // il portone con i gradini, marciapiede nord
-    localeLabel: 'Entra nel locale',
+    casa: 15,                               // il tratto (dritto) dove c'è casa, alla fine del percorso
+    casaLabel: 'Apri la porta di casa',
   },
   ctvLogo: './assets/titoli/cometiva.png',
   // la tua macchina: Dodge Challenger del 1970 (assets/macchina.glb), coordinate della strada
   auto: {
     url: `./assets/macchina.glb?v=${ASSET_VERSION}`,
-    parcheggio: [-6, -2.3, Math.PI],        // x, z nel tratto di casa, direzione rispetto alla via (π = verso -x, lato destro)
+    parcheggio: [-6, 1.9, 0],               // x, z nel tratto di casa, direzione rispetto alla via (0 = verso +x, lato destro)
     quota: -0.2,                            // la carreggiata è 20 cm sotto i marciapiedi
-    carreggiata: [-1.9, 1.9],               // dove sta il centro della macchina (oltre: zona morbida di mezzo metro)
-    accelerazione: 5, freno: 11, attrito: 2.2, retro: 4, massima: 17,   // m/s² e m/s (17 m/s ≈ 60 km/h)
+    carreggiata: [-1.55, 1.55],             // dove sta il centro della macchina (oltre: zona morbida di mezzo metro, le ruote restano in strada)
+    accelerazione: 10, freno: 16, attrito: 2.4, retro: 6, massima: 28,  // m/s² e m/s (28 m/s ≈ 100 km/h)
+    turbo: 40, accelerazioneTurbo: 16,      // con Shift (o TURBO sul telefono): 40 m/s ≈ 145 km/h
     sterzo: 0.55, passo: 2.9,
+    volante: 2.6,                           // di quanto gira il volante rispetto alle ruote
     dietro: [6.5, 2.3],                     // telecamera da dietro: distanza e altezza
     guidatore: [-0.4, 1.08, 0.25],          // occhi al posto di guida (modello: x a destra, y su, z indietro)
     inseguimento: 3.2,                      // quanto in fretta la visuale da dietro si rimette dietro la macchina
-    giri: 3,
-    tratti: 10,                             // un giro = il tracciato intero (10 tratti, 400 m)
     sali: 'Apri la macchina',
     portiera: 0.55, portieraAngolo: 1.15,   // secondi per aprire la portiera sinistra, angolo (radianti)
     soloRettilinei: 'Per scendere fermati su un rettilineo.',
-    comandi: 'W/S o frecce: gas e freno · A/D: sterzo · C: visuale · E: scendi',
-    fineGiri: 'Strano: è sempre la stessa strada. Quel bar con l\'insegna accesa, l\'avrai visto tre volte.',
-    rientro: 'Ci hai messo un po\'. Hai visto? Da qualunque porta entri, finisci sempre qui.',
+    comandi: 'W/S o frecce: gas e freno · A/D: sterzo · Shift: turbo · C: visuale · E: scendi',
+    // il percorso fino a casa: casa è nel tratto `arrivo` (dritto), sul portone ad arco come quello da cui sei uscito
+    arrivato: 'Eccola. Casa. Finalmente.',
+    oltre: 'Casa è rimasta indietro: torna un po\' indietro.',
+    // ostacoli in mezzo alla strada: [tratto, metri lungo la via, di traverso, tipo] (cono, barile, transenna)
+    ostacoli: [
+      [1, 12, 1.2, 'cono'], [1, 14, 1.8, 'cono'], [1, 30, -1.5, 'barile'],
+      [2, 10, 0.6, 'transenna'], [2, 26, -1.8, 'cono'], [2, 27.5, -1.2, 'cono'], [2, 29, -0.6, 'cono'],
+      [3, 15, 1.5, 'barile'], [3, 22, -1.4, 'barile'], [3, 34, 0.4, 'cono'],
+      [4, 8, -1.7, 'transenna'], [4, 20, 1.7, 'transenna'],
+      [5, 12, 0, 'barile'], [5, 13, 2.0, 'cono'], [5, 13, -2.0, 'cono'], [5, 30, -1.0, 'transenna'],
+      [6, 18, 1.2, 'barile'], [6, 30, -1.6, 'cono'], [6, 31.5, -0.9, 'cono'],
+      [7, 10, 1.6, 'transenna'], [7, 26, -1.6, 'transenna'],
+      [8, 14, 0.3, 'barile'], [8, 28, -1.8, 'barile'], [8, 29, 1.9, 'barile'],
+      [9, 12, 1.0, 'cono'], [9, 13.5, 0.4, 'cono'], [9, 15, -0.2, 'cono'], [9, 32, -1.5, 'transenna'],
+      [10, 16, 1.5, 'barile'], [10, 24, -1.5, 'barile'],
+      [11, 10, -0.6, 'transenna'], [11, 28, 1.8, 'cono'], [11, 28, -1.8, 'cono'],
+      [12, 14, -1.2, 'barile'], [12, 26, 1.2, 'barile'],
+      [13, 12, 1.7, 'transenna'], [13, 30, -1.7, 'transenna'],
+      [14, 18, 0, 'barile'],
+    ],
+    casa: 'Casa. ...Ma questa è la porta del circolo?',
+    rientro: 'Bentornato. Lo sapevi anche tu: casa è qui. Da qualunque porta entri, finisci sempre qui.',
   },
   blackbox: {
     titolo: 'Black Box',
