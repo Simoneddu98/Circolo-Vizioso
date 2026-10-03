@@ -66,6 +66,8 @@ export class Racconto {
     this.progress.useSteps(this.steps, this.cfg.requires, this.cfg.storageKey);
     if (this.ctx.config.prova?.attiva) saltaPresentazioni(this.ctx, this.cfg.presentazioni);   // PROVA: niente giro iniziale
     this._preparaEst();
+    clearTimeout(this.precaricaT);
+    this.precaricaT = setTimeout(() => this._precarica(), 2500);   // la strada e la macchina si caricano in sottofondo
     this.stage = 'idle';
     this.wait = 1.5;
     if (this.progress.goal === 'nicola') {
@@ -190,12 +192,12 @@ export class Racconto {
   action(what) {
     if (this.stage !== 'talk') return;
     if (what === 'segui') { this.stage = 'porta'; this._say('Cronico', this.cfg.cronico.apri, 5); }
-    if (what === 'scatola') this._titoloBlackBox();
+    if (what === 'scatola') this._titoloBlackBox();               // Lyuce: "vai a vedere la scatola"
     if (what === 'strada') {                                     // Kappa: "apri la porta, ti seguo"
       this.progress.complete('kappa');
       this.stage = 'porta3';
       this._say('Kappa', this.cfg.kappa.vai, 5);
-    }               // Lyuce: "vai a vedere la scatola"
+    }
     if (what === 'apri') {                                       // Rafka: "apri la porta accanto al maxischermo"
       this.progress.complete('rafka');
       this.stage = 'porta2';
@@ -208,6 +210,7 @@ export class Racconto {
   onPause(p) { this.ov.pauseMusic(p); }
 
   key(e) {
+    if (this.stage === 'salendo') return ['KeyE', 'KeyC'].includes(e.code);
     if (this.stage === 'guida') {                                // in macchina: E scende, C cambia visuale, il resto guida
       if (e.code === 'KeyE' && !e.repeat) { this._scendi(); return true; }
       if (e.code === 'KeyC' && !e.repeat) { this.auto.cambiaVista(); return true; }
@@ -233,10 +236,12 @@ export class Racconto {
     this.portaTv?.update(dt);
     this.stanza.door?.update(dt);
     this.portaEst?.update(dt);
+    this.strada.porta?.update(dt);
     if (this.inStrada) this._updateStrada(dt);
-    if (this.stage === 'aperta3') {                              // porta nuova aperta: ci si entra camminando
+    if (this.portaleOn && !this.inStrada) this.portaleP?.render();
+    if (this.stage === 'aperta3') {                              // porta nuova aperta: oltre la soglia si è in strada
       const s = this.portaEst.soglia, p = ctx.player.position;
-      if (Math.hypot(p.x - s.x, p.z - s.z) < this.cfg.ingresso) this._enterStrada();
+      if (p.x > s.x - 0.1 && Math.abs(p.z - s.z) < 0.6) this._attraversa();
     }
     this.food2.update(dt);
     if (this.stage === 'aperta2') {                              // porta accanto alla TV aperta: ci si entra camminando
@@ -884,14 +889,79 @@ export class Racconto {
     }
     if (ctx.collisions) ctx.collisions.boxes = ctx.collisions.boxes.filter((b) => !P.collisioni.includes(b.name));
     this.portaEst = creaPorta(ctx, { name: 'Porta_Est', width: P.larghezza, height: P.altezza, swing: 'in', inset: true,
-      center: new THREE.Vector3(P.centro[0], 0, P.centro[1]), inward: new THREE.Vector3(-1, 0, 0) });
+      center: new THREE.Vector3(P.centro[0], 0, P.centro[1]), inward: new THREE.Vector3(-1, 0, 0),
+      onOpen: () => this._portale(true), onClosed: () => this._portale(false) });
     if (!this.portaEst) return;
     ctx.interactions.register('storia_portaest', {
       range: 2.4,
       label: () => (this.story && this.progress.goal === 'strada' && this.stage === 'porta3' ? this.cfg.esciLabel : null),
-      action: () => { if (this.stage === 'porta3') { this.portaEst.open(); this.stage = 'aperta3'; } },
+      action: () => { if (this.stage === 'porta3') this._titoloComeTiVa(); },
     });
     ctx.interactions.addTarget(this.portaEst.group, 'storia_portaest');
+  }
+
+  // strada e macchina in sottofondo, poi shader e texture pronti: quando si apre la porta non si aspetta niente
+  async _precarica() {
+    if (this.precaricata) return;
+    this.precaricata = true;
+    await this.strada.load();
+    await this.auto.load();
+    this._targetsStrada();
+    await this.strada.prepara();
+    // il portale si disegna una volta subito, così i suoi shader (con il piano di taglio) sono già pronti
+    const P = this.cfg.portaEst;
+    this.portaleP ??= this.strada.portale(new THREE.Vector3(P.centro[0], 0, P.centro[1]), new THREE.Vector3(1, 0, 0));
+    this.portaleP.render();
+  }
+
+  // dalla porta nuova aperta si vede la strada vera (portale: vedi strada.js)
+  _portale(on) {
+    const inset = this.portaEst?.inset;
+    if (!inset) return;
+    if (on && this.strada.loaded) {
+      const P = this.cfg.portaEst;
+      this.portaleP ??= this.strada.portale(new THREE.Vector3(P.centro[0], 0, P.centro[1]), new THREE.Vector3(1, 0, 0));
+      this.insetNero ??= inset.material;
+      inset.material = this.portaleP.mat;
+      this.strada.porta?.open(); this.strada.porta?.update(5);    // dall'altra parte la porta della strada è già aperta
+      inset.material.polygonOffset = true; inset.material.polygonOffsetFactor = -2; inset.material.polygonOffsetUnits = -2;
+      this.portaleOn = true;
+    } else {
+      if (this.insetNero) inset.material = this.insetNero;
+      this.portaleOn = false;
+    }
+  }
+
+  // come per gli altri brani: la scritta COME TI VA, poi la porta si apre sulla strada
+  async _titoloComeTiVa() {
+    const ctx = this.ctx;
+    this.stage = 'titolo';
+    this.freeze = true;
+    ctx.player.clearInput();
+    ctx.ui.subtitle(null);
+    document.body.classList.add('srt-on');
+    this.ov.big(`<img src="${this.cfg.ctvLogo}" alt="Come ti va">`);
+    const pronta = this._precarica();
+    await new Promise((r) => { this.titleT = setTimeout(r, this.cfg.logoDurata * 1000); });
+    await pronta; await this.strada.ready; await this.auto.ready;
+    if (this.stage !== 'titolo') return;
+    this.ov.big(null);
+    this.titleT = setTimeout(() => {
+      this.freeze = false;
+      document.body.classList.remove('srt-on');
+      this.portaEst.open();
+      this._varco(true);
+      this.stage = 'aperta3';
+    }, 500);
+  }
+
+  // con la porta nuova aperta si può entrare nel vano (il muro lì ha un'apertura finta: dietro c'è il portale)
+  _varco(on) {
+    const ctx = this.ctx;
+    if (!on) { ctx.player.collisions = ctx.collisions; return; }
+    const col = ctx.collisions, B = col.bounds, [cx, cz] = this.cfg.portaEst.centro, w = this.cfg.portaEst.larghezza / 2 + 0.02;
+    const box = (name, z0, z1) => ({ name, cx: cx + 0.4, cz: (z0 + z1) / 2, ux: 1, uz: 0, vx: 0, vz: 1, hx: 0.42, hz: (z1 - z0) / 2, minY: 0, maxY: 3 });
+    this._playerWorld([...col.boxes.filter((b) => b.name !== 'COL_Wall_East'), box('Varco_N', B.minZ - 1, cz - w), box('Varco_S', cz + w, B.maxZ + 1)], { ...B, maxX: cx + 0.8 });
   }
 
   _metti(npc, [x, z]) {
@@ -919,52 +989,72 @@ export class Racconto {
     this.stage = 'aspetta';
   }
 
+  // si passa la soglia: stessa posizione e stesso sguardo, ma dall'altra parte (dalla porta della strada), senza dissolvenze
+  _attraversa() {
+    const ctx = this.ctx, S = this.strada, P = this.portaleP, pl = ctx.player;
+    const q = P.mappa(pl.position);
+    pl.position.set(q.x, 0, Math.max(q.z, P.S.z + 0.45));
+    pl.yaw -= P.ang;
+    this._entraInStrada();
+    S.porta?.open(); S.porta?.update(5);                         // la porta della strada è aperta, alle tue spalle
+    setTimeout(() => S.porta?.close(), 1400);
+    this.portaEst.close();
+    pl.update(0);
+  }
+
+  // in strada: il mondo della strada, Kappa che arriva, il primo obiettivo
+  _entraInStrada() {
+    const ctx = this.ctx, S = this.strada;
+    this._release();
+    S.disponi(0);
+    S.show(true);
+    this.inStrada = true;
+    this._mondoStrada();
+    this.progress.done.add('kappa');
+    this.progress.complete('strada');
+    this.progress.setCount('guida', 0);
+    this.stage = 'strada';
+    const k = this._npc('Kappa');
+    if (k) {
+      this.kappaFuori = k;
+      k.userData.directed = true;
+      k.userData.muto = true;                                    // fuori niente battute del circolo
+      this.ctx.camerawork?.stop(k); this.ctx.npcs.stopAction(k);
+      k.visible = false;                                         // esce anche lei, poco dopo
+      this.titleT = setTimeout(() => {
+        if (!this.inStrada || this.stage !== 'strada' || this.auto.driving || this.strada.seg !== 0) return;
+        const [kx, kz] = S.cfg.kappa, kw = S.world(kx, kz), p = ctx.player.position;
+        this._metti(k, [kw.x, kw.z]);
+        k.visible = true;
+        k.rotation.y = Math.atan2(p.x - kw.x, p.z - kw.z);         // verso di te
+        if (k.userData.idle_clip) ctx.npcs.setLoop(k, k.userData.stand_clip ?? k.userData.idle_clip, 1, 0.3);
+        this._say('Kappa', this.cfg.kappa.fuori, 6);
+      }, 2200);
+    }
+    setTimeout(() => { if (this.inStrada && this.progress.goal === 'macchina') ctx.ui.toast(S.cfg.arrivoHint, 7); }, 1200);
+  }
+
   // oltre la porta nuova: la strada (con una dissolvenza, come per il cinema). Kappa arriva subito dopo.
   // salto: per le prove si può arrivare già in macchina ('guida') o davanti al locale ('locale')
   _enterStrada(salto = null) {
     const ctx = this.ctx, S = this.strada;
     this.stage = 'going';
     this.ov.fade(true, async () => {
-      await S.load();
-      await this.auto.load();
-      this._targetsStrada();
+      await this._precarica(); await S.ready; await this.auto.ready;
       this.portaEst?.close();
-      this._release();
       if (ctx.player.seated) ctx.player.stand();
       ctx.interactions.setModal(null);
-      S.show(true);
-      this.inStrada = true;
-      this._mondoStrada();
       const a = S.arrivo;
       ctx.player.position.set(a.x, 0, a.z); ctx.player.velocity.set(0, 0, 0);
       ctx.player.yaw = yawTo(ctx.player.position, S.guarda); ctx.player.pitch = 0;
+      this._entraInStrada();
       ctx.player.update(0);
-      this.progress.done.add('kappa');
-      this.progress.complete('strada');
-      this.progress.setCount('guida', 0);
-      this.stage = 'strada';
       this.ov.fade(false);
-      if (salto === 'guida') { this._sali(); return; }
+      if (salto === 'guida') { this.progress.complete('macchina'); this._sali(); return; }
       if (salto === 'locale') {
         const [lx, lz] = this.cfg.strada.locale.porta, l = S.world(lx, lz + 3.2);
         ctx.player.position.set(l.x, 0, l.z); ctx.player.yaw = yawTo(ctx.player.position, S.world(lx, lz)); ctx.player.update(0);
-        return;
       }
-      const k = this._npc('Kappa');
-      if (k) {
-        this.kappaFuori = k;
-        k.visible = true; k.userData.directed = true;
-        this.ctx.camerawork?.stop(k); this.ctx.npcs.stopAction(k);
-        this.titleT = setTimeout(() => {
-          if (!this.inStrada) return;
-          const [kx, kz] = S.cfg.kappa, kw = S.world(kx, kz), p = ctx.player.position;
-          this._metti(k, [kw.x, kw.z]);
-          k.rotation.y = Math.atan2(p.x - kw.x, p.z - kw.z);         // verso di te
-          if (k.userData.idle_clip) ctx.npcs.setLoop(k, k.userData.stand_clip ?? k.userData.idle_clip, 1, 0.3);
-          this._say('Kappa', this.cfg.kappa.fuori, 6);
-        }, 2500);
-      }
-      setTimeout(() => { if (this.inStrada) ctx.ui.toast(this.cfg.strada.arrivoHint, 7); }, 1200);
     });
   }
 
@@ -980,7 +1070,7 @@ export class Racconto {
     const ctx = this.ctx, I = ctx.interactions, A = this.cfg.auto;
     I.register('storia_auto', {
       range: 3.2,
-      label: () => (this.inStrada && this.stage === 'strada' && this.progress.isDone('strada') ? A.sali : null),
+      label: () => (this.inStrada && this.stage === 'strada' && !this.auto.driving ? A.sali : null),
       action: () => { if (this.inStrada && this.stage === 'strada') this._sali(); },
     });
     I.addTarget(this.auto.root, 'storia_auto');
@@ -995,20 +1085,24 @@ export class Racconto {
         if (this.progress.goal === 'locale') this._entraNelLocale();
       },
     });
-    if (this.strada.locale) I.addTarget(this.strada.locale, 'storia_locale');
+    for (const l of this.strada.locali ?? []) I.addTarget(l, 'storia_locale');
   }
 
   _sali() {
     const ctx = this.ctx;
-    this.progress.complete('macchina');
-    this.auto.sali();
+    this.stage = 'salendo';                                      // si apre la portiera, si sale, si richiude
     ctx.interactions.suspended = true;
-    this.stage = 'guida';
-    if (!this.comandiVisti) { this.comandiVisti = true; ctx.ui.toast(this.cfg.auto.comandi, 7); }
+    this.auto.sali(() => {
+      this.progress.complete('macchina');
+      this.stage = 'guida';
+      if (this.kappaFuori) this.kappaFuori.visible = false;      // Kappa resta lì a fare foto
+      if (!this.comandiVisti) { this.comandiVisti = true; ctx.ui.toast(this.cfg.auto.comandi, 7); }
+    });
   }
 
   _scendi() {
     const ctx = this.ctx;
+    if (!this.auto.puoiScendere) { ctx.ui.toast(this.cfg.auto.soloRettilinei, 3); return; }
     this.auto.scendi();
     ctx.interactions.suspended = false;
     this.stage = 'strada';
@@ -1019,20 +1113,16 @@ export class Racconto {
   }
 
   _updateStrada(dt) {
-    const ctx = this.ctx, A = this.cfg.auto, L = this.cfg.strada.periodo;
+    const A = this.cfg.auto;
     if (this.auto.update(dt) && this.progress.goal === 'guida') {
-      const n = Math.min(A.giri, Math.floor(this.auto.giri / A.tratti));   // auto.giri conta i tratti percorsi
-      this.progress.setCount('guida', n);
+      const n = Math.min(A.giri, Math.floor(this.auto.tratti / A.tratti));   // auto.tratti conta i tratti percorsi
+      if (n !== this.progress.counts.guida) this.progress.setCount('guida', n);
       if (n >= A.giri) {
         this.progress.complete('guida');
         this._say('Tu', A.fineGiri, 6);
       }
     }
-    // a piedi: in fondo al tratto si ricomincia dall'altro capo, come in macchina
-    if (!this.auto.driving && this.stage === 'strada') {
-      const p = ctx.player.position, x = p.x - this.strada.group.position.x;
-      if (x > L / 2) p.x -= L; else if (x < -L / 2) p.x += L;
-    }
+    this.strada.cull(this.ctx.camera);                           // dopo la telecamera: solo i tratti inquadrati
   }
 
   // il locale con l'insegna: si entra... e si è di nuovo al circolo, dalla porta d'ingresso
@@ -1059,8 +1149,9 @@ export class Racconto {
     clearTimeout(this.titleT);
     if (this.auto.driving) { this.auto.driving = false; ctx.player.seat = null; }
     ctx.interactions.suspended = false;
-    const [px, pz, ph] = this.cfg.auto.parcheggio;             // la macchina torna al suo parcheggio
-    Object.assign(this.auto, { x: px, z: pz, h: ph, v: 0, steer: 0, giri: 0 });
+    this.auto.driving = false;                                   // la macchina torna al suo parcheggio
+    this.auto.parcheggia();
+    if (this.strada.loaded) this.strada.disponi(0);
     if (this.auto.loaded) this.auto._place();
     this.strada.show(false);
     this.inStrada = false;
@@ -1070,6 +1161,8 @@ export class Racconto {
       const r = ctx.routines?.find((o) => o.npc === k);
       if (r) { k.position.copy(r.home.pos); k.rotation.y = r.home.yaw; }
       k.userData.directed = false;
+      k.userData.muto = false;
+      k.visible = true;
       if (k.userData.idle_clip) ctx.npcs.setLoop(k, k.userData.idle_clip, 1, 0.3);
       this.kappaFuori = null;
     }

@@ -14,9 +14,16 @@ SCALA = 0.76
 DETTAGLI = ('Text', 'challenger_logo', 'challenger_plasti', 'Curve.', 'FUEL', 'Cube.005', 'Cylinder.003', 'HOOD.002')
 RUOTE = ('Cube.008', 'Cylinder', 'wheel.001', 'hubcap')
 
+# alcuni pezzi (vetri delle portiere) stanno in collezioni escluse dalla vista: si riportano tutti nella scena
+for o in bpy.data.objects:
+    if o.name not in bpy.context.view_layer.objects: bpy.context.scene.collection.objects.link(o)
+    o.hide_set(False); o.hide_viewport = False; o.hide_select = False
 for o in list(bpy.data.objects):
     if o.type != 'MESH' or o.name.startswith(DETTAGLI) and o.name not in RUOTE:
         bpy.data.objects.remove(o, do_unlink=True)
+# le portiere con i loro pezzi (vetro, maniglie, specchietto): nel file sono figli di DOOR_L / DOOR_R
+PORTIERE = {'Portiera_S': 'DOOR_L', 'Portiera_D': 'DOOR_R'}
+figli = {k: [c.name for c in bpy.data.objects[v].children_recursive if c.type == 'MESH'] + [v] for k, v in PORTIERE.items()}
 for o in bpy.data.objects:
     mw = o.matrix_world.copy(); o.parent = None; o.matrix_world = mw
     if o.data.shape_keys:                                    # le shape key bloccano la decimazione: si tiene la forma base
@@ -111,9 +118,23 @@ for o in bpy.data.objects:
         bpy.ops.object.select_all(action='DESELECT'); o.select_set(True); bpy.context.view_layer.objects.active = o
         bpy.ops.object.modifier_apply(modifier='dec')
 
+# ---- portiere: un oggetto ciascuna, origine sul cardine (bordo anteriore, lato esterno)
+for k, names in figli.items():
+    objs = [bpy.data.objects[n] for n in names if n in bpy.data.objects]
+    bpy.ops.object.select_all(action='DESELECT')
+    for o in objs: o.select_set(True)
+    bpy.context.view_layer.objects.active = bpy.data.objects[PORTIERE[k]]
+    bpy.ops.object.join()
+    d = bpy.context.view_layer.objects.active; d.name = k
+    vs = [d.matrix_world @ v.co for v in d.data.vertices]
+    ymax = max(v.y for v in vs)
+    xe = min(v.x for v in vs) if k.endswith('S') else max(v.x for v in vs)
+    bpy.context.scene.cursor.location = (xe * 0.86, ymax - 0.02, 0)
+    bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
+
 # ---- carrozzeria: tutto il resto in un oggetto solo
 bpy.ops.object.select_all(action='DESELECT')
-rest = [o for o in bpy.data.objects if not o.name.startswith('Ruota_')]
+rest = [o for o in bpy.context.view_layer.objects if o.type == 'MESH' and not o.name.startswith(('Ruota_', 'Portiera_'))]
 for o in rest: o.select_set(True)
 bpy.context.view_layer.objects.active = bpy.data.objects['body']
 bpy.ops.object.join()
@@ -124,6 +145,6 @@ if len(car.data.polygons) > 45000:                         # tanti pezzetti sott
     bpy.ops.object.modifier_apply(modifier='dec')
 for im in bpy.data.images:
     if im.name in ('paint_albedo.png', 'lisence_plate.png') and im.size[0] > 1024: im.scale(1024, 1024)
-print('FACCE', {o.name: len(o.data.polygons) for o in bpy.data.objects})
+print('FACCE', {o.name: len(o.data.polygons) for o in bpy.context.view_layer.objects})
 bpy.ops.export_scene.gltf(filepath=out, export_format='GLB', export_yup=True, export_apply=True, export_lights=False,
                           export_cameras=False, export_image_format='WEBP')

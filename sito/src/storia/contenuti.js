@@ -27,7 +27,7 @@ export const STORIA = {
     { goal: 'kappa', text: 'Parla con Kappa, alla porta accanto al tavolo da carte', locked: 'Più tardi' },
     { goal: 'strada', text: 'Apri la porta accanto al tavolo da carte ed esci', locked: 'Più tardi' },
     { goal: 'macchina', text: 'Fai due passi: la tua macchina è parcheggiata più avanti, sulla strada', locked: 'Più tardi' },
-    { goal: 'guida', text: 'Fai un giro in macchina: tre giri dell\'isolato ({n}/3)', locked: 'Più tardi' },
+    { goal: 'guida', text: 'Fai un giro in macchina: tre giri del quartiere ({n}/3)', locked: 'Più tardi' },
     { goal: 'locale', text: 'Scendi dalla macchina (E) ed entra nel locale con l\'insegna accesa', locked: 'Più tardi' },
     { goal: 'continua', text: 'Fine del quarto capitolo. Sei di nuovo al circolo: gira e gioca' },
   ],
@@ -138,35 +138,49 @@ export const STORIA = {
   strada: {
     url: `./assets/strada.glb?v=${ASSET_VERSION}`,
     origine: [-200, 0, 0],                  // lontano dal circolo, come il cinema e la stanzetta
-    nascondi: ['Cube223'],                  // il cubo che avvolge la scena di Blender: il cielo è lo sfondo
-    limiti: [-21, 21, -8.2, 8.2],           // x min, x max, z min, z max (marciapiedi e carreggiata)
-    periodo: 40,                            // lunghezza del tratto che si ripete (a piedi e in macchina)
-    nebbia: [18, 55],                       // la via sfuma nel cielo tra questi metri: il cielo non la taglia mai
+    nascondi: ['Material.050'],             // materiali da non disegnare: il cubo che in Blender faceva da cielo
+    // il percorso: curvatura di ogni tratto da 40 m (0 = dritto, 1/raggio in metri; + gira verso destra andando verso +x).
+    // Si ripete all'infinito. Il primo è il tratto di casa (la porta da cui si esce, il parcheggio): sempre dritto, come
+    // tutti quelli dove si può scendere dalla macchina
+    tracciato: [0, 1 / 70, 0, -1 / 60, -1 / 75, 0, 1 / 55, 0, -1 / 65, 1 / 80],
+    indietro: 1, avanti: 3,                 // tratti disegnati dietro e davanti a chi guida
+    // ostacoli per chi cammina, nel tratto dritto: [x, z, mezza larghezza x, mezza larghezza z] (pali, cestini, panchine)
+    ostacoli: [[3.23, 7.7, 0.24, 0.27], [-2.82, 7.7, 0.24, 0.27], [-9.97, -7.88, 0.24, 0.27], [18.02, 7.68, 0.24, 0.27],
+      [1.53, -4.51, 0.21, 0.71], [17.34, 4.54, 0.21, 0.71], [-8.97, 4.54, 0.21, 0.71], [-1.88, -4.13, 0.66, 0.05],
+      [-17.81, -4.51, 0.21, 0.71], [2.49, -4.58, 0.35, 0.35], [18.81, -4.25, 0.22, 0.29], [-16.06, 5.26, 0.26, 0.34],
+      [9.03, 4.54, 0.35, 0.35], [8.2, 4.54, 0.35, 0.35]],
     alberi: [[4.6, -4.5], [-4.6, -4.5], [14.1, -4.5], [-14, -4.6], [4.6, 4.5], [-4.6, 4.4], [13.9, 4.5], [-14, 4.5]],   // tronchi
-    arrivo: [9.0, -6.6],                    // sul marciapiede nord, tra due alberi, lontano da pali e cestini
-    guarda: [9.0, 4],
-    kappa: [10.2, -5.3],                     // dove compare Kappa, poco dopo di te
+    limiti: [-19.5, 19.5, -8.2, 8.2],       // dove si cammina: x min, x max, z min, z max (il tratto in cui si è)
+    porta: [2.9, -8.9], portaLarga: 1.05, portaAlta: 2.2,    // da qui si esce dal circolo: il portone ad arco (facciata nord)
+    portaleQualita: 0.6,                    // risoluzione della strada vista dalla porta del circolo (rispetto allo schermo)
+    arrivo: [2.9, -8.0],                    // per i salti di prova: appena fuori dalla porta
+    guarda: [2.9, 4],
+    kappa: [4.2, -7.0],                    // dove compare Kappa, poco dopo di te
     cielo: 0x9db8d8, luce: 1.4, sole: 1.6,
+    nebbia: [18, 60],                       // la via sfuma nel cielo tra questi metri: il cielo non la taglia mai
     lontano: 90,                            // distanza di disegno in strada (nel circolo basta molto meno)
+    telefono: { avanti: 2, nebbia: [12, 46], lontano: 60, portaleQualita: 0.45 },   // sui telefoni: meno strada da disegnare
     arrivoHint: 'Sei fuori. Prenditi una boccata d\'aria: la tua macchina è parcheggiata più avanti.',
     locale: { porta: [-6.4, -9.0], altezza: 3.3, insegna: 'BAR' },   // il portone con i gradini, marciapiede nord
     localeLabel: 'Entra nel locale',
-    localeChiuso: 'Prima fatti un giro, dai.',
   },
+  ctvLogo: './assets/titoli/cometiva.png',
   // la tua macchina: Dodge Challenger del 1970 (assets/macchina.glb), coordinate della strada
   auto: {
     url: `./assets/macchina.glb?v=${ASSET_VERSION}`,
-    parcheggio: [-10, -2.2, 0],             // x, z, direzione (0 = verso +x, lungo la via)
+    parcheggio: [-6, -2.3, Math.PI],        // x, z nel tratto di casa, direzione rispetto alla via (π = verso -x, lato destro)
     quota: -0.2,                            // la carreggiata è 20 cm sotto i marciapiedi
-    carreggiata: [-2.2, 2.2],               // dove può stare il centro della macchina (le ruote restano sulla strada)
+    carreggiata: [-1.9, 1.9],               // dove sta il centro della macchina (oltre: zona morbida di mezzo metro)
     accelerazione: 5, freno: 11, attrito: 2.2, retro: 4, massima: 17,   // m/s² e m/s (17 m/s ≈ 60 km/h)
     sterzo: 0.55, passo: 2.9,
     dietro: [6.5, 2.3],                     // telecamera da dietro: distanza e altezza
     guidatore: [-0.4, 1.08, 0.25],          // occhi al posto di guida (modello: x a destra, y su, z indietro)
-    inseguimento: 5,
+    inseguimento: 3.2,                      // quanto in fretta la visuale da dietro si rimette dietro la macchina
     giri: 3,
-    tratti: 5,                              // un giro dell'isolato = 5 tratti di strada (200 m)
-    sali: 'Sali in macchina',
+    tratti: 10,                             // un giro = il tracciato intero (10 tratti, 400 m)
+    sali: 'Apri la macchina',
+    portiera: 0.55, portieraAngolo: 1.15,   // secondi per aprire la portiera sinistra, angolo (radianti)
+    soloRettilinei: 'Per scendere fermati su un rettilineo.',
     comandi: 'W/S o frecce: gas e freno · A/D: sterzo · C: visuale · E: scendi',
     fineGiri: 'Strano: è sempre la stessa strada. Quel bar con l\'insegna accesa, l\'avrai visto tre volte.',
     rientro: 'Ci hai messo un po\'. Hai visto? Da qualunque porta entri, finisci sempre qui.',

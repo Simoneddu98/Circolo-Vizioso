@@ -146,7 +146,7 @@ export class NPCManager {
     const near = this.npcs.filter((o) => {
       const p = o.userData.worldPos;
       const range = o.userData.lineSet.talkDistance ?? this.cfg.talkDistance;
-      return o.visible && !o.userData.anim?.once && Math.hypot(p.x - playerPos.x, p.z - playerPos.z) <= range;
+      return o.visible && !o.userData.muto && !o.userData.anim?.once && Math.hypot(p.x - playerPos.x, p.z - playerPos.z) <= range;
     });
     if (!near.length) return;
     const speaker = near[Math.floor(Math.random() * near.length)];   // parla uno a caso tra quelli vicini

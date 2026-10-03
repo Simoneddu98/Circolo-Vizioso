@@ -1,12 +1,16 @@
 # City Street.blend -> strada.glb leggero: modificatori applicati, oggetti pesanti decimati, niente luci né testi 3D,
-# texture in WebP (poi ridotte con gltf-transform).
+# texture in WebP (poi ridotte con gltf-transform). Versione leggera per i telefoni: nessun oggetto sopra LIMITE facce
+# (prima 6000: 466 mila triangoli a tratto) e via il cubo che avvolge la scena (Cube223, faceva da cielo in Blender).
+# Dopo: gltf-transform flatten + join unisce i pezzi con lo stesso materiale (da 616 oggetti a qualche decina).
+# Gli ostacoli per le collisioni (pali, cestini, panchine) sono scritti in src/storia/contenuti.js, perché dopo
+# l'unione non si riconoscono più.
 import bpy, sys
 out = sys.argv[-1]
 sc = bpy.context.scene
 for o in list(bpy.data.objects):
-    if o.type in ('LIGHT', 'CAMERA', 'FONT', 'EMPTY'):
+    if o.type in ('LIGHT', 'CAMERA', 'FONT', 'EMPTY') or o.name.replace('.', '') == 'Cube223':
         bpy.data.objects.remove(o, do_unlink=True)
-LIMITE = 6000
+LIMITE = 1400
 tot0 = tot1 = 0
 for o in [o for o in bpy.data.objects if o.type == 'MESH']:
     n = len(o.data.polygons)
