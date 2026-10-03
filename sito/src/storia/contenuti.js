@@ -124,9 +124,9 @@ export const STORIA = {
     qualcuno: 'Qualcuno',
     troppoCorta: 'Scrivi almeno qualche parola',
     fine: 'La scatola si richiude. Dentro c\'è anche un pezzo del tuo mezzo.',
-    // Archivio online delle idee (null = solo in questo browser). Per raccoglierle davvero: { url, chiave, tabella }
-    // di un progetto Supabase con una tabella (id, domanda text, testo text, creato timestamptz default now()) e
-    // accesso anonimo in aggiunta e lettura. Vedi src/storia/idee.js.
+    // Archivio online delle idee (null = solo in questo browser). Per raccoglierle in un foglio Google:
+    //   archivio: { tipo: 'foglio', url: 'https://script.google.com/macros/s/…/exec' }
+    // (lo script e le istruzioni sono in strumenti/idee-foglio/). Vedi src/storia/idee.js.
     archivio: null,
     // semi: le prime idee, dei personaggi del circolo, così la scatola non è mai vuota
     domande: [

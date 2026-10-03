@@ -1,9 +1,10 @@
 // La scatola nera raccoglie le idee di chi gioca (capitolo 3 della storia). Ogni idea è legata a una domanda.
 // - Senza archivio online (STORIA.blackbox.archivio = null) le idee restano nel browser di chi gioca, insieme alle idee
 //   di partenza dei personaggi (STORIA.blackbox.domande[].semi): la scatola non è mai vuota.
-// - Con un archivio online (per esempio una tabella Supabase con accesso anonimo in sola aggiunta e lettura) le idee di
-//   tutti finiscono lì e ognuno legge quelle degli altri. Formato: { url, chiave, tabella } (API REST di Supabase:
-//   POST /rest/v1/<tabella> con { domanda, testo }, GET con ?domanda=eq.<id>&select=testo&order=creato.desc).
+// - Con un archivio online le idee di tutti finiscono lì e ognuno legge quelle degli altri. Due possibilità:
+//   { tipo: 'foglio', url } — un foglio Google con lo script di strumenti/idee-foglio/ pubblicato come app web
+//     (GET ?domanda=<id> → [{ domanda, testo }], POST { domanda, testo } come testo semplice: niente richieste preliminari)
+//   { url, chiave, tabella } — una tabella Supabase con accesso anonimo in aggiunta e lettura (API REST).
 
 const LOCAL = 'circolo.blackbox.idee.v1';
 
@@ -21,7 +22,8 @@ export class Idee {
 
   _saveLocal() { try { localStorage.setItem(LOCAL, JSON.stringify(this.local)); } catch { /* ok */ } }
 
-  get online() { const a = this.cfg.archivio; return !!(a?.url && a?.chiave && a?.tabella); }
+  get foglio() { const a = this.cfg.archivio; return a?.tipo === 'foglio' && !!a.url; }
+  get online() { const a = this.cfg.archivio; return this.foglio || !!(a?.url && a?.chiave && a?.tabella); }
 
   async invia(domanda, testo) {
     const t = pulisci(testo, this.cfg.lunghezza);
@@ -30,6 +32,10 @@ export class Idee {
     this._saveLocal();
     if (!this.online) return true;
     const a = this.cfg.archivio;
+    if (this.foglio) {
+      try { await fetch(a.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ domanda, testo: t }) }); } catch { /* resta almeno qui */ }
+      return true;
+    }
     try {
       await fetch(`${a.url}/rest/v1/${a.tabella}`, {
         method: 'POST',
@@ -44,7 +50,12 @@ export class Idee {
   async leggi(domanda, n = 4) {
     const semi = (this.cfg.domande.find((d) => d.id === domanda)?.semi ?? []).map(([chi, testo]) => ({ chi, testo }));
     let altri = [];
-    if (this.online) {
+    if (this.foglio) {
+      try {
+        const r = await fetch(`${this.cfg.archivio.url}?domanda=${encodeURIComponent(domanda)}`);
+        if (r.ok) altri = (await r.json()).map((x) => ({ chi: null, testo: pulisci(x.testo, this.cfg.lunghezza) })).filter((x) => x.testo);
+      } catch { /* fuori linea: si usano i semi */ }
+    } else if (this.online) {
       const a = this.cfg.archivio;
       try {
         const r = await fetch(`${a.url}/rest/v1/${a.tabella}?domanda=eq.${encodeURIComponent(domanda)}&select=testo&order=creato.desc&limit=40`,

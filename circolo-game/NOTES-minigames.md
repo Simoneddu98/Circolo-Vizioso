@@ -249,3 +249,4 @@ Terza modalità sulla schermata iniziale, separata da serata e gioco libero: cod
 - Finito il gioco, Lyuce chiude; dopo 6 s dissolvenza e rientrano tutti al loro posto (`esodo.ritorno()`).
 - Prova: "Capitolo 3: se ne vanno tutti" e "Capitolo 3: Lyuce e la scatola".
 - Corretto: un titolo nascosto prima del fotogramma in cui si accende restava acceso (`overlay.big`).
+- **Archivio delle idee su un foglio Google** (5 ottobre 2026): `strumenti/idee-foglio/Codice.gs` (Google Apps Script: crea da solo il foglio, `doPost` aggiunge una riga, `doGet` restituisce le idee visibili di una domanda) e `LEGGIMI.md` con i passaggi. Nel gioco: `STORIA.blackbox.archivio = { tipo: 'foglio', url }`. Moderazione dal foglio (colonna *visibile*), oppure `APPROVAZIONE = true`. Test: `tests/idee.test.mjs`.
