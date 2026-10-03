@@ -35,7 +35,7 @@ export class Racconto {
     this.portaTv = creaPorta(ctx, { name: 'Porta_TV', width: PT.larghezza, height: PT.altezza, swing: 'in', inset: true,
       center: new THREE.Vector3(PT.centro[0], 0, PT.centro[1]), inward: new THREE.Vector3(0, 0, 1) });
     this.stanza = new Stanzetta(ctx, this.cfg.stanzetta);
-    this.food2 = new Food(ctx, ctx.config.assets.food, this.stanza.tableObject);
+    this.food2 = new Food(ctx, ctx.config.assets.food, this.stanza.tableObject, this.cfg.stanzetta.posti);
     this.inStanza = false;
     for (const src of [this.cfg.logo, this.cfg.fumoLogo]) new Image().src = src;
     this._wrapBarista();

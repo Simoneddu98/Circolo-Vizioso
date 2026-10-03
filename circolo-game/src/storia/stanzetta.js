@@ -6,22 +6,27 @@ import * as THREE from 'three';
 import { creaPorta } from '../porta.js';
 
 // copia sicura di un oggetto del glb (clone() copierebbe userData con riferimenti circolari)
-export function copia(src) {
+export function copia(src, keep = null) {
   const out = src.isMesh ? new THREE.Mesh(src.geometry, src.userData.baseMaterial ?? src.material) : new THREE.Object3D();
   out.name = `${src.name}_copia`;
   out.position.copy(src.position); out.quaternion.copy(src.quaternion); out.scale.copy(src.scale);
-  for (const c of src.children) if (c.isMesh || c.children.length) out.add(copia(c));
+  for (const c of src.children) {
+    if (c.isMesh && keep && !keep(c)) continue;
+    if (c.isMesh || c.children.length) out.add(copia(c, keep));
+  }
   return out;
 }
 
 // copia appoggiata con la base al centro (x, z) sul pavimento della stanza
-function posa(ctx, name, group, x, z, y = 0, rotY = 0) {
+function posa(ctx, name, group, x, z, y = 0, rotY = 0, keep = null) {
   const src = ctx.root.getObjectByName(name);
   if (!src) return null;
   src.updateWorldMatrix(true, true);
-  const box = new THREE.Box3().setFromObject(src);
+  const inner = copia(src, keep);
+  // riferimento: il riquadro delle sole parti copiate (la base poggia in y, centrata in x, z)
+  const box = new THREE.Box3();
+  src.traverse((m) => { if (m.isMesh && (!keep || keep(m))) box.expandByObject(m); });
   const c = box.getCenter(new THREE.Vector3());
-  const inner = copia(src);
   // la copia parte dalla trasformazione mondo dell'originale, poi si porta con la base nel punto voluto
   src.matrixWorld.decompose(inner.position, inner.quaternion, inner.scale);
   inner.position.sub(new THREE.Vector3(c.x, box.min.y, c.z));
@@ -31,6 +36,35 @@ function posa(ctx, name, group, x, z, y = 0, rotY = 0) {
   holder.rotation.y = rotY;
   group.add(holder);
   return holder;
+}
+
+// poltrona in pelle (costruita qui: nel circolo non ce n'è una): base, cuscino, schienale inclinato, braccioli tondi,
+// piedini di legno. x, z = centro, rotY = verso cui guarda
+function poltrona(group, x, z, rotY) {
+  const leather = new THREE.MeshStandardMaterial({ color: 0x5a1a14, roughness: 0.55, metalness: 0.05 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x2a140c, roughness: 0.6 });
+  const g = new THREE.Group();
+  const box = (w, h, d, x0, y0, z0, m = leather, r = 0) => {
+    const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x0, y0, z0); b.rotation.x = r; g.add(b); return b;
+  };
+  box(0.82, 0.22, 0.78, 0, 0.25, 0);                               // base
+  box(0.62, 0.12, 0.62, 0, 0.42, 0.05, leather);                   // cuscino della seduta
+  box(0.82, 0.62, 0.18, 0, 0.62, -0.32, leather, -0.12);           // schienale
+  box(0.66, 0.4, 0.1, 0, 0.62, -0.22, leather, -0.12);             // cuscino dello schienale
+  for (const s of [-1, 1]) {
+    box(0.13, 0.36, 0.76, s * 0.36, 0.48, 0.0);                    // braccioli
+    const roll = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.76, 16), leather);
+    roll.rotation.x = Math.PI / 2; roll.position.set(s * 0.36, 0.67, 0); g.add(roll);
+    for (const zz of [-0.32, 0.32]) {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.018, 0.14, 8), dark);
+      leg.position.set(s * 0.34, 0.07, zz); g.add(leg);
+    }
+  }
+  g.traverse((m) => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; } });
+  g.position.set(x, 0, z);
+  g.rotation.y = rotY;
+  group.add(g);
+  return g;
 }
 
 export class Stanzetta {
@@ -74,24 +108,30 @@ export class Stanzetta {
     for (const [w, x, z, ry] of [[W, 0, -D / 2 + 0.01, 0], [W, 0, D / 2 - 0.01, Math.PI], [D, -W / 2 + 0.01, 0, Math.PI / 2], [D, W / 2 - 0.01, 0, -Math.PI / 2]]) {
       const s = new THREE.Mesh(new THREE.PlaneGeometry(w, 0.1), skirt); s.position.set(x, 0.05, z); s.rotation.y = ry; g.add(s);
     }
-    // arredi: il tavolo da carte del circolo (senza carte), una sedia, posacenere con la sigaretta, pacchetto
+    // arredi: il tavolo da carte del circolo (solo il legno: bicchiere, vino e posacenere di vetro restano nel circolo),
+    // una sedia, posacenere con la sigaretta, il pacchetto in mezzo al tavolo
     const [tx, tz] = S.tavolo;
-    this.table = posa(ctx, 'Card_Table', g, tx, tz);
-    this.chair = posa(ctx, 'Chair_Cards_01', g, tx, tz + 0.78, 0, Math.PI) ?? posa(ctx, 'Chair_Screen_01', g, tx, tz + 0.78, 0, Math.PI);
+    const legno = (m) => /Noce|Legno|Wood/i.test([m.material].flat().map((x) => x.name).join(' '));
+    this.table = posa(ctx, 'Card_Table', g, tx, tz, 0, 0, legno);
     g.updateMatrixWorld(true);
-    const top = this.table ? new THREE.Box3().setFromObject(this.table).max.y - g.position.y : 0.8;
+    const tb = this.table ? new THREE.Box3().setFromObject(this.table) : null;
+    const top = tb ? tb.max.y - g.position.y : 0.75;               // il piano del tavolo (0,75 m)
     this.top = top;
-    this.ashtray = posa(ctx, 'Ashtray_Side', g, tx + 0.28, tz - 0.25, top);
+    const depth = tb ? tb.max.z - tb.min.z : 1.06;
+    this.chair = posa(ctx, 'Chair_Cards_01', g, tx, tz + depth / 2 + 0.12, 0, Math.PI) ?? posa(ctx, 'Chair_Screen_01', g, tx, tz + depth / 2 + 0.12, 0, Math.PI);
+    this.chairZ = tz + depth / 2 + 0.12;
+    this.ashtray = posa(ctx, 'Ashtray_Side', g, tx + 0.28, tz - 0.22, top);
     const lit = ctx.root.getObjectByName('Cigarette_Lit');
     const ash = ctx.root.getObjectByName('Ashtray_Side');
     if (lit && ash) {
       // la sigaretta nel posacenere, nella stessa posizione rispetto al posacenere che nel circolo
       const la = new THREE.Box3().setFromObject(ash), lc = new THREE.Box3().setFromObject(lit).getCenter(new THREE.Vector3());
       const off = lc.sub(new THREE.Vector3((la.min.x + la.max.x) / 2, la.min.y, (la.min.z + la.max.z) / 2));
-      posa(ctx, 'Cigarette_Lit', g, tx + 0.28 + off.x, tz - 0.25 + off.z, top + off.y - 0.004);
+      posa(ctx, 'Cigarette_Lit', g, tx + 0.28 + off.x, tz - 0.22 + off.z, top + off.y);
     }
-    this.pack = posa(ctx, 'Cigarette_Pack', g, tx - 0.3, tz - 0.22, top, 0.4);
+    this.pack = posa(ctx, 'Cigarette_Pack', g, tx, tz, top, 0.35);   // in mezzo al tavolo
     if (this.pack) this.pack.name = 'Stanzetta_Pack';
+    this.armchair = poltrona(g, ...S.poltrona);
     // lampada sopra il tavolo: paralume e luce calda; un filo di luce ambiente
     const shade = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.22, 24, 1, true), new THREE.MeshStandardMaterial({ color: 0x1f4a2e, roughness: 0.5, side: THREE.DoubleSide }));
     shade.position.set(tx, H - 0.75, tz);
@@ -119,15 +159,16 @@ export class Stanzetta {
 
   // dove si arriva entrando, la sedia, il posto di Rafka
   get arrivo() { const [dx] = this.cfg.porta; return this.world(dx, 0, this.cfg.profondita / 2 - 0.9); }
-  get chairPos() { const [tx, tz] = this.cfg.tavolo; return this.world(tx, 0, tz + 0.78); }
+  get chairPos() { const [tx] = this.cfg.tavolo; return this.world(tx, 0, this.chairZ + 0.05); }
   get tablePos() { const [tx, tz] = this.cfg.tavolo; return this.world(tx, this.top, tz); }
   get rafkaPos() { const [x, z] = this.cfg.rafka; return this.world(x, 0, z); }
 
   collisionBoxes() {
     const out = [];
-    if (this.table) {
-      const b = new THREE.Box3().setFromObject(this.table);
-      out.push({ name: 'ST_Tavolo', cx: (b.min.x + b.max.x) / 2, cz: (b.min.z + b.max.z) / 2, ux: 1, uz: 0, vx: 0, vz: 1, hx: (b.max.x - b.min.x) / 2, hz: (b.max.z - b.min.z) / 2, minY: 0, maxY: 1 });
+    for (const [name, o] of [['ST_Tavolo', this.table], ['ST_Poltrona', this.armchair]]) {
+      if (!o) continue;
+      const b = new THREE.Box3().setFromObject(o);
+      out.push({ name, cx: (b.min.x + b.max.x) / 2, cz: (b.min.z + b.max.z) / 2, ux: 1, uz: 0, vx: 0, vz: 1, hx: (b.max.x - b.min.x) / 2, hz: (b.max.z - b.min.z) / 2, minY: 0, maxY: 1 });
     }
     return out;
   }

@@ -15,8 +15,10 @@ const mat = (color, rough = 0.8) => new THREE.MeshStandardMaterial({ color, roug
 
 export class Food {
   // table: il tavolo dove arriva il cibo (di norma il tavolino in fondo al circolo; la storia usa quello della stanzetta)
-  constructor(ctx, url, table = ctx.root.getObjectByName('Side_Table')) {
+  // spots: posti sul tavolo in metri dal centro ([x, z]), se il tavolo ne vuole di suoi (la stanzetta: il centro è del pacchetto)
+  constructor(ctx, url, table = ctx.root.getObjectByName('Side_Table'), spots = null) {
     this.ctx = ctx;
+    this.spots = spots;
     this.items = [];
     this.models = null;
     const box = table ? new THREE.Box3().setFromObject(table) : null;
@@ -33,6 +35,7 @@ export class Food {
 
   // posti sul piano del tavolino (il pacchetto di sigarette e il posacenere stanno verso est)
   _spot(i) {
+    if (this.spots) { const [x, z] = this.spots[i % this.spots.length]; return new THREE.Vector3(this.center.x + x, this.top, this.center.z + z); }
     // lontano dal pacchetto (angolo sud-est) e dal posacenere (lato est)
     const s = [[-0.13, -0.06], [-0.03, 0.15], [0.02, -0.03], [-0.15, 0.17]][i % 4];
     return new THREE.Vector3(this.center.x + s[0] * (this.half / 0.28), this.top, this.center.z + s[1] * (this.half / 0.28));

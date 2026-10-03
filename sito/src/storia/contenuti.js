@@ -74,6 +74,8 @@ export const STORIA = {
     tavolo: [0, -0.4],                      // centro del tavolo
     porta: [1.3],                           // x della porta, sulla parete di fondo (z = profondità/2)
     rafka: [-1.2, -0.2],                    // dove sta Rafka
+    poltrona: [-1.55, 1.25, 2.4],
+    posti: [[-0.28, 0.24], [0.3, 0.2], [-0.3, -0.26], [0.02, 0.33]],   // dove arriva il cibo sul tavolo (il centro è del pacchetto)           // poltrona: x, z, verso cui guarda (radianti: verso il tavolo)
   },
   tiri: 2,
   ingresso: 0.75,                           // a quanti metri dalla porta aperta (accanto alla TV) si entra nella stanzetta
