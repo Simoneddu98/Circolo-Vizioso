@@ -388,6 +388,7 @@ canvas.addEventListener('mouseup', (e) => {
 });
 
 window.addEventListener('keydown', (e) => {
+  if (e.target?.matches?.('textarea, input[type="text"]')) return;   // si sta scrivendo (la scatola nera della storia)
   if (state === 'playing' && minigames?.active) { if (minigames.input('keydown', e)) e.preventDefault(); return; }
   if (state === 'playing' && dialogue?.key(e)) { e.preventDefault(); return; }
   if (state === 'playing' && serata?.key(e)) { e.preventDefault(); return; }

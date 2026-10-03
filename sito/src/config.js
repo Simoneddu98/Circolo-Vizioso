@@ -660,6 +660,11 @@ export const CONFIG = {
           options: [{ text: 'Grazie... credo.', next: 'lyuce_regola' }, { text: 'A me piace come sono.', next: 'lyuce_ok' }] },
         lyuce_ok: { text: 'Ed è giusto così: lo stile parte da lì. Io ti do solo gli attrezzi. Le scarpe però puliscile.' },
         lyuce_regola: { text: 'Figurati. Regola d\'oro: massimo tre colori addosso. Qui dentro la rispetta solo Peppino, e secondo me per caso.' },
+        // "La storia", capitolo 3: resta solo Lyuce
+        storia_bb: { text: 'Ottimo: abbiamo mangiato, ci siamo divertiti. Ma ogni tanto è importante anche porsi delle domande più profonde, anche se il Circolo Vizioso non vuole. Se ne sono andati tutti, hai visto? Sappiamo come sono entrati e come sono usciti. Quello che è successo in mezzo, nessuno lo sa.',
+          options: [{ text: 'E allora?', next: 'storia_bb2' }] },
+        storia_bb2: { text: 'Sul biliardo, in mezzo alla sala, c\'è una scatola nera. Di ogni cosa sappiamo come comincia e come finisce: il mezzo resta chiuso lì dentro. Ti farò qualche domanda. Non ci sono risposte giuste: scrivi la tua idea, in poche parole, e poi leggi quelle di chi è passato prima di te. Ogni idea resta nella scatola.',
+          options: [{ text: 'Vado a vedere.', action: 'serata:scatola' }, { text: 'Aspetta un attimo.', action: 'end' }] },
         // Brano 3: la scatola nera
         bb_invito: { text: 'Ottimo: abbiamo mangiato, ci siamo divertiti. Ma ogni tanto è importante anche porsi delle domande più profonde, anche se il Circolo Vizioso non vuole. Hai mai pensato a come prendi le tue decisioni?',
           options: [{ text: 'Sinceramente no.', next: 'bb_invito2' }, { text: 'Ogni tanto.', next: 'bb_invito2' }] },

@@ -136,9 +136,10 @@ export class Overlay {
 
   // scritta grande (o il logo) al centro
   big(html) {
+    const tok = (this._bigTok = (this._bigTok ?? 0) + 1);       // un "nascondi" arrivato prima del fotogramma vince sempre
     if (!html) { this.bigEl.classList.remove('on'); return; }
     this.bigEl.innerHTML = html;
-    requestAnimationFrame(() => this.bigEl.classList.add('on'));
+    requestAnimationFrame(() => { if (this._bigTok === tok) this.bigEl.classList.add('on'); });
   }
 
   fade(on, then) {

@@ -17,9 +17,14 @@ export const STORIA = {
     { goal: 'stanzetta', text: 'Apri la porta accanto al maxischermo', locked: 'Più tardi' },
     { goal: 'fumo', text: 'Fumo: prendi una sigaretta, siediti, ordina da mangiare', locked: 'Più tardi' },
     { goal: 'uscita2', text: 'Esci dalla stanzetta', locked: 'Più tardi' },
-    { goal: 'continua', text: 'Fine del secondo capitolo. Il circolo è aperto: gira e gioca' },
+    // capitolo 3: la scatola nera
+    { goal: 'esodo', text: 'Guarda: se ne vanno tutti', locked: 'Più tardi' },
+    { goal: 'lyuce', text: 'È rimasta solo Lyuce, accanto al biliardo', locked: 'Più tardi' },
+    { goal: 'scatola', text: 'Apri la scatola nera in mezzo al biliardo', locked: 'Più tardi' },
+    { goal: 'idee', text: 'Black Box: lascia le tue idee nella scatola', locked: 'Più tardi' },
+    { goal: 'continua', text: 'Fine del terzo capitolo. Il circolo è aperto: gira e gioca' },
   ],
-  requires: { minigame: 'uscita2', smoke: 'nicola' },
+  requires: { minigame: 'idee', smoke: 'nicola' },
   ui: { label: 'La storia', sub: 'Sperimentale: capitolo 1, il cinema' },
   presentazioni: { Cronico: 'benvenuto', Rafka: 'rafka_ciao', Kappa: 'kappa_ciao', Zugo: 'zucco_ciao', Lyuce: 'lyuce_ciao' },
   presentazioniCoda: 'Fatti un giro e conosci tutti: poi Cronico ti porta in un posto.',
@@ -86,6 +91,66 @@ export const STORIA = {
   ingresso: 0.75,                           // a quanti metri dalla porta aperta (accanto alla TV) si entra nella stanzetta
   esciStanzetta: 'Esci dalla stanzetta',
   fumoGioco: 60,
+  // ---- capitolo 3: se ne vanno tutti dalla porta d'ingresso, resta Lyuce, la scatola nera sul biliardo
+  esodo: {
+    chi: ['Rafka', 'Kappa', 'Zugo', 'Cronico', 'Efisio', 'Tonino', 'Peppino', 'Gavino', 'Nicola'],   // in quest'ordine
+    intervallo: 1.6,                        // secondi tra un'uscita e l'altra
+    passo: 1.15,                            // metri al secondo
+    giri: { Nicola: [[-5.45, 1.9], [-4.2, 2.3]] },   // Nicola esce da dietro il bancone girandoci attorno
+    senzaCollisioni: ['Nicola'],            // (nel circolo c'è il suo ingombro fisso dietro al bancone)
+    attesa: 2.5,                            // secondi dopo l'uscita dalla stanzetta prima che si apra la porta
+  },
+  lyuce: {
+    posto: [2.75, 0.15],                    // dove resta ad aspettarti, accanto al biliardo
+    nodo: 'storia_bb',
+    chiama: 'Sono rimasta io. Vieni, siediti un attimo con i pensieri.',
+    vai: 'Vai. La scatola è sul biliardo, in mezzo alla sala. Con calma.',
+    dopo: 'Visto? Ognuno ci mette dentro un pezzo di mezzo. Nessuno lo stesso.',
+  },
+  bbLogo: './assets/titoli/blackbox.png',
+  apriScatola: 'Apri la scatola nera',
+  ritornoTutti: 'Più tardi la porta si riapre: rientrano tutti, come ogni sera.',
+  blackbox: {
+    titolo: 'Black Box',
+    quante: 3,                              // domande per partita (a caso tra quelle sotto)
+    lunghezza: 160,                         // caratteri massimi di un'idea
+    placeholder: 'Scrivi la tua idea, in poche parole…',
+    invia: 'Lascia la tua idea',
+    salta: 'Salta',
+    altri: 'Nella scatola ci sono già queste idee:',
+    avanti: 'Avanti',
+    chiudi: 'Chiudi la scatola',
+    tu: 'Tu',
+    qualcuno: 'Qualcuno',
+    troppoCorta: 'Scrivi almeno qualche parola',
+    fine: 'La scatola si richiude. Dentro c\'è anche un pezzo del tuo mezzo.',
+    // Archivio online delle idee (null = solo in questo browser). Per raccoglierle davvero: { url, chiave, tabella }
+    // di un progetto Supabase con una tabella (id, domanda text, testo text, creato timestamptz default now()) e
+    // accesso anonimo in aggiunta e lettura. Vedi src/storia/idee.js.
+    archivio: null,
+    // semi: le prime idee, dei personaggi del circolo, così la scatola non è mai vuota
+    domande: [
+      { id: 'ritorno', inizio: 'Ogni sera giuri: «stasera è l\'ultima volta».', fine: 'Ogni sera sei di nuovo qui.',
+        domanda: 'Cosa c\'è in mezzo, tra la promessa e il ritorno?',
+        semi: [['Cronico', 'La porta. Si apre sempre più facilmente di come si chiude.'], ['Nicola', 'Un bicchiere che si riempie da solo, quando non guardi.'],
+          ['Kappa', 'AAAAAAH, la paura di perdermi la foto più bella.']] },
+      { id: 'nascita', inizio: 'Nasci.', fine: 'Sei qui, stasera, al circolo.',
+        domanda: 'Di tutto quello che è successo in mezzo, cosa ti ha portato davvero qui?',
+        semi: [['Peppino', 'Le carte. E un amico che non c\'è più.'], ['Lyuce', 'Una scelta piccola: una porta aperta invece che chiusa.'],
+          ['Rafka', 'Posso dire? Bologna. Poi la nostalgia di Bologna.']] },
+      { id: 'decisione', inizio: 'Hai un dubbio.', fine: 'Hai deciso.',
+        domanda: 'Cosa succede dentro di te, in quel mezzo che non si vede?',
+        semi: [['Lyuce', 'Una voce smette di parlare e un\'altra alza il volume.'], ['Zugo', 'Il montaggio: tagli tutto quello che fa paura. Si gode.'],
+          ['Gavino', 'Ci dormi sopra. Decide il cuscino.']] },
+      { id: 'amici', inizio: 'Non conoscevi nessuno, qui dentro.', fine: 'Li chiami amici.',
+        domanda: 'Cosa è successo nel mezzo?',
+        semi: [['Cronico', 'Una rivincita persa apposta.'], ['Kappa', 'Una foto venuta male in cui ridevano tutti.'], ['Tonino', 'Un giro offerto. Poi un altro.']] },
+      { id: 'notte', inizio: 'Vai a dormire con un pensiero.', fine: 'Ti svegli e hai cambiato idea.',
+        domanda: 'Chi ha lavorato nel buio, mentre dormivi?',
+        semi: [['Zugo', 'Il regista dei sogni. Lavora gratis.'], ['Efisio', 'La notte porta consiglio, diceva mia madre. A volte porta anche il mal di testa.'],
+          ['Rafka', 'Posso dire? Il silenzio.']] },
+    ],
+  },
   film: {
     titolo: 'Il film',
     regole: [

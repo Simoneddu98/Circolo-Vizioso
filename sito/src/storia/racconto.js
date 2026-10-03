@@ -8,6 +8,9 @@ import { createCinema } from '../serata/cinema.js';
 import { createCibo } from '../serata/cibo.js';
 import { Food } from '../serata/cibo3d.js';
 import { creaPorta } from '../porta.js';
+import { Esodo } from './esodo.js';
+import { Idee } from './idee.js';
+import { createScatola } from './scatola.js';
 import { yawTo, pitchTo } from '../player.js';
 import { saltaPresentazioni } from '../serata/director.js';
 
@@ -37,7 +40,11 @@ export class Racconto {
     this.stanza = new Stanzetta(ctx, this.cfg.stanzetta);
     this.food2 = new Food(ctx, ctx.config.assets.food, this.stanza.tableObject, this.cfg.stanzetta.posti);
     this.inStanza = false;
-    for (const src of [this.cfg.logo, this.cfg.fumoLogo]) new Image().src = src;
+    // capitolo 3: chi se ne va, le idee della scatola nera, la scatola in mezzo al biliardo
+    this.esodo = new Esodo(ctx, this.cfg.esodo);
+    this.idee = new Idee(this.cfg.blackbox);
+    this.bbox = this._makeScatola();
+    for (const src of [this.cfg.logo, this.cfg.fumoLogo, this.cfg.bbLogo]) new Image().src = src;
     this._wrapBarista();
     this._targets();
   }
@@ -63,12 +70,15 @@ export class Racconto {
     // a metà di un capitolo (ricaricando la pagina) si riparte dall'inizio del capitolo
     if (['biglietto', 'film', 'uscita'].includes(this.progress.goal)) { for (const g of ['porta', 'biglietto', 'film']) this.progress.done.delete(g); this.progress.ui.renderGoals(); }
     if (['stanzetta', 'fumo', 'uscita2'].includes(this.progress.goal)) { for (const g of ['rafka', 'stanzetta', 'fumo']) this.progress.done.delete(g); this.progress.ui.renderGoals(); }
+    if (['lyuce', 'scatola', 'idee'].includes(this.progress.goal)) { for (const g of ['esodo', 'lyuce', 'scatola']) this.progress.done.delete(g); this.progress.ui.renderGoals(); }
+    if (this.progress.goal === 'esodo') { this.stage = 'esodoAttesa'; this.wait = 1; }
   }
 
   // PROVA: i punti a cui si può saltare dal menu di pausa
   get provaPunti() {
     return [['porta', 'Cronico alla porta'], ['biglietto', 'Dentro il cinema'], ['uscita', 'Dopo il film (uscita)'],
-      ['rafka', 'Capitolo 2: Rafka'], ['fumo', 'Dentro la stanzetta']];
+      ['rafka', 'Capitolo 2: Rafka'], ['fumo', 'Dentro la stanzetta'], ['esodo', 'Capitolo 3: se ne vanno tutti'],
+      ['lyuce', 'Capitolo 3: Lyuce e la scatola']];
   }
 
   jumpTo(goal) {
@@ -84,6 +94,9 @@ export class Racconto {
     if (this.inCinema) this._leaveCinema(false);
     if (this.inStanza) this._leaveStanza(false);
     this.portaTv?.close();
+    this._stopIdee();
+    if (this.esodo.walkers.length) this.esodo.ritorno();
+    if (this.bbox) this.bbox.visible = false;
     if (ctx.smoking.holding) ctx.smoking.putOut(ctx);
     ctx.player.collisions = ctx.collisions;
     if (ctx.player.seated) ctx.player.stand();
@@ -94,6 +107,12 @@ export class Racconto {
     this.wait = 0.3;
     if (goal === 'porta' || goal === 'rafka') { this.stage = 'idle'; return; }
     if (goal === 'fumo') { this.progress.done.delete('stanzetta'); this._enterStanzetta(); return; }
+    if (goal === 'esodo') { this.stage = 'esodoAttesa'; this.wait = 0.5; return; }
+    if (goal === 'lyuce') {                                      // tutti già usciti, Lyuce già al suo posto
+      this.esodo.start(ctx.porta?.soglia ?? new THREE.Vector3(-3.5, 0, 4.15), { Lyuce: this.cfg.lyuce.posto });
+      this.esodo.skip();
+      this._lyuceAspetta();
+    }
     // dentro il cinema (al posto, oppure all'uscita dopo il film)
     this.progress.done.delete('porta');
     this.stage = 'going';
@@ -107,6 +126,9 @@ export class Racconto {
     this.ctx.porta?.close();
     this._stopFilm();
     this._stopFumo();
+    this._stopIdee();
+    if (this.esodo.walkers.length) this.esodo.ritorno();
+    if (this.bbox) this.bbox.visible = false;
     if (this.inCinema) this._leaveCinema(false);
     if (this.inStanza) this._leaveStanza(false);
     this.portaTv?.close();
@@ -132,12 +154,14 @@ export class Racconto {
     const goal = this.progress.goal, name = npc.userData.npc_name;
     if (goal === 'porta' && name === 'Cronico') { this.stage = 'talk'; return this.cfg.cronico.nodo; }
     if (goal === 'rafka' && name === 'Rafka') { this.stage = 'talk'; return this.cfg.rafka.nodo; }
+    if (goal === 'lyuce' && name === 'Lyuce') { this.stage = 'talk'; return this.cfg.lyuce.nodo; }
     return null;
   }
 
   action(what) {
     if (this.stage !== 'talk') return;
     if (what === 'segui') { this.stage = 'porta'; this._say('Cronico', this.cfg.cronico.apri, 5); }
+    if (what === 'scatola') this._titoloBlackBox();               // Lyuce: "vai a vedere la scatola"
     if (what === 'apri') {                                       // Rafka: "apri la porta accanto al maxischermo"
       this.progress.complete('rafka');
       this.stage = 'porta2';
@@ -156,6 +180,7 @@ export class Racconto {
     if (this.stage === 'prontoFumo' && (e.code === 'Enter' || e.code === 'Space')) { this._goFumo(); return true; }
     if (this.stage === 'film') this.film?.key?.(e);
     if (this.stage === 'fumoGioco') this.fumo?.key?.(e);
+    if (this.stage === 'ideeGioco') return e.code !== 'Escape' ? false : true;   // si scrive: i tasti vanno al campo di testo
     return true;
   }
 
@@ -207,6 +232,18 @@ export class Racconto {
         this.metT = (this.metT ?? 0) + dt;
         if (this.metT >= this.cfg.attesa) { this.metT = 0; this.progress.complete('presentazioni'); }
       }
+    } else if (goal === 'esodo') {
+      if (this.stage === 'esodoAttesa') {                        // si apre la porta d'ingresso e se ne vanno tutti
+        ctx.porta?.open();
+        this.esodo.start(ctx.porta?.soglia ?? new THREE.Vector3(-3.5, 0, 4.15), { Lyuce: this.cfg.lyuce.posto });
+        this.stage = 'esodo';
+      } else if (this.stage === 'esodo') {
+        this.esodo.update(dt);
+        if (this.esodo.done) { ctx.porta?.close(); this._lyuceAspetta(); }
+      }
+    } else if (goal === 'lyuce') {
+      if (this.stage === 'aspetta') this._aspetta();
+      else if (this.stage === 'talk' && !ctx.dialogue.active) this.stage = 'aspetta';
     } else if (goal === 'porta' || goal === 'rafka') {
       if (this.stage === 'idle') goal === 'porta' ? this._cronicoAllaPorta() : this._rafkaInGiro();
       else if (this.stage === 'vaAllaPorta') this._walk(dt);
@@ -489,8 +526,9 @@ export class Racconto {
       this._leaveStanza(true);
       this.progress.complete('uscita2');
       this.ov.fade(false);
-      this.stage = 'fine';
-      setTimeout(() => this._say('Rafka', this.cfg.rafka.dopo, 6), 1500);
+      this.stage = 'esodoAttesa';                                // capitolo 3: tra poco se ne vanno tutti
+      this.wait = this.cfg.esodo.attesa;
+      setTimeout(() => this._say('Rafka', this.cfg.rafka.dopo, 4), 600);
     });
   }
 
@@ -672,6 +710,113 @@ export class Racconto {
       const cr = this._npc('Cronico');
       if (cr) setTimeout(() => this._say('Cronico', this.cfg.cronicoDopo, 6), 1800);
     });
+  }
+
+  // ------------------------------------------------------------------ capitolo 3: Lyuce e la scatola nera
+
+  // finito l'esodo resta solo Lyuce, accanto al biliardo: ti chiama quando ti avvicini
+  _lyuceAspetta() {
+    this.progress.complete('esodo');
+    const ly = this.esodo.stayer ?? this._npc('Lyuce');
+    if (!ly) { this.progress.complete('lyuce'); return; }
+    this.guide = ly; this.guideName = 'Lyuce'; this.chiama = this.cfg.lyuce.chiama; this.called = false;
+    ly.userData.directed = true;
+    this.stage = 'aspetta';
+  }
+
+  // la scatola nera, in mezzo al biliardo (nera opaca, con una riga di luce magenta)
+  _makeScatola() {
+    const ctx = this.ctx;
+    const surf = ctx.root.getObjectByName('POOL_Surface') ?? ctx.root.getObjectByName('Pool_Table');
+    if (!surf) return null;
+    const b = new THREE.Box3().setFromObject(surf), c = b.getCenter(new THREE.Vector3());
+    const y = surf.name === 'POOL_Surface' ? c.y : b.max.y;
+    const g = new THREE.Group();
+    g.name = 'Storia_BlackBox';
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.2, 0.26), new THREE.MeshStandardMaterial({ color: 0x050507, roughness: 0.9, metalness: 0 }));
+    body.position.y = 0.1;
+    const seam = new THREE.Mesh(new THREE.BoxGeometry(0.264, 0.008, 0.264), new THREE.MeshStandardMaterial({ color: 0x220018, emissive: 0xff17e4, emissiveIntensity: 1.8 }));
+    seam.position.y = 0.15;
+    g.add(body, seam);
+    g.position.set(c.x, y, c.z);
+    g.visible = false;
+    ctx.scene.add(g);
+    ctx.interactions.register('storia_bbox', {
+      range: 2.6,
+      label: () => (this.story && this.progress.goal === 'scatola' && this.stage === 'scatola' ? this.cfg.apriScatola : null),
+      action: () => { if (this.stage === 'scatola') this._startIdee(); },
+    });
+    ctx.interactions.addTarget(g, 'storia_bbox');
+    return g;
+  }
+
+  // la scritta BLACK BOX dove sei (nessuno ti porta da nessuna parte); poi compare la scatola sul biliardo
+  _titoloBlackBox() {
+    const ctx = this.ctx;
+    this.stage = 'titolo';
+    this.freeze = true;
+    ctx.player.clearInput();
+    ctx.ui.subtitle(null);
+    document.body.classList.add('srt-on');
+    this.ov.big(`<img src="${this.cfg.bbLogo}" alt="Black Box">`);
+    this.titleT = setTimeout(() => {
+      this.ov.big(null);
+      this.titleT = setTimeout(() => {
+        this.freeze = false;
+        document.body.classList.remove('srt-on');
+        if (this.bbox) this.bbox.visible = true;
+        this.progress.complete('lyuce');
+        this.stage = 'scatola';
+        this._say('Lyuce', this.cfg.lyuce.vai, 5);
+      }, 700);
+    }, this.cfg.logoDurata * 1000);
+  }
+
+  _startIdee() {
+    this.progress.complete('scatola');
+    this._setFree(true);
+    this.ov.clear();
+    this.ov.showBar(null);
+    const api = {
+      cfg: this.cfg.blackbox, overlay: this.ov, idee: this.idee,
+      finish: (r) => this._endIdee(r),
+    };
+    this.idea = createScatola(api);
+    this.idea.start();
+    this.stage = 'ideeGioco';
+  }
+
+  _stopIdee() {
+    if (!this.idea) return;
+    this.idea.dispose?.();
+    this.idea = null;
+  }
+
+  _endIdee() {
+    const summary = this.idea?.summary?.() ?? '';
+    this._stopIdee();
+    this.stage = 'result';
+    this.ov.panel(`<h2>${this.cfg.blackbox.titolo}</h2><p>${this.cfg.blackbox.fine}</p><p>${summary}</p>`,
+      [{ label: this.serata.cfg.ui.continua, main: true, action: () => this._afterIdee() }]);
+  }
+
+  _afterIdee() {
+    const ctx = this.ctx;
+    this.ov.clear();
+    this._setFree(false);
+    if (this.bbox) this.bbox.visible = false;
+    this.progress.complete('idee');
+    this.stage = 'fine';
+    this._say('Lyuce', this.cfg.lyuce.dopo, 5);
+    // poco dopo rientrano tutti, come ogni sera
+    this.titleT = setTimeout(() => {
+      this.ov.fade(true, () => {
+        this.esodo.ritorno();
+        this._release();
+        this.ov.fade(false);
+        ctx.ui.toast(this.cfg.ritornoTutti, 5);
+      });
+    }, 6000);
   }
 
   // ------------------------------------------------------------------ Nicola: prima ti spiega, poi serve da bere
