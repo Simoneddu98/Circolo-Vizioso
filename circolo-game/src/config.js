@@ -7,12 +7,18 @@ import { STORIA } from './storia/contenuti.js';
 const v = (path) => `${path}?v=${ASSET_VERSION}`;
 
 export const CONFIG = {
+  // PROVA (temporanea): per provare i giochi senza rifare ogni volta Nicola e le presentazioni. Con attiva: true
+  // serata e storia partono già dopo le presentazioni e nel menu di pausa (Esc) ci sono i pulsanti per saltare a ogni
+  // gioco. Per tornare al gioco normale: attiva: false.
+  prova: { attiva: true },
+
   assets: {
     scene: v('./assets/circolo.glb'),
     collision: v('./assets/circolo_collision.glb'),
     video: './assets/partita.mp4',          // opzionale: se manca, lo schermo usa la partita disegnata su canvas
     hands: v('./assets/hands.glb'),            // mani in prima persona (pose: rilassata, bicchiere, sigaretta)
-    food: v('./assets/cibo.glb'),              // serata, secondo brano: hamburger, bibita e telefono (pizza e kebab sono in codice)
+    food: v('./assets/cibo.glb'),
+    porta: v('./assets/porta.glb'),            // porta d'ingresso (Door.blend), si apre nella storia              // serata, secondo brano: hamburger, bibita e telefono (pizza e kebab sono in codice)
   },
 
   player: {

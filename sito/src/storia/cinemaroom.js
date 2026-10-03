@@ -126,15 +126,41 @@ export class CinemaRoom {
     });
     for (const im of [cushion, back, arms]) { im.instanceMatrix.needsUpdate = true; g.add(im); }
 
-    // porta d'uscita in fondo, con la scritta verde
-    const door = new THREE.Mesh(new THREE.BoxGeometry(1.3, 2.3, 0.1), mat(0x2b1a12, 0.5));
-    door.position.set(S.uscita[0], 1.15, S.uscita[2]);
+    // uscita in fondo: un varco buio con due tende di velluto rosso raccolte ai lati, la mantovana e la scritta verde
+    const ex = S.uscita[0], ez = S.uscita[2] - 0.04;
+    const door = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 2.4), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+    door.position.set(ex, 1.2, ez);
+    door.rotation.y = Math.PI;
     door.name = 'Storia_Cinema_Uscita';
     g.add(door);
     this.door = door;
+    const drapeTex = curtainTex.clone(); drapeTex.needsUpdate = true; drapeTex.repeat.set(1.4, 1);
+    const drapeMat = mat(0xffffff, 0.75, { map: drapeTex, side: THREE.DoubleSide });
+    for (const side of [-1, 1]) {
+      // tenda a pieghe: un piano curvato, larga in alto e stretta in basso dove è legata
+      const geo = new THREE.PlaneGeometry(0.62, 2.45, 10, 12);
+      const pos = geo.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i), y = pos.getY(i);
+        const k = 0.55 + 0.45 * Math.min(1, Math.abs(y - (-0.35)) / 1.6);          // stretta all'altezza del cordone
+        pos.setX(i, x * k + side * (1 - k) * 0.31);
+        pos.setZ(i, Math.sin((x + 0.31) * 18) * 0.035);
+      }
+      geo.computeVertexNormals();
+      const drape = new THREE.Mesh(geo, drapeMat);
+      drape.position.set(ex + side * 0.5, 1.22, ez - 0.06);
+      drape.rotation.y = Math.PI;
+      g.add(drape);
+      const cord = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.012, 6, 14), mat(0xd9aa45, 0.35, { metalness: 0.6 }));
+      cord.position.set(ex + side * 0.6, 0.87, ez - 0.1);
+      g.add(cord);
+    }
+    const val = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.32, 0.1), drapeMat);
+    val.position.set(ex, 2.5, ez - 0.07);
+    g.add(val);
     const exit = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.3), new THREE.MeshBasicMaterial({
       map: canvasTex(256, 86, (c, w, h) => { c.fillStyle = '#0a3d1a'; c.fillRect(0, 0, w, h); c.fillStyle = '#5dff8a'; c.font = '700 60px Oswald, Arial Narrow, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('USCITA', w / 2, h / 2 + 3); }) }));
-    exit.position.set(S.uscita[0], 2.6, S.uscita[2] - 0.06);
+    exit.position.set(ex, 2.95, ez - 0.02);
     exit.rotation.y = Math.PI;
     g.add(exit);
 
@@ -168,6 +194,8 @@ export class CinemaRoom {
   // in coordinate mondo
   world(x, y, z) { return new THREE.Vector3(x, y, z).applyMatrix4(this.group.matrixWorld); }
   get screenCenter() { return this.screen.getWorldPosition(new THREE.Vector3()); }
+  // punto davanti all'uscita (in coordinate mondo): ci si arriva camminando e si esce
+  get exitPoint() { const S = this.cfg.sala; return this.world(S.uscita[0], 0, S.uscita[2] - 0.35); }
 
   // rettangoli di collisione (stessa forma di CollisionWorld): una fila di poltrone = un rettangolo, più il palco
   collisionBoxes() {

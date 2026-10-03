@@ -25,8 +25,10 @@ export const STORIA = {
     nodo: 'storia_invito',
     chiama: 'Ohi! Vieni qua, alla porta. Ti faccio vedere una cosa.',
     apri: 'Apri tu. Io resto qui: certe cose si guardano da soli.',
+    dentro: 'Vai, vai. Cammina e non voltarti.',
   },
   portaLabel: 'Apri la porta',
+  buio: 1.6,                                // metri da fare nel buio oltre la soglia prima di ritrovarsi nel cinema
   logo: './assets/titoli/cinema.png',
   logoDurata: 3.5,
 
@@ -45,7 +47,7 @@ export const STORIA = {
   postoSbagliato: 'Fila {fila}, posto {posto}',
   nonTuo: 'Non è il tuo posto: il biglietto dice fila {fila}, posto {posto}.',
   arrivoHint: 'Hai un biglietto in tasca: fila {fila}, posto {posto}. Le file sono scritte ai lati.',
-  uscitaLabel: 'Esci',
+  uscitaLabel: 'Esci dal cinema',
   ritorno: 'Sei di nuovo al circolo. Cronico ti guarda come se niente fosse.',
   cronicoDopo: 'Bello, eh? Il cinema c\'è sempre stato, solo che non lo trova nessuno. La prossima volta ti porto più lontano.',
   film: {

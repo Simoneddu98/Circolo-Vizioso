@@ -22,6 +22,14 @@ import { euro } from '../wallet.js';
 const GIOCHI = { cinema: createCinema, fumo: createCibo, blackbox: createBlackbox, cometiva: createCometiva, bicchiere: createBicchiere };
 const V = (a) => new THREE.Vector3(a[0], a.length === 3 ? a[1] : 0, a.length === 3 ? a[2] : a[1]);
 
+// PROVA: Nicola e presentazioni già fatti (le routine partono, i dialoghi sanno che vi conoscete)
+export function saltaPresentazioni(ctx, nodi) {
+  ctx.dialogue.seen.add('nicola_ciao');
+  for (const n of Object.values(nodi)) ctx.dialogue.seen.add(n);
+  ctx.progress.complete('nicola');
+  ctx.progress.complete('presentazioni');
+}
+
 export class Serata {
   constructor(ctx, tv) {
     this.ctx = ctx;
@@ -61,6 +69,7 @@ export class Serata {
       return false;
     }
     this.progress.useSteps(this.cfg.passi, this.cfg.requires, 'circolo.progress.serata.v1');
+    if (ctx.config.prova?.attiva) saltaPresentazioni(ctx, this.cfg.presentazioni);   // PROVA: niente giro iniziale
     this.stage = 'idle';
     this.wait = 1.5;
     if (this.progress.goal === 'nicola') {                       // accoglienza: Nicola ti chiama dal bancone
@@ -73,6 +82,36 @@ export class Serata {
       }
     }
     return false;
+  }
+
+  // PROVA: i punti a cui si può saltare dal menu di pausa
+  get provaPunti() {
+    return [...Object.entries(this.cfg.brani).map(([id, b]) => [id, `${b.n} · ${b.titolo}`]), ['spettacolo', 'Finale (sigaretta e spettacolo)']];
+  }
+
+  // PROVA: salta a un passo (ferma quello che c'è in corso, segna come fatti i passi prima)
+  jumpTo(goal) {
+    if (!this.story) return;
+    const ctx = this.ctx;
+    clearTimeout(this.titleT);
+    this._stopGame();
+    this.show?.stop(); this.show = null;
+    this.ov.clear(); this.ov.showBar(null); this.ov.big(null); this.ov.fade(false); this.ov.stopMusic();
+    this._release();
+    this.box.visible = false; this.food.clear(); this.tv?.setOverride(null);
+    this._setFree(false);
+    ctx.ui.showHUD(true); ctx.wallet.show(true);
+    if (ctx.smoking.holding) ctx.smoking.putOut(ctx);
+    ctx.smoking.endless = false;
+    if (ctx.player.seated) ctx.player.stand();
+    this.progress.done.clear();
+    for (const s of this.progress.steps) { if (s.goal === goal) break; this.progress.done.add(s.goal); }
+    this.progress._save(); this.progress.ui.renderGoals();
+    this.trackLeft = null;
+    this.stage = goal === 'spettacolo' ? 'ritorno' : 'idle';
+    this.called = null;
+    this.wait = 0.5;
+    if (goal === 'spettacolo') { this.trackLeft = this.cfg.brani.bicchiere.durata - this.cfg.brani.bicchiere.gioco; this.ov.showBar(this.cfg.brani.bicchiere); this.ov.setPoints(0); }
   }
 
   reset() {

@@ -30,6 +30,7 @@ import { CameraWork } from './camerawork.js';
 import { isTouchDevice, TouchControls } from './touch.js';
 import { Serata } from './serata/director.js';
 import { Racconto } from './storia/racconto.js';
+import { setupPorta } from './porta.js';
 
 const DEBUG = new URLSearchParams(location.search).get('debug') === '1';
 const ui = new UI(CONFIG);
@@ -165,6 +166,8 @@ async function load() {
     foosDemo = new FoosballDemo(ctx);                // i due giocatori del circolo al biliardino
     foosDemo.rig.ball.visible = true;
   }
+  ctx.porta = await setupPorta(ctx, CONFIG.assets.porta).catch((e) => { console.error('[circolo] porta', e); return null; });   // la porta di Door.blend
+  ctx.makeCollisionWorld = () => new CollisionWorld(CONFIG);               // mondi di collisione in più (solo per il giocatore)
   serata = optional('serata', () => new Serata(ctx, tv));    // la serata a brani (modalità storia)
   ctx.serata = serata;
   racconto = serata && optional('storia', () => new Racconto(ctx, serata));   // "La storia": prende il posto della serata se scelta
@@ -285,10 +288,32 @@ function broke() {
   });
 }
 
+// PROVA (CONFIG.prova.attiva): nel menu di pausa, pulsanti per saltare ai giochi della modalità in corso
+function provaMenu() {
+  document.getElementById('prova')?.remove();
+  if (!CONFIG.prova?.attiva || !serata?.story || !serata.provaPunti) return;
+  const box = document.createElement('div');
+  box.id = 'prova';
+  box.innerHTML = '<p style="margin:14px 0 6px;font:600 13px var(--display);letter-spacing:.12em;text-transform:uppercase;color:#ffe100">Prova: salta a</p>';
+  const row = document.createElement('div');
+  Object.assign(row.style, { display: 'flex', flexWrap: 'wrap', gap: '6px' });
+  for (const [goal, label] of serata.provaPunti) {
+    const b = document.createElement('button');
+    b.className = 'secondary';
+    Object.assign(b.style, { padding: '6px 10px', fontSize: '13px' });
+    b.textContent = label;
+    b.addEventListener('click', () => { resume(); serata.jumpTo(goal); });
+    row.append(b);
+  }
+  box.append(row);
+  document.querySelector('#pause .box').append(box);
+}
+
 function pause() {
   if (state !== 'playing') return;
   state = 'paused';
   player.clearInput();
+  provaMenu();
   ui.showPause(true);
   serata?.onPause(true);
 }
@@ -404,6 +429,7 @@ function tick(dt) {
       player.update(dt);
       npcs.update(dt, player.position);
     }
+    ctx.porta?.update(dt);
     if (state === 'playing') { foosDemo?.update(dt); for (const r of routines) r.update(dt); barOrder?.update(dt); camerawork?.update(dt); serata?.update(dt); }   // dopo le animazioni: l'IK delle braccia le corregge
     ctx.touch?.update(state);
     ctx.hands.update(state === 'playing' ? dt : 0, camera);

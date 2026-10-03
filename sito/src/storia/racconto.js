@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { CinemaRoom } from './cinemaroom.js';
 import { createCinema } from '../serata/cinema.js';
 import { yawTo, pitchTo } from '../player.js';
+import { saltaPresentazioni } from '../serata/director.js';
 
 export class Racconto {
   constructor(ctx, serata) {
@@ -37,6 +38,7 @@ export class Racconto {
   begin() {
     this.mode = 'racconto';
     this.progress.useSteps(this.steps, this.cfg.requires, this.cfg.storageKey);
+    if (this.ctx.config.prova?.attiva) saltaPresentazioni(this.ctx, this.cfg.presentazioni);   // PROVA: niente giro iniziale
     this.stage = 'idle';
     this.wait = 1.5;
     if (this.progress.goal === 'nicola') {
@@ -50,8 +52,39 @@ export class Racconto {
     if (['biglietto', 'film', 'uscita'].includes(this.progress.goal)) { this.progress.done.delete('porta'); this.progress.done.delete('biglietto'); this.progress.done.delete('film'); this.progress.ui.renderGoals(); }
   }
 
+  // PROVA: i punti a cui si può saltare dal menu di pausa
+  get provaPunti() { return [['porta', 'Cronico alla porta'], ['biglietto', 'Dentro il cinema'], ['uscita', 'Dopo il film (uscita)']]; }
+
+  jumpTo(goal) {
+    if (!this.story) return;
+    const ctx = this.ctx;
+    clearTimeout(this.titleT);
+    this._stopFilm();
+    this.ov.clear(); this.ov.showBar(null); this.ov.big(null); this.ov.fade(false);
+    this._setFree(false);
+    document.body.classList.remove('srt-on');
+    this._release();
+    ctx.porta?.close();
+    if (this.inCinema) this._leaveCinema(false);
+    ctx.player.collisions = ctx.collisions;
+    if (ctx.player.seated) ctx.player.stand();
+    const steps = this.progress.steps;
+    this.progress.done.clear();
+    for (const s of steps) { if (s.goal === goal) break; this.progress.done.add(s.goal); }
+    this.progress._save(); this.progress.ui.renderGoals();
+    this.wait = 0.3;
+    if (goal === 'porta') { this.stage = 'idle'; return; }
+    // dentro il cinema (al posto, oppure all'uscita dopo il film)
+    this.progress.done.delete('porta');
+    this.stage = 'going';
+    this._enterCinema();
+    if (goal === 'uscita') setTimeout(() => { this.progress.complete('biglietto'); this.progress.complete('film'); }, 600);
+  }
+
   reset() {
     clearTimeout(this.titleT);
+    this.ctx.player.collisions = this.ctx.collisions;            // di nuovo le collisioni del circolo
+    this.ctx.porta?.close();
     this._stopFilm();
     if (this.inCinema) this._leaveCinema(false);
     this._release();
@@ -102,6 +135,14 @@ export class Racconto {
     const ctx = this.ctx;
     this.t += dt;
     if (this.inCinema) this.room.update(dt, this.t);
+    if (this.stage === 'aperta') {                               // porta aperta: oltre la soglia, nel buio, si arriva al cinema
+      const s = ctx.porta?.soglia;
+      if (!s || ctx.player.position.z > s.z + this.cfg.buio) this._enterCinema();
+    }
+    if (this.inCinema && this.progress.goal === 'uscita' && this.stage === 'cinema') {
+      const e = this.room.exitPoint;
+      if (Math.hypot(ctx.player.position.x - e.x, ctx.player.position.z - e.z) < 0.85) this._exitCinema();
+    }
     if (this.stage === 'film') {
       this.left -= dt;
       this.ov.setTime(this.left);
@@ -192,11 +233,11 @@ export class Racconto {
   _targets() {
     const ctx = this.ctx, I = ctx.interactions;
     // la porta d'ingresso del circolo: si apre solo quando Cronico ti ci ha portato
-    const door = ctx.root.getObjectByName('Door_Main');
+    const door = ctx.porta?.group ?? ctx.root.getObjectByName('Door_Main');
     I.register('storia_porta', {
       range: 2.6,
       label: () => (this.story && this.progress.goal === 'porta' && this.stage === 'porta' ? this.cfg.portaLabel : null),
-      action: () => { if (this.stage === 'porta') this._enterCinema(); },
+      action: () => { if (this.stage === 'porta') this._openDoor(); },
     });
     if (door) I.addTarget(door, 'storia_porta');
     // poltrone del cinema
@@ -215,7 +256,7 @@ export class Racconto {
       },
     });
     for (const s of this.room.seats) I.addTarget(s.hit, 'storia_posto');
-    // porta d'uscita del cinema
+    // porta d'uscita del cinema (passaggio con le tende rosse): ci si passa attraverso, oppure E
     I.register('storia_uscita', {
       range: 2.4,
       label: () => (this.inCinema && this.progress.goal === 'uscita' ? this.cfg.uscitaLabel : null),
@@ -226,15 +267,32 @@ export class Racconto {
 
   // ------------------------------------------------------------------ dentro il cinema
 
+  // Collisioni del giocatore: un mondo a parte (quello del circolo lo usano anche i personaggi che camminano: se lo si
+  // cambiasse, verrebbero spinti dentro i confini della sala del cinema).
+  _playerWorld(boxes, bounds) {
+    const w = this.ctx.makeCollisionWorld();
+    w.boxes = boxes; w.bounds = bounds;
+    this.ctx.player.collisions = w;
+  }
+
   _swapCollisions(toCinema) {
-    const col = this.ctx.collisions;
-    if (toCinema) {
-      this.saved = { boxes: col.boxes, bounds: col.bounds };
-      col.boxes = this.room.collisionBoxes();
-      col.bounds = this.room.bounds();
-    } else if (this.saved) {
-      col.boxes = this.saved.boxes; col.bounds = this.saved.bounds; this.saved = null;
-    }
+    if (toCinema) this._playerWorld(this.room.collisionBoxes(), this.room.bounds());
+    else this.ctx.player.collisions = this.ctx.collisions;
+  }
+
+  // la porta si apre: il giocatore può uscire dal circolo e camminare nel passaggio nero
+  _openDoor() {
+    const ctx = this.ctx, P = ctx.porta;
+    if (!P) { this._enterCinema(); return; }
+    P.open();
+    this.stage = 'aperta';
+    const col = ctx.collisions, ps = P.passaggio(), B = col.bounds;
+    const boxes = col.boxes.filter((b) => b.name !== 'COL_Door_Main');
+    const box = (name, x0, x1, z0, z1) => ({ name, cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, ux: 1, uz: 0, vx: 0, vz: 1, hx: (x1 - x0) / 2, hz: (z1 - z0) / 2, minY: 0, maxY: 3 });
+    const zw = P.box.max.z + 0.05;                               // oltre il muro: solo il passaggio largo quanto la porta
+    boxes.push(box('PASS_Sx', B.minX - 1, ps.minX, zw, ps.maxZ + 1), box('PASS_Dx', ps.maxX, B.maxX + 1, zw, ps.maxZ + 1));
+    this._playerWorld(boxes, { ...B, maxZ: ps.maxZ });
+    this._say('Cronico', this.cfg.cronico.dentro, 4);
   }
 
   _enterCinema() {
@@ -243,6 +301,7 @@ export class Racconto {
     this.ov.fade(true, () => {
       this._release();
       this.progress.complete('porta');
+      ctx.porta?.close();
       this.room.show(true);
       this.room.setLights(1); this.room.dim = 1;
       this._swapCollisions(true);
@@ -364,7 +423,7 @@ export class Racconto {
     if (ctx.player.seated) ctx.player.stand();
     if (placeAtDoor) {
       const [x, z] = this.cfg.cronico.porta;
-      ctx.player.position.set(x - 0.45, 0, z - 0.5);
+      ctx.player.position.set(x - 0.45, 0, z - 0.6);
       ctx.player.velocity.set(0, 0, 0);
       ctx.player.yaw = 0; ctx.player.pitch = 0;               // verso l'interno del circolo
       ctx.player.update(0);
