@@ -144,6 +144,7 @@ export const STORIA = {
     // tutti quelli dove si può scendere dalla macchina
     tracciato: [0, 1 / 70, 0, -1 / 60, -1 / 75, 0, 1 / 55, 0, -1 / 65, 1 / 80],
     indietro: 1, avanti: 3,                 // tratti disegnati dietro e davanti a chi guida
+    lato: 5,                                // metri: i triangoli più lunghi si spezzano, perché la piega segua le curve (errore < 6 cm)
     // ostacoli per chi cammina, nel tratto dritto: [x, z, mezza larghezza x, mezza larghezza z] (pali, cestini, panchine)
     ostacoli: [[3.23, 7.7, 0.24, 0.27], [-2.82, 7.7, 0.24, 0.27], [-9.97, -7.88, 0.24, 0.27], [18.02, 7.68, 0.24, 0.27],
       [1.53, -4.51, 0.21, 0.71], [17.34, 4.54, 0.21, 0.71], [-8.97, 4.54, 0.21, 0.71], [-1.88, -4.13, 0.66, 0.05],
@@ -152,14 +153,14 @@ export const STORIA = {
     alberi: [[4.6, -4.5], [-4.6, -4.5], [14.1, -4.5], [-14, -4.6], [4.6, 4.5], [-4.6, 4.4], [13.9, 4.5], [-14, 4.5]],   // tronchi
     limiti: [-19.5, 19.5, -8.2, 8.2],       // dove si cammina: x min, x max, z min, z max (il tratto in cui si è)
     porta: [2.9, -8.9], portaLarga: 1.05, portaAlta: 2.2,    // da qui si esce dal circolo: il portone ad arco (facciata nord)
-    portaleQualita: 0.6,                    // risoluzione della strada vista dalla porta del circolo (rispetto allo schermo)
+    portaleQualita: 1,                      // risoluzione della vista attraverso le porte (1 = come lo schermo)
     arrivo: [2.9, -8.0],                    // per i salti di prova: appena fuori dalla porta
     guarda: [2.9, 4],
     kappa: [4.2, -7.0],                    // dove compare Kappa, poco dopo di te
     cielo: 0x9db8d8, luce: 1.4, sole: 1.6,
     nebbia: [18, 60],                       // la via sfuma nel cielo tra questi metri: il cielo non la taglia mai
     lontano: 90,                            // distanza di disegno in strada (nel circolo basta molto meno)
-    telefono: { avanti: 2, nebbia: [12, 46], lontano: 60, portaleQualita: 0.45 },   // sui telefoni: meno strada da disegnare
+    telefono: { avanti: 2, nebbia: [12, 46], lontano: 60, portaleQualita: 0.85 },   // sui telefoni: meno strada da disegnare
     arrivoHint: 'Sei fuori. Prenditi una boccata d\'aria: la tua macchina è parcheggiata più avanti.',
     locale: { porta: [-6.4, -9.0], altezza: 3.3, insegna: 'BAR' },   // il portone con i gradini, marciapiede nord
     casa: 15,                               // il tratto (dritto) dove c'è casa, alla fine del percorso
@@ -173,6 +174,8 @@ export const STORIA = {
     quota: -0.2,                            // la carreggiata è 20 cm sotto i marciapiedi
     carreggiata: [-1.55, 1.55],             // dove sta il centro della macchina (oltre: zona morbida di mezzo metro, le ruote restano in strada)
     accelerazione: 10, freno: 16, attrito: 2.4, retro: 6, massima: 28,  // m/s² e m/s (28 m/s ≈ 100 km/h)
+    frenata: 12,                            // m/s²: arrivati davanti a casa la macchina si ferma da sola
+    accosta: -1.4,                          // di traverso: dove accosta da sola, sul lato di casa (marciapiede nord)
     turbo: 40, accelerazioneTurbo: 16,      // con Shift (o TURBO sul telefono): 40 m/s ≈ 145 km/h
     sterzo: 0.55, passo: 2.9,
     volante: 2.6,                           // di quanto gira il volante rispetto alle ruote
@@ -185,24 +188,18 @@ export const STORIA = {
     comandi: 'W/S o frecce: gas e freno · A/D: sterzo · Shift: turbo · C: visuale · E: scendi',
     // il percorso fino a casa: casa è nel tratto `arrivo` (dritto), sul portone ad arco come quello da cui sei uscito
     arrivato: 'Eccola. Casa. Finalmente.',
-    fermati: 'Fermati sul rettangolo luminoso, scendi (E) e apri la porta con l\'insegna CASA.',
+    fermati: 'Sei arrivato: scendi (E) e apri la porta con l\'insegna CASA.',
     oltre: 'Casa è rimasta indietro: torna un po\' indietro.',
     // ostacoli in mezzo alla strada: [tratto, metri lungo la via, di traverso, tipo] (cono, barile, transenna)
     ostacoli: [
-      [1, 12, 1.2, 'cono'], [1, 14, 1.8, 'cono'], [1, 30, -1.5, 'barile'],
-      [2, 10, 0.6, 'transenna'], [2, 26, -1.8, 'cono'], [2, 27.5, -1.2, 'cono'], [2, 29, -0.6, 'cono'],
-      [3, 15, 1.5, 'barile'], [3, 22, -1.4, 'barile'], [3, 34, 0.4, 'cono'],
-      [4, 8, -1.7, 'transenna'], [4, 20, 1.7, 'transenna'],
-      [5, 12, 0, 'barile'], [5, 13, 2.0, 'cono'], [5, 13, -2.0, 'cono'], [5, 30, -1.0, 'transenna'],
-      [6, 18, 1.2, 'barile'], [6, 30, -1.6, 'cono'], [6, 31.5, -0.9, 'cono'],
-      [7, 10, 1.6, 'transenna'], [7, 26, -1.6, 'transenna'],
-      [8, 14, 0.3, 'barile'], [8, 28, -1.8, 'barile'], [8, 29, 1.9, 'barile'],
-      [9, 12, 1.0, 'cono'], [9, 13.5, 0.4, 'cono'], [9, 15, -0.2, 'cono'], [9, 32, -1.5, 'transenna'],
-      [10, 16, 1.5, 'barile'], [10, 24, -1.5, 'barile'],
-      [11, 10, -0.6, 'transenna'], [11, 28, 1.8, 'cono'], [11, 28, -1.8, 'cono'],
-      [12, 14, -1.2, 'barile'], [12, 26, 1.2, 'barile'],
-      [13, 12, 1.7, 'transenna'], [13, 30, -1.7, 'transenna'],
-      [14, 18, 0, 'barile'],
+      [1, 22, 1.4, 'cono'], [1, 23.5, 0.8, 'cono'],
+      [3, 18, -1.2, 'barile'],
+      [4, 20, 1.5, 'transenna'],
+      [6, 14, 1.3, 'barile'],
+      [7, 24, -1.5, 'transenna'],
+      [9, 12, -0.9, 'cono'], [9, 13.5, -0.3, 'cono'],
+      [11, 20, 1.3, 'barile'],
+      [12, 26, -1.4, 'transenna'],
     ],
     casa: 'Casa. ...Ma questa è la porta del circolo?',
     rientro: 'Bentornato. Lo sapevi anche tu: casa è qui. Da qualunque porta entri, finisci sempre qui.',

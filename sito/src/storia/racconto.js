@@ -69,7 +69,7 @@ export class Racconto {
     if (this.ctx.config.prova?.attiva) saltaPresentazioni(this.ctx, this.cfg.presentazioni);   // PROVA: niente giro iniziale
     this._preparaEst();
     clearTimeout(this.precaricaT);
-    this.precaricaT = setTimeout(() => this._precarica(), 2500);   // la strada e la macchina si caricano in sottofondo
+    this.precaricaT = setTimeout(() => this._precarica(), 800);    // la strada e la macchina si caricano in sottofondo
     this.stage = 'idle';
     this.wait = 1.5;
     if (this.progress.goal === 'nicola') {
@@ -1183,12 +1183,18 @@ export class Racconto {
       const fine = S.cfg.casa * 40 + S.cfg.porta[0] + 20, fatto = S.seg * 40 + this.auto.s;
       const n = Math.max(0, Math.min(100, Math.round((100 * fatto) / fine)));
       if (n !== this.progress.counts.guida) this.progress.setCount('guida', n);
-      if (S.seg === S.cfg.casa && Math.abs(fatto - fine) < 12) {
+      // la frenata comincia in tempo per fermarsi davanti al portone (spazio di frenata v²/2a)
+      const frena = (this.auto.v * this.auto.v) / (2 * A.frenata) + 2;
+      if (fine - fatto < frena && fatto - fine < 12) {
+        this.auto.ferma = true;
+        this.auto.fermaDist = fine - fatto;
         this.progress.complete('guida');
         this._say('Tu', A.arrivato, 5);
         ctx.ui.toast(A.fermati, 5);
       }
-    } else if (this.progress.goal === 'casa' && this.auto.driving && S.seg > S.cfg.casa && !this.oltreDetto) {
+    }
+    if (this.auto.ferma) this.auto.fermaDist = S.cfg.casa * 40 + S.cfg.porta[0] + 20 - (S.seg * 40 + this.auto.s);
+    if (this.progress.goal === 'casa' && this.auto.driving && S.seg > S.cfg.casa && !this.oltreDetto) {
       this.oltreDetto = true;
       ctx.ui.toast(A.oltre, 4);
     }

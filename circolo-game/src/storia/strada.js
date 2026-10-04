@@ -50,6 +50,60 @@ vec3 piega(vec3 wp, out float g) {
 }
 `;
 
+// La piega sposta solo i vertici: un triangolo lungo 40 m resterebbe una corda dritta dentro la curva (con un raggio di
+// 55 m, a metà curva sono 3,6 m: la macchina sembrerebbe sul marciapiede). Qui si spezzano i lati più lunghi di `max`
+// metri (in pianta) finché la superficie segue la curva. I punti a metà di un lato sono condivisi tra i triangoli vicini.
+function suddividi(geo, max) {
+  // attributi in numeri decimali (la compressione li salva come interi: le medie vanno fatte sui valori veri)
+  const deq = (a) => {
+    const out = new Array(a.count * a.itemSize);
+    for (let i = 0; i < a.count; i++) for (let k = 0; k < a.itemSize; k++) out[i * a.itemSize + k] = a.getComponent(i, k);
+    return out;
+  };
+  const attrs = Object.entries(geo.attributes).map(([name, a]) => ({ name, a, size: a.itemSize, data: deq(a) }));
+  const pos = attrs.find((x) => x.name === 'position');
+  if (!pos) return geo;
+  let index = geo.index ? Array.from(geo.index.array) : [...Array(pos.a.count).keys()];
+  const P = pos.data, max2 = max * max;
+  const lung2 = (i, j) => { const dx = P[i * 3] - P[j * 3], dz = P[i * 3 + 2] - P[j * 3 + 2]; return dx * dx + dz * dz; };
+  const mezzi = new Map();
+  let count = pos.a.count, cambiato = false;
+  const mezzo = (i, j) => {
+    const key = i < j ? i * 4194304 + j : j * 4194304 + i;
+    let m = mezzi.get(key);
+    if (m !== undefined) return m;
+    m = count++;
+    for (const at of attrs) {
+      for (let k = 0; k < at.size; k++) at.data.push((at.data[i * at.size + k] + at.data[j * at.size + k]) / 2);
+      if (at.name === 'normal') {                              // normale rimessa a lunghezza 1
+        const b = m * 3, n = Math.hypot(at.data[b], at.data[b + 1], at.data[b + 2]) || 1;
+        at.data[b] /= n; at.data[b + 1] /= n; at.data[b + 2] /= n;
+      }
+    }
+    mezzi.set(key, m);
+    return m;
+  };
+  const out = [];
+  const coda = [];
+  for (let t = 0; t < index.length; t += 3) coda.push([index[t], index[t + 1], index[t + 2]]);
+  while (coda.length) {
+    const [a, b, c] = coda.pop();
+    const ab = lung2(a, b), bc = lung2(b, c), ca = lung2(c, a);
+    const m = Math.max(ab, bc, ca);
+    if (m <= max2) { out.push(a, b, c); continue; }
+    cambiato = true;
+    if (m === ab) { const x = mezzo(a, b); coda.push([a, x, c], [x, b, c]); }
+    else if (m === bc) { const x = mezzo(b, c); coda.push([a, b, x], [a, x, c]); }
+    else { const x = mezzo(c, a); coda.push([a, b, x], [x, b, c]); }
+  }
+  if (!cambiato) return geo;
+  const g = new THREE.BufferGeometry();
+  for (const at of attrs) g.setAttribute(at.name, new THREE.Float32BufferAttribute(at.data, at.size));
+  g.setIndex(count > 65535 ? new THREE.Uint32BufferAttribute(out, 1) : new THREE.Uint16BufferAttribute(out, 1));
+  g.computeBoundingSphere();
+  return g;
+}
+
 function piegabile(mat, U) {
   mat.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, U);
@@ -110,6 +164,10 @@ export class Strada {
       if (!m.isMesh) return;
       if (this.cfg.nascondi.includes(m.material.name)) { m.visible = false; return; }   // il cubo-cielo di Blender
       m.castShadow = false; m.receiveShadow = false; m.frustumCulled = false;
+      // lati lunghi spezzati, in coordinate del mondo (la scala dei nodi conta): così la piega segue la curva
+      m.updateWorldMatrix(true, false);
+      const sc = new THREE.Vector3().setFromMatrixScale(m.matrixWorld).x || 1;
+      m.geometry = suddividi(m.geometry, this.cfg.lato / sc);
       // vetri "a trasmissione": costringono a ridisegnare tutta la scena una seconda volta. Vetro trasparente semplice
       if (m.material.transmission > 0) { m.material.transmission = 0; m.material.transparent = true; m.material.opacity = 0.35; }
     });
@@ -361,7 +419,7 @@ export class Strada {
         return out.set(S.x + dx * c - dz * s, p.y, S.z + dx * s + dz * c);
       },
       cam: new THREE.PerspectiveCamera(),
-      rt: new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType }),
+      rt: new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: this.ctx.touch ? 2 : 4 }),   // bordi lisci
       res: new THREE.Vector2(1, 1),
       clip: [new THREE.Plane(new THREE.Vector3(0, 0, 1), -(S.z + 0.08))],   // niente facciata tra la telecamera e la via
     };

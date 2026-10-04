@@ -63,6 +63,7 @@ export class Auto {
     this.s = x + L / 2; this.d = z; this.psi = h;
     this.v = 0; this.steer = 0; this.tratti = 0;
     this.hc = null;
+    this.ferma = false;
   }
 
   load() {
@@ -157,6 +158,7 @@ export class Auto {
 
   scendi() {
     this.driving = false;
+    this.ferma = false;
     this.v = 0; this.steer = 0;
     const p = this.ctx.player;
     p.seat = null;
@@ -237,12 +239,22 @@ export class Auto {
       const p = this.ctx.player, inp = p.input, an = p.analog;
       let gas = (inp.f ? 1 : 0) - (inp.b ? 1 : 0), dir = (inp.r ? 1 : 0) - (inp.l ? 1 : 0);
       if (an && !gas && !dir && Math.hypot(an.x, an.y) > 0.15) { gas = an.y; dir = an.x; }
+      // arrivati: la macchina frena da sola quanto basta per fermarsi davanti a casa (fermaDist: metri che mancano,
+      // aggiornati dalla storia) e resta ferma; si scende con E
+      if (this.ferma) {
+        // accosta da sola sul lato di casa (anche in curva) mentre frena
+        gas = 0;
+        dir = THREE.MathUtils.clamp(-((this.d - C.accosta) + this.psi * 6) * 1.5, -1, 1);
+        const dd = Math.max(0.3, this.fermaDist ?? 0.3);
+        const a = Math.min(25, Math.max(2, (this.v * this.v) / (2 * dd)));
+        this.v -= Math.sign(this.v) * Math.min(Math.abs(this.v), a * dt);
+      }
       // turbo: Shift sul computer, il pulsante TURBO sul telefono
       this.turbo = !!inp.run && gas > 0;
       const acc = this.turbo ? C.accelerazioneTurbo : C.accelerazione, vmax = this.turbo ? C.turbo : C.massima;
       if (gas > 0) this.v += (this.v < 0 ? C.freno : (this.v > vmax ? -C.attrito : acc)) * gas * dt;
       else if (gas < 0) this.v += (this.v > 0 ? -C.freno : -C.accelerazione * 0.6) * -gas * dt;
-      else this.v -= Math.sign(this.v) * Math.min(Math.abs(this.v), C.attrito * dt);
+      else if (!this.ferma) this.v -= Math.sign(this.v) * Math.min(Math.abs(this.v), C.attrito * dt);
       this.v = THREE.MathUtils.clamp(this.v, -C.retro, C.turbo);
       // sterzo: più stretto da fermi, più dolce veloci
       const max = C.sterzo / (1 + Math.abs(this.v) * 0.06);
