@@ -53,10 +53,22 @@ export function creaPorta(ctx, opts) {
   group.add(model);
   // la faccia con la maniglia (+z del modello) verso la stanza
   group.rotation.y = Math.atan2(opts.inward.x, opts.inward.z);
-  const half = (size.z * sx) / 2;
-  group.position.copy(opts.center).addScaledVector(opts.inward, half);
+  // profondità: prima tutta la porta (telaio compreso, ~24 cm) sporgeva nella stanza. Ora conta il piano di mezzo
+  // dell'anta (la maniglia sporge da entrambe le parti, quindi è il centro del suo ingombro):
+  // - muro pieno (inset): l'anta appena davanti al muro, 3 cm (deve coprire il riquadro nero, che sta sul muro);
+  // - apertura vera nel muro: l'anta un po' dentro il vano, il telaio nel muro
+  const anta0 = ((ab.min.z + ab.max.z) / 2 - mid.z) * sx;
+  const piano = opts.incasso ?? (opts.inset ? 0.03 : -0.05);
+  group.position.copy(opts.center).addScaledVector(opts.inward, piano - anta0);
   ctx.scene.add(group);
-  model.traverse((m) => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; } });
+  // la porta sta a pochi millimetri dal muro e dal riquadro nero: si disegna davanti a entrambi (spostamento di
+  // profondità più forte di quello del riquadro), senza tremolii
+  model.traverse((m) => {
+    if (!m.isMesh) return;
+    m.castShadow = false; m.receiveShadow = false;
+    m.material = m.material.clone();
+    m.material.polygonOffset = true; m.material.polygonOffsetFactor = -4; m.material.polygonOffsetUnits = -4;
+  });
   // verso di apertura: si prova un piccolo angolo e si sceglie il segno che porta l'anta dalla parte giusta
   const sideOf = (a) => {
     pivot.rotation.y = a; group.updateMatrixWorld(true);
