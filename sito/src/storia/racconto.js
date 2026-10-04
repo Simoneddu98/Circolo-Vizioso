@@ -918,6 +918,7 @@ export class Racconto {
     // il portale si disegna una volta subito, così i suoi shader (con il piano di taglio) sono già pronti
     const P = this.cfg.portaEst;
     this.portaleP ??= this.strada.portale(new THREE.Vector3(P.centro[0], 0, P.centro[1]), new THREE.Vector3(1, 0, 0));
+      this.portaleP.altraPorta = [this.portaEst?.group, this.portaEst?.inset];
     this.portaleP.render();
   }
 
@@ -928,6 +929,7 @@ export class Racconto {
     if (on && this.strada.loaded) {
       const P = this.cfg.portaEst;
       this.portaleP ??= this.strada.portale(new THREE.Vector3(P.centro[0], 0, P.centro[1]), new THREE.Vector3(1, 0, 0));
+      this.portaleP.altraPorta = [this.portaEst?.group, this.portaEst?.inset];
       this.insetNero ??= inset.material;
       inset.material = this.portaleP.mat;
       this.strada.porta?.open(); this.strada.porta?.update(5);    // dall'altra parte la porta della strada è già aperta

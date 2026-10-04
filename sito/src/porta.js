@@ -20,17 +20,27 @@ function cloneMeshes(src) {
   return out;
 }
 
+// un altro modello di porta (stessi nomi: Porta_Telaio, Porta_Anta; cerniere dal lato con x minima)
+export function caricaPorta(url) {
+  return new Promise((res) => new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load(url, (g) => res(g.scene), undefined, () => res(null)));
+}
+
 // opts: { center: punto sul pavimento al centro dell'apertura, a filo del muro; inward: verso la stanza (Vector3);
-//         width, height; swing: 'out' (verso il buio) | 'in' (verso la stanza); inset: riquadro nero dietro l'anta }
+//         width, height; swing: 'out' (verso il buio) | 'in' (verso la stanza); inset: riquadro nero dietro l'anta;
+//         modello: un altro modello di porta (caricaPorta), altrimenti quella del circolo }
 export function creaPorta(ctx, opts) {
-  if (!template) return null;
-  const model = cloneMeshes(template);
+  const src = opts.modello ?? template;
+  if (!src) return null;
+  const model = cloneMeshes(src);
   const telaio = model.getObjectByName('Porta_Telaio');
   const anta = model.getObjectByName('Porta_Anta');
   model.updateMatrixWorld(true);
-  const size = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
+  const bb = new THREE.Box3().setFromObject(model);
+  const size = bb.getSize(new THREE.Vector3()), mid = bb.getCenter(new THREE.Vector3());
   const sx = opts.width / size.x, sy = opts.height / size.y;
   model.scale.set(sx, sy, sx);
+  // centrata sull'apertura e appoggiata a terra (non tutti i modelli hanno l'origine al centro della porta)
+  model.position.set(-mid.x * sx, -bb.min.y * sy, -mid.z * sx);
   // perno sui cardini: bordo con x minima dell'anta, al centro del suo spessore (in coordinate del modello)
   const ab = new THREE.Box3().setFromObject(anta);              // modello ancora non trasformato: coordinate del modello
   const pivot = new THREE.Object3D();

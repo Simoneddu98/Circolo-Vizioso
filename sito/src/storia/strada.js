@@ -20,7 +20,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
-import { creaPorta } from '../porta.js';
+import { creaPorta, caricaPorta } from '../porta.js';
 
 export const L = 40;                          // lunghezza di un tratto
 
@@ -149,10 +149,10 @@ export class Strada {
   // carica il modello una volta sola: si può chiamare in anticipo (lo fa la storia appena comincia)
   load() {
     MeshoptDecoder.useWorkers?.(2);                          // la decompressione non blocca il gioco
-    this.ready ??= new Promise((res) => {
-      new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load(this.cfg.url, (g) => { this._build(g.scene); res(true); },
-        undefined, () => res(false));
-    });
+    this.ready ??= Promise.all([
+      new Promise((res) => new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load(this.cfg.url, (g) => res(g.scene), undefined, () => res(null))),
+      caricaPorta(this.cfg.portaModello),
+    ]).then(([scene, porta]) => { if (!scene) return false; this.portaModello = porta; this._build(scene); return true; });
     return this.ready;
   }
 
@@ -192,13 +192,14 @@ export class Strada {
     this.locali = this.tiles.map((t) => t.obj.getObjectByName('Strada_Locale'));
     // la porta da cui si esce dal circolo, sulla facciata nord: c'è solo nel tratto di casa
     const [px, pz] = C.porta;
+    // la porta di casa (Parametric door, non quella del circolo), grande quanto il portone ad arco: lo copre tutto
     this.porta = creaPorta(this.ctx, { name: 'Porta_Strada', width: C.portaLarga, height: C.portaAlta, swing: 'in', inset: true,
-      center: this.world(px, pz), inward: new THREE.Vector3(0, 0, 1) });
+      center: this.world(px, pz), inward: new THREE.Vector3(0, 0, 1), modello: this.portaModello ?? undefined });
     if (this.porta) {
       // una luce calda sopra la porta: è anche la porta di casa, alla fine del percorso
-      const luce = new THREE.PointLight(0xffc27a, 5, 6, 1.6); luce.position.set(0, 2.6, 0.7);
+      const luce = new THREE.PointLight(0xffc27a, 5, 6, 1.6); luce.position.set(0, 3.0, 0.7);
       const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffe2b0 }));
-      lamp.position.set(0, 2.45, 0.25);
+      lamp.position.set(0, 2.88, 0.3);
       this.porta.group.add(luce, lamp, this._segnoCasa());
       // la porta sta dentro la copia del suo tratto (coordinate del modello: le copie dritte non sono piegate)
       // il tratto 0 sta nel gruppo senza spostamenti né rotazioni: coordinate del tratto = mondo - origine del gruppo
@@ -243,7 +244,7 @@ export class Strada {
     for (let i = 0; i < 3; i++) c.fillText('CASA', 256, 102);
     const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
     const insegna = add(new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.64), new THREE.MeshBasicMaterial({ map: tex, fog: false, toneMapped: false })));
-    insegna.position.set(0, 3.15, 0.2);
+    insegna.position.set(0, 3.4, 0.2);
     // sulla strada, davanti alla porta: la corsia vicina al marciapiede di casa (centro della via a 8,9 m dalla porta)
     const r = add(new THREE.Mesh(new THREE.PlaneGeometry(3.2, 5.2), new THREE.MeshBasicMaterial({ color: caldo, transparent: true,
       opacity: 0.38, fog: false, depthWrite: false, blending: THREE.AdditiveBlending })));
@@ -452,10 +453,14 @@ export class Strada {
       v.updateMatrixWorld();
       const bg = ctx.scene.background, fog = ctx.scene.fog, clip = r.clippingPlanes, target = r.getRenderTarget();
       ctx.scene.background = sv?.bg ?? bg; ctx.scene.fog = sv ? sv.fog : null; this.group.visible = false;
+      // dall'altra parte non si disegna la porta del circolo: la cornice è già quella da cui guardi
+      const nascoste = (P.altraPorta ?? []).filter((o) => o?.visible);
+      for (const o of nascoste) o.visible = false;
       r.clippingPlanes = P.clip2;
       r.setRenderTarget(P.rt); r.clear(); r.render(ctx.scene, v);
       r.setRenderTarget(target);
       r.clippingPlanes = clip;
+      for (const o of nascoste) o.visible = true;
       ctx.scene.background = bg; ctx.scene.fog = fog; this.group.visible = true;
     };
     // disegna la strada vista dal punto corrispondente alla telecamera del giocatore
@@ -472,10 +477,14 @@ export class Strada {
       this.cull(v);
       const was = this.group.visible, clip = r.clippingPlanes, target = r.getRenderTarget();
       this.group.visible = true; this._ambiente(true);
+      // e la porta di casa non si disegna dall'altra parte: la cornice è quella della porta del circolo
+      const nascoste = [this.porta?.group, this.porta?.inset].filter((o) => o?.visible);
+      for (const o of nascoste) o.visible = false;
       r.clippingPlanes = P.clip;
       r.setRenderTarget(P.rt); r.clear(); r.render(ctx.scene, v);
       r.setRenderTarget(target);
       r.clippingPlanes = clip;
+      for (const o of nascoste) o.visible = true;
       this._ambiente(false); this.group.visible = was;
     };
     return P;

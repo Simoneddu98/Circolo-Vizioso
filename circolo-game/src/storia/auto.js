@@ -260,8 +260,11 @@ export class Auto {
       const max = C.sterzo / (1 + Math.abs(this.v) * 0.06);
       this.steer += (dir * max - this.steer) * Math.min(1, dt * 5);
       // moto nelle coordinate della via: la curva gira sotto la macchina
+      // aiuto in curva: lo sterzo segue già da solo (quasi tutta) la curvatura della via; chi guida corregge soltanto
       const k = this.strada.k(this.strada.seg);
-      this.psi = wrap(this.psi + (this.v * Math.tan(this.steer) / C.passo - k * this.v * Math.cos(this.psi)) * dt);
+      const sterzoVia = Math.atan(k * C.passo) * C.aiutoCurve * Math.sign(Math.cos(this.psi));
+      this.ruote = this.steer + sterzoVia;
+      this.psi = wrap(this.psi + (this.v * Math.tan(this.ruote) / C.passo - k * this.v * Math.cos(this.psi)) * dt);
       this.s += this.v * Math.cos(this.psi) * dt;
       this.d += this.v * Math.sin(this.psi) * dt;
       // bordi della carreggiata, morbidi: oltre il bordo la macchina viene riportata in strada piano piano (raddrizzandosi
@@ -273,7 +276,7 @@ export class Auto {
         const lungo = Math.abs(this.psi) < Math.PI / 2 ? 0 : Math.PI;
         this.psi += wrap(lungo - this.psi) * Math.min(1, dt * 3 * e);
         this.d -= fuori * Math.min(1, dt * 2.5);
-        this.v *= 1 - Math.min(1, dt * 1.5 * e);
+        this.v *= 1 - Math.min(1, dt * 0.35 * e);             // quasi niente: è un bordo, non un freno
         this.d = THREE.MathUtils.clamp(this.d, d0 - 0.5, d1 + 0.5);
       }
       if (this.s >= L) { this._rebase(1); nuovo = true; } else if (this.s < 0) { this._rebase(-1); nuovo = true; }
@@ -285,7 +288,7 @@ export class Auto {
     // ruote: girano con la velocità, le anteriori sterzano
     for (const [i, w] of this.wheels.entries()) {
       w.rotation.x -= (this.v / this.radius) * dt;
-      w.rotation.y = i < 2 ? -this.steer : 0;
+      w.rotation.y = i < 2 ? -(this.ruote ?? this.steer) : 0;
     }
     if (this.volante) {
       this._q ??= new THREE.Quaternion();

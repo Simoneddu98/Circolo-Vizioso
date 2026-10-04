@@ -142,7 +142,7 @@ export const STORIA = {
     // il percorso: curvatura di ogni tratto da 40 m (0 = dritto, 1/raggio in metri; + gira verso destra andando verso +x).
     // Si ripete all'infinito. Il primo è il tratto di casa (la porta da cui si esce, il parcheggio): sempre dritto, come
     // tutti quelli dove si può scendere dalla macchina
-    tracciato: [0, 1 / 70, 0, -1 / 60, -1 / 75, 0, 1 / 55, 0, -1 / 65, 1 / 80],
+    tracciato: [0, 0, 0, 1 / 90, 0, 0, -1 / 80, 0, 0, 0, 1 / 110, -1 / 110, 0, 0, 1 / 95, 0],   // rettilinei lunghi, curve ampie
     indietro: 1, avanti: 3,                 // tratti disegnati dietro e davanti a chi guida
     lato: 5,                                // metri: i triangoli più lunghi si spezzano, perché la piega segua le curve (errore < 6 cm)
     // ostacoli per chi cammina, nel tratto dritto: [x, z, mezza larghezza x, mezza larghezza z] (pali, cestini, panchine)
@@ -152,18 +152,19 @@ export const STORIA = {
       [9.03, 4.54, 0.35, 0.35], [8.2, 4.54, 0.35, 0.35]],
     alberi: [[4.6, -4.5], [-4.6, -4.5], [14.1, -4.5], [-14, -4.6], [4.6, 4.5], [-4.6, 4.4], [13.9, 4.5], [-14, 4.5]],   // tronchi
     limiti: [-19.5, 19.5, -8.2, 8.2],       // dove si cammina: x min, x max, z min, z max (il tratto in cui si è)
-    porta: [2.9, -8.9], portaLarga: 1.05, portaAlta: 2.2,    // da qui si esce dal circolo: il portone ad arco (facciata nord)
+    porta: [2.9, -8.9], portaLarga: 1.22, portaAlta: 2.62,   // da qui si esce dal circolo: il portone ad arco (facciata nord)
+    portaModello: `./assets/porta_casa.glb?v=${ASSET_VERSION}`,   // la porta di casa (Parametric door, CC0)
     portaleQualita: 1,                      // risoluzione della vista attraverso le porte (1 = come lo schermo)
     arrivo: [2.9, -8.0],                    // per i salti di prova: appena fuori dalla porta
     guarda: [2.9, 4],
     kappa: [4.2, -7.0],                    // dove compare Kappa, poco dopo di te
     cielo: 0x9db8d8, luce: 1.4, sole: 1.6,
-    nebbia: [18, 60],                       // la via sfuma nel cielo tra questi metri: il cielo non la taglia mai
-    lontano: 90,                            // distanza di disegno in strada (nel circolo basta molto meno)
+    nebbia: [22, 72],                       // la via sfuma nel cielo tra questi metri: il cielo non la taglia mai
+    lontano: 100,                           // distanza di disegno in strada (nel circolo basta molto meno)
     telefono: { avanti: 2, nebbia: [12, 46], lontano: 60, portaleQualita: 0.85 },   // sui telefoni: meno strada da disegnare
     arrivoHint: 'Sei fuori. Prenditi una boccata d\'aria: la tua macchina è parcheggiata più avanti.',
     locale: { porta: [-6.4, -9.0], altezza: 3.3, insegna: 'BAR' },   // il portone con i gradini, marciapiede nord
-    casa: 15,                               // il tratto (dritto) dove c'è casa, alla fine del percorso
+    casa: 28,                               // il tratto (dritto) dove c'è casa, alla fine del percorso (≈1,1 km)
     casaLabel: 'Apri la porta di casa',
   },
   ctvLogo: './assets/titoli/cometiva.png',
@@ -173,10 +174,11 @@ export const STORIA = {
     parcheggio: [-6, 1.9, 0],               // x, z nel tratto di casa, direzione rispetto alla via (0 = verso +x, lato destro)
     quota: -0.2,                            // la carreggiata è 20 cm sotto i marciapiedi
     carreggiata: [-1.55, 1.55],             // dove sta il centro della macchina (oltre: zona morbida di mezzo metro, le ruote restano in strada)
-    accelerazione: 10, freno: 16, attrito: 2.4, retro: 6, massima: 28,  // m/s² e m/s (28 m/s ≈ 100 km/h)
+    accelerazione: 12, freno: 20, attrito: 2, retro: 6, massima: 36,    // m/s² e m/s (36 m/s ≈ 130 km/h)
     frenata: 12,                            // m/s²: arrivati davanti a casa la macchina si ferma da sola
     accosta: -1.4,                          // di traverso: dove accosta da sola, sul lato di casa (marciapiede nord)
-    turbo: 40, accelerazioneTurbo: 16,      // con Shift (o TURBO sul telefono): 40 m/s ≈ 145 km/h
+    turbo: 50, accelerazioneTurbo: 18,      // con Shift (o TURBO sul telefono): 50 m/s ≈ 180 km/h
+    aiutoCurve: 0.92,                       // quanto lo sterzo segue da solo le curve (1 = tutto)
     sterzo: 0.55, passo: 2.9,
     volante: 2.6,                           // di quanto gira il volante rispetto alle ruote
     dietro: [6.5, 2.3],                     // telecamera da dietro: distanza e altezza
@@ -192,16 +194,18 @@ export const STORIA = {
     oltre: 'Casa è rimasta indietro: torna un po\' indietro.',
     // ostacoli in mezzo alla strada: [tratto, metri lungo la via, di traverso, tipo] (cono, barile, transenna)
     ostacoli: [
-      [1, 22, 1.4, 'cono'], [1, 23.5, 0.8, 'cono'],
-      [3, 18, -1.2, 'barile'],
-      [4, 20, 1.5, 'transenna'],
-      [6, 14, 1.3, 'barile'],
-      [7, 24, -1.5, 'transenna'],
-      [9, 12, -0.9, 'cono'], [9, 13.5, -0.3, 'cono'],
-      [11, 20, 1.3, 'barile'],
-      [12, 26, -1.4, 'transenna'],
+      [2, 22, 1.3, 'cono'], [2, 23.5, 0.7, 'cono'],
+      [4, 18, -1.2, 'barile'],
+      [5, 20, 1.4, 'transenna'],
+      [8, 14, 1.3, 'barile'],
+      [9, 26, -1.4, 'transenna'],
+      [12, 12, -0.9, 'cono'], [12, 13.5, -0.3, 'cono'],
+      [16, 20, 1.3, 'barile'],
+      [18, 24, -1.4, 'transenna'],
+      [21, 16, 1.2, 'barile'],
+      [24, 20, -1.3, 'transenna'],
     ],
-    casa: 'Casa. ...Ma questa è la porta del circolo?',
+    casa: 'Casa. ...Ma questo è il circolo?',
     rientro: 'Bentornato. Lo sapevi anche tu: casa è qui. Da qualunque porta entri, finisci sempre qui.',
   },
   blackbox: {
