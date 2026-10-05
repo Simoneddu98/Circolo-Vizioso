@@ -39,7 +39,7 @@ export const STORIA = {
     chiama: 'Ohi! Vieni qua, alla porta. Ti faccio vedere una cosa.',
     attesaAuto: 4,                          // secondi prima che il dialogo si apra da solo
     daTe: 'Ohi, tu! Vieni qui, che ho una cosa per te.',
-    biglietto: 'Hai ricevuto un biglietto: fila {fila}, posto {posto}',
+    biglietto: 'Hai ricevuto un ingresso: fila {fila}, posto {posto}',
     alla_porta: 'Seguimi. Si entra da qui.',
     apri: 'Apri tu. Io resto qui: certe cose si scoprono da soli.',
     dentro: 'Vai, vai. Cammina e non voltarti.',
@@ -76,11 +76,11 @@ export const STORIA = {
     // polso girato perché la faccia del biglietto guardi verso di te, col testo dritto
     lettura: { pose: { pos: [-0.0331, -0.11, -0.306], rot: [1.9208, -0.2249, 0] }, durata: 0.6 },
   },
-  item: 'Biglietto',
+  item: 'Ingresso',
   postoGiusto: 'Siediti',
   postoSbagliato: 'Fila {fila}, posto {posto}',
-  nonTuo: 'Non è il tuo posto: il biglietto dice fila {fila}, posto {posto}.',
-  arrivoHint: 'Hai un biglietto in tasca: fila {fila}, posto {posto}. Le file sono scritte ai lati.',
+  nonTuo: 'Non è il tuo posto: l\'ingresso dice fila {fila}, posto {posto}.',
+  arrivoHint: 'Hai l\'ingresso in tasca: fila {fila}, posto {posto}. Le file sono scritte ai lati.',
   uscitaLabel: 'Esci dal cinema',
   ritorno: 'Sei di nuovo al circolo. Cronico ti guarda come se niente fosse.',
   cronicoDopo: 'Bello, eh? Il cinema c\'è sempre stato, solo che non lo trova nessuno. La prossima volta ti porto più lontano.',
