@@ -3,11 +3,14 @@
 // configurazione del lotto) parte quello al posto del battito e il metronomo si abbassa.
 // Il tempo di gioco è l'orologio audio (ctx.currentTime): le note si disegnano e si giudicano su quello.
 
+import { sbloccaAudio, riprovaAlTocco } from '../../audiosession.js';
+
 export class Ritmo {
   constructor(cfg) {
     this.cfg = cfg;                                   // { bpm, audio?, audioOffset?, battute, muto? }
     const AC = globalThis.AudioContext ?? globalThis.webkitAudioContext;
     this.ctx = AC ? new AC() : null;
+    sbloccaAudio(this.ctx);                            // iPhone: silenzioso e contesto sospeso
     this.t0 = 0;                                       // orologio audio dell'inizio del brano (beat 0)
     this.prossimo = -4;                                // prossimo quarto da programmare (partendo dal conto alla rovescia)
     this.timer = null;
@@ -31,7 +34,9 @@ export class Ritmo {
 
   async inizia() {
     if (!this.ctx) return;
-    await this.ctx.resume();
+    sbloccaAudio(this.ctx);
+    riprovaAlTocco(this.ctx);
+    await Promise.race([this.ctx.resume(), new Promise((r) => setTimeout(r, 800))]);   // su iPhone resume() può non tornare mai
     this.t0 = this.ctx.currentTime + 0.25 + 4 * this.beatDur;      // quattro quarti di conto alla rovescia
     this.prossimo = -4;
     if (this.cfg.audio) this._avviaFile();

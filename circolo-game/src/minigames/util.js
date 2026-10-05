@@ -1,5 +1,6 @@
 // Utilità comuni ai minigiochi: lettura dei marcatori del glb, suoni sintetizzati, statistiche in localStorage.
 import * as THREE from 'three';
+import { sbloccaAudio, riprovaAlTocco } from '../audiosession.js';
 
 // Camere e spot sono empty esportati da Blender: la camera Blender guarda lungo -Z locale con l'alto su +Y;
 // dopo la conversione Y-up del glTF quegli assi diventano -Y (sguardo) e -Z (alto). Questa rotazione li riporta
@@ -46,6 +47,8 @@ function audio() {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return null;
     try { actx = new AC(); } catch { return null; }
+    sbloccaAudio(actx);
+    riprovaAlTocco(actx);
   }
   if (actx.state === 'suspended') actx.resume().catch(() => {});
   return actx;
