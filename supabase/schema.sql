@@ -97,7 +97,7 @@ create or replace function public.genera_codici(p_lotto text, p_quanti int)
 returns setof text
 language plpgsql
 security definer
-set search_path = public, extensions, pg_temp     -- su Supabase pgcrypto (gen_random_bytes) sta nello schema "extensions"
+set search_path = public, pg_temp
 as $$
 declare
   alfabeto constant text := '23456789ABCDEFGHJKMNPQRSTVWXYZ';   -- 30 simboli, niente 0 O 1 I L U
@@ -110,10 +110,10 @@ begin
     raise exception 'lotto % inesistente: crealo prima in public.lotti', p_lotto;
   end if;
   while fatti < p_quanti loop
-    b := gen_random_bytes(10);
+    b := uuid_send(gen_random_uuid());             -- 16 byte casuali, senza dipendere da pgcrypto (byte 6 e 8 hanno bit fissi: si saltano)
     nuovo := '';
     for i in 0..9 loop
-      nuovo := nuovo || substr(alfabeto, 1 + (get_byte(b, i) % length(alfabeto)), 1);
+      nuovo := nuovo || substr(alfabeto, 1 + (get_byte(b, case when i < 6 then i else i + 3 end) % length(alfabeto)), 1);
     end loop;
     insert into public.codici (codice, lotto) values (nuovo, p_lotto) on conflict do nothing;
     if found then
