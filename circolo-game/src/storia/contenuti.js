@@ -69,10 +69,15 @@ export const STORIA = {
     leggi: 2.6,                             // secondi: lo tieni davanti agli occhi
     alzaMano: 0.0,                          // metri sopra l'osso della mano di Cronico
     arco: 0.06,                             // piccolo arco in volo
-    // Il biglietto è tenuto per il bordo lungo, tra pollice e indice: il piano passa per l'asse del pizzico e il resto pende
-    // dal lato aperto della mano. Valori misurati sulla geometria della mano (nessun punto della mano dentro il biglietto).
-    pos: [0.05, 0, -0.025], rot: [-1.5708, 0.05, 0],
-    ingrandisci: 1.7,                       // il biglietto nella mano di Cronico è più grande, così da lontano si vede
+    // Il biglietto è pizzicato per il bordo corto tra pollice e indice (nell'incavo della posa Hand_Cigarette). Trovato per
+    // ricerca sulla geometria della mano: nessun punto della mano dentro il biglietto, contatto su entrambe le facce, col
+    // testo dritto e la faccia verso di te nella posa di lettura (`lettura`).
+    pos: [0.04885, 0.00688, 0.01337], rot: [-2.17104, 0.00732, 0.00422],
+    ingrandisci: 1.35,                      // il biglietto nella mano di Cronico è più grande, così da lontano si vede
+    // Nella mano di Cronico (osso della mano, in metri). La sua mano è una sola mesh, senza dita da muovere: aperta a palmo in su
+    // con le dita verso di te. Il biglietto sta sopra il palmo (non sul polso), a 10 cm dal polso lungo la mano, inclinato verso
+    // di te con il testo dritto; controllato sui punti della mano (nessuno dentro il biglietto). scala = ingrandisci
+    manoCronico: { pos: [-0.01, 0.1, -0.048], rot: [-2.89159, 0, 0], scala: 1.35 },
     // polso girato perché la faccia del biglietto guardi verso di te, col testo dritto
     lettura: { pose: { pos: [-0.0331, -0.11, -0.306], rot: [1.9208, -0.2249, 0] }, durata: 0.6 },
   },

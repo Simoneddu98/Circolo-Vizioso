@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { ArmIK } from '../ik.js';
 
 const W = 0.1, H = 0.05, D = 0.002;                  // metri: un biglietto del cinema
-const _p = new THREE.Vector3(), _q = new THREE.Quaternion(), _s = new THREE.Vector3();
+const _p = new THREE.Vector3(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _r = new THREE.Quaternion(), _e = new THREE.Euler();
 const Y = new THREE.Vector3(0, 1, 0);
 const lisce = (k) => { k = Math.max(0, Math.min(1, k)); return k * k * (3 - 2 * k); };
 
@@ -97,16 +97,25 @@ export class Consegna {
     return out;
   }
 
+  // il biglietto nella mano di Cronico: posa trovata per ricerca sulla geometria della mano (nessun punto dentro, contatto su
+  // entrambe le facce, faccia verso di te); è relativa all'osso, quindi segue il braccio. Senza osso: davanti al suo petto.
+  _inManoDiCronico() {
+    const C = this.cfg, m = this.mesh;
+    if (!this.mano) { this._dallaMano(_p); m.position.copy(_p); m.quaternion.copy(this.ctx.camera.quaternion); m.scale.setScalar(C.ingrandisci); return; }
+    const k = C.manoCronico;
+    this.mano.getWorldQuaternion(_q);
+    this.mano.getWorldPosition(m.position).add(_s.set(...k.pos).applyQuaternion(_q));
+    m.quaternion.copy(_q).multiply(_r.setFromEuler(_e.set(...k.rot)));
+    m.scale.setScalar(k.scala);
+  }
+
   update(dt) {
     if (!this.fase) return;
     const ctx = this.ctx, C = this.cfg, cam = ctx.camera;
     this.t += dt;
     if (this.fase === 'tendi') {
       this._braccio(lisce(this.t / (C.tendi * 0.6)));
-      this._dallaMano(_p);
-      this.mesh.position.copy(_p);
-      this.mesh.quaternion.copy(cam.quaternion);     // la faccia verso di te
-      this.mesh.scale.setScalar(C.ingrandisci);
+      this._inManoDiCronico();
       if (this.t >= C.tendi) {
         this.da = { pos: this.mesh.position.clone(), q: this.mesh.quaternion.clone() };
         this.fase = 'vola'; this.t = 0;
@@ -114,7 +123,8 @@ export class Consegna {
     } else if (this.fase === 'vola') {
       this._braccio(1);
       const sock = ctx.hands.sockets.Socket_Cigarette;
-      sock.getWorldPosition(_p); sock.getWorldQuaternion(_q);
+      sock.getWorldQuaternion(_q);
+      _p.set(...C.pos); sock.localToWorld(_p);          // il punto dove il biglietto starà nella tua mano
       const dest = new THREE.Quaternion().setFromEuler(new THREE.Euler(...C.rot)).premultiply(_q);
       const k = Math.min(1, this.t / C.vola), e = k * k * (3 - 2 * k);
       this.mesh.position.lerpVectors(this.da.pos, _p, e);
