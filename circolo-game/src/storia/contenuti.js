@@ -30,6 +30,10 @@ export const STORIA = {
     { goal: 'casa', text: 'Scendi (E) ed entra a casa: il portone con l\'insegna CASA e la colonna di luce', locked: 'Più tardi' },
     { goal: 'continua', text: 'Fine del quarto capitolo. Casa... è il circolo. Gira e gioca' },
   ],
+  // Dopo il cinema la storia si ferma finché Black Box è chiuso (src/accesso.js): resta il passo `presto`, che non si completa
+  // mai, e Cronico fa l'annuncio. Con la prova, o a data raggiunta, la storia continua con il capitolo 2.
+  fermaDopo: { passo: 'uscita', contenuto: 'blackbox', ultimo: { goal: 'presto', text: 'Black Box arriva presto. Intanto gira per il circolo' } },
+  codice: { lotto: 'jukebox-cinema', testo: 'Hai ricevuto un codice? Scrivilo qui e sblocchi il Jukebox del brano.' },
   requires: { minigame: 'idee', smoke: 'cronico' },
   ui: { label: 'La storia', sub: 'Sperimentale: la storia' },
 
@@ -89,6 +93,7 @@ export const STORIA = {
   uscitaLabel: 'Esci dal cinema',
   ritorno: 'Sei di nuovo al circolo. Cronico ti guarda come se niente fosse.',
   cronicoDopo: 'Bello, eh? Il cinema c\'è sempre stato, solo che non lo trova nessuno. La prossima volta ti porto più lontano.',
+  cronicoPresto: 'Il prossimo giro non è ancora pronto. Quando lo è, lo capisci: qui lo capiscono tutti.',
   // ---- capitolo 2: Rafka ti aspetta in giro, ti chiede di aprire la porta accanto al maxischermo; dietro c'è la stanzetta
   rafka: {
     nodo: 'storia_rafka',

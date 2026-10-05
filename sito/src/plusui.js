@@ -1,6 +1,8 @@
 // Schermata iniziale: "Ho un codice" apre un riquadro dove si scrive il codice dei giochi plus. Elenca anche i plus già
 // sbloccati su questo dispositivo. Stili e elementi sono creati qui, la logica è in plus.js.
 
+import { inProva } from './accesso.js';
+
 const CSS = `
   #plus-open { margin-top: 14px; background: none; border: 0; border-bottom: 1px dashed rgba(217,170,69,.6); color: var(--tobacco-soft, #d9aa45);
     font: 600 15px var(--display, sans-serif); letter-spacing: .08em; text-transform: uppercase; padding: 2px 0; cursor: pointer; }
@@ -72,9 +74,11 @@ export function creaPlusUI(plus, { testi, onSbloccato } = {}) {
     }));
   }
   const chiudi = () => { box.hidden = true; };
+  const mostraApri = () => { apri.hidden = !inProva(); };   // in home il pulsante c'è solo in prova: il codice si chiede nella storia
   const mostra = (testo, tipo = '') => { const e = q('.esito'); e.textContent = testo; e.className = `esito ${tipo}`; };
 
-  apri.addEventListener('click', () => { mostra(''); q('input').value = ''; box.hidden = false; q('input').focus(); });
+  const apriBox = (testo) => { mostra(''); q('input').value = ''; if (testo) q('p').textContent = testo; else q('p').textContent = T.testo; box.hidden = false; q('input').focus(); };
+  apri.addEventListener('click', () => apriBox());
   q('.no').addEventListener('click', chiudi);
   box.addEventListener('click', (e) => { if (e.target === box) chiudi(); });
   box.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Escape') chiudi(); });   // i tasti non arrivano al gioco
@@ -91,7 +95,8 @@ export function creaPlusUI(plus, { testi, onSbloccato } = {}) {
     setTimeout(chiudi, 1100);                           // si chiude da solo: sotto compare il pulsante per giocare
   });
 
+  mostraApri();
   aggiorna();
   plus.riconferma().then(aggiorna);                     // un codice sganciato o rifiutato sparisce dall'elenco
-  return { aggiorna, gioca };
+  return { aggiorna: () => { mostraApri(); aggiorna(); }, gioca, apri: apriBox, ha: (lotto) => plus.sbloccati.includes(lotto) };
 }

@@ -34,6 +34,7 @@ import { setupPorta } from './porta.js';
 import { Plus } from './plus.js';
 import { creaPlusUI } from './plusui.js';
 import { creaTastoAudio } from './audiosession.js';
+import { aperto, legaProvaAlLogo, mostraEtichettaProva } from './accesso.js';
 
 const DEBUG = new URLSearchParams(location.search).get('debug') === '1';
 const ui = new UI(CONFIG);
@@ -85,6 +86,7 @@ let interactions, npcs, tv, smoke;
 
 let minigames = null, foosDemo = null, dialogue = null, routines = [], barOrder = null, barHandlers = null, camerawork = null, serata = null, racconto = null;
 const ctx = {
+  plusUI,                                                  // il riquadro del codice dei giochi plus (anche dalla storia)
   config: CONFIG, scene, camera, player, ui, renderer, progress, wallet, occluders: [], requestLock: () => requestLock(),
   releaseLock: () => { if (document.pointerLockElement === canvas) document.exitPointerLock(); },
   pause: () => pause(),
@@ -193,6 +195,7 @@ async function load() {
   if (DEBUG) setupDebug(root);
   state = 'start';
   ui.ready();
+  applicaAccesso();
   if (DEBUG) console.info(`[circolo] collisioni: ${collisions.count} rettangoli da ${collisions.source}; schermi: ${tv.source}; npc: ${npcs.npcs.length} (animati: ${npcs.animated}); mani: ${ctx.hands.available}; fumo: ${smoke.emitters.length}`);
 }
 
@@ -352,6 +355,17 @@ function restart() {
   if (serata?.story) serata.begin('storia');
 }
 
+// Contenuti ancora chiusi: "La serata" resta visibile ma spenta, con la scritta Prossimamente (la prova la riapre)
+function applicaAccesso() {
+  mostraEtichettaProva();
+  const b = ui.el.enter, ok = aperto('serata');
+  b.disabled = state !== 'start' || !ok;
+  b.classList.toggle('chiuso', !ok);
+  const small = b.querySelector('small');
+  if (small) small.textContent = ok ? CONFIG.serata.ui.storiaSub : 'Prossimamente';
+  plusUI?.aggiorna?.();
+}
+legaProvaAlLogo(document.getElementById('title'), () => { applicaAccesso(); provaMenu(); });
 ui.el.enter.addEventListener('click', () => enter('storia'));
 ui.el.enterFree?.addEventListener('click', () => enter('libero'));
 ui.el.enterStory?.addEventListener('click', () => enter('racconto'));

@@ -1,6 +1,7 @@
 // "La storia" (modalità sperimentale): primo capitolo, il cinema. Ha la stessa interfaccia della regia della serata
 // (begin, update, key, freeze, cursorFree, decorate, startNode, action, ...): quando si sceglie questa modalità main.js la
 // mette al posto della serata, che resta com'è. Usa l'interfaccia della serata (overlay) e il quiz del cinema.
+import { aperto } from '../accesso.js';
 import * as THREE from 'three';
 import { CinemaRoom } from './cinemaroom.js';
 import { Stanzetta } from './stanzetta.js';
@@ -31,7 +32,11 @@ export class Racconto {
     this.t = 0;
     this.inCinema = false;
     const B = this.cfg.biglietto;
-    this.steps = this.cfg.passi.map((s) => ({ ...s, text: s.text.replace('{fila}', B.fila).replace('{posto}', B.posto),
+    let passi = this.cfg.passi;
+    const F = this.cfg.fermaDopo;                                    // contenuto ancora chiuso: la storia finisce qui
+    this.fermata = !!F && !aperto(F.contenuto);
+    if (this.fermata) passi = [...passi.slice(0, passi.findIndex((x) => x.goal === F.passo) + 1), F.ultimo];
+    this.steps = passi.map((s) => ({ ...s, text: s.text.replace('{fila}', B.fila).replace('{posto}', B.posto),
       locked: s.locked }));
     ctx.config.items.biglietto ??= { name: this.cfg.item };
     this.room = new CinemaRoom(ctx.scene, this.cfg);
@@ -811,8 +816,16 @@ export class Racconto {
       this.wait = 6;
       ctx.ui.toast(this.cfg.ritorno, 5);
       const cr = this._npc('Cronico');
-      if (cr) setTimeout(() => this._say('Cronico', this.cfg.cronicoDopo, 6), 1800);
+      if (cr) setTimeout(() => this._say('Cronico', this.fermata ? this.cfg.cronicoPresto : this.cfg.cronicoDopo, 6), 1800);
+      this._chiediCodice();
     });
+  }
+
+  // Dopo il film: se il Jukebox del brano non è ancora sbloccato su questo dispositivo, si apre il riquadro del codice
+  _chiediCodice() {
+    const C = this.cfg.codice, P = this.ctx.plusUI;
+    if (!C || !P || P.ha(C.lotto)) return;
+    setTimeout(() => { if (this.stage === 'idle') { this.ctx.releaseLock?.(); P.apri(C.testo); } }, 9000);
   }
 
   // ------------------------------------------------------------------ capitolo 3: Lyuce e la scatola nera

@@ -1,4 +1,5 @@
 // Tutte le costanti regolabili del gioco. Unità: metri, secondi, radianti.
+import { inProva } from './accesso.js';
 import { ASSET_VERSION } from './version.js';
 import { SERATA } from './serata/contenuti.js';
 import { STORIA } from './storia/contenuti.js';
@@ -7,10 +8,10 @@ import { STORIA } from './storia/contenuti.js';
 const v = (path) => `${path}?v=${ASSET_VERSION}`;
 
 export const CONFIG = {
-  // PROVA (temporanea): per provare i giochi senza rifare ogni volta Nicola e le presentazioni. Con attiva: true
-  // serata e storia partono già dopo le presentazioni e nel menu di pausa (Esc) ci sono i pulsanti per saltare a ogni
-  // gioco. Per tornare al gioco normale: attiva: false.
-  prova: { attiva: true },
+  // PROVA: per provare i giochi senza rifare ogni volta Nicola e le presentazioni. Quando è accesa serata e storia partono già
+  // dopo le presentazioni e nel menu di pausa (Esc) ci sono i pulsanti per saltare a ogni gioco, e si aprono anche i contenuti
+  // ancora chiusi (src/accesso.js). Si accende con ?prova=1 o con cinque tocchi sul logo, solo su questo dispositivo.
+  prova: { get attiva() { return inProva(); } },
 
   assets: {
     scene: v('./assets/circolo.glb'),
