@@ -549,7 +549,7 @@ export const CONFIG = {
         storia: { text: 'Il circolo l\'ha aperto mio nonno nel sessantotto. Il biliardo è quello originale; il maxischermo no, quello l\'abbiamo preso per i mondiali. Da allora qui è sempre la stessa sera. Ed è una bella sera.',
           options: [{ text: 'A dopo.', action: 'end' }] },
         // "La storia": Cronico ti aspetta alla porta d'ingresso
-        storia_biglietto: { text: 'Ohi, benvenuto al Circolo Vizioso! Io sono Cronico, il padrone di casa. Stasera si fa qualcosa di diverso: c\'è un posto che al circolo conoscono in pochi. Tieni, il tuo ingresso: fila {fila}, posto {posto}.',
+        storia_biglietto: { text: 'Ohi, benvenuto al Circolo Vizioso! Io sono Cronico, il padrone di casa. Stasera si fa qualcosa di diverso: c\'è un posto che al circolo conoscono in pochi. Tieni, il tuo ingresso.',
           options: [{ text: 'Un ingresso per cosa?', next: 'storia_biglietto2' }, { text: 'Grazie. Dove si va?', action: 'serata:biglietto' }] },
         storia_biglietto2: { text: 'Per un posto che non trovi sulle mappe. Si entra da quella porta qui accanto. Ti accompagno, ma poi vai avanti da solo.',
           options: [{ text: 'Ci sto.', action: 'serata:biglietto' }] },

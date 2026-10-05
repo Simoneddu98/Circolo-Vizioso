@@ -33,7 +33,7 @@ export class Racconto {
     const B = this.cfg.biglietto;
     this.steps = this.cfg.passi.map((s) => ({ ...s, text: s.text.replace('{fila}', B.fila).replace('{posto}', B.posto),
       locked: s.locked }));
-    ctx.config.items.biglietto ??= { name: `${this.cfg.item} ${B.fila}${B.posto}` };
+    ctx.config.items.biglietto ??= { name: this.cfg.item };
     this.room = new CinemaRoom(ctx.scene, this.cfg);
     // capitolo 2: la porta accanto al maxischermo (su un muro pieno: riquadro nero, l'anta si apre verso la stanza) e la
     // stanzetta che c'è dietro, con il suo tavolo per il cibo

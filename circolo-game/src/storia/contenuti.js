@@ -9,7 +9,7 @@ export const STORIA = {
   passi: [
     { goal: 'cronico', text: 'Parla con Cronico: ti aspetta qui all\'ingresso', locked: 'Prima parla con Cronico' },
     { goal: 'porta', text: 'Segui Cronico e apri la porta d\'ingresso', locked: 'Più tardi: adesso c\'è la storia' },
-    { goal: 'biglietto', text: 'Trova il tuo posto: fila {fila}, posto {posto}', locked: 'Più tardi' },
+    { goal: 'biglietto', text: 'Vai dove ti porta l\'ingresso', locked: 'Più tardi' },
     { goal: 'film', text: 'Goditi il film', locked: 'Più tardi' },
     { goal: 'uscita', text: 'Esci dal cinema: le tende rosse in fondo alla sala', locked: 'Più tardi' },
     // capitolo 2: il fumo
@@ -39,7 +39,7 @@ export const STORIA = {
     chiama: 'Ohi! Vieni qua, alla porta. Ti faccio vedere una cosa.',
     attesaAuto: 4,                          // secondi prima che il dialogo si apra da solo
     daTe: 'Ohi, tu! Vieni qui, che ho una cosa per te.',
-    biglietto: 'Hai ricevuto un ingresso: fila {fila}, posto {posto}',
+    biglietto: 'Hai ricevuto un ingresso',
     alla_porta: 'Seguimi. Si entra da qui.',
     apri: 'Apri tu. Io resto qui: certe cose si scoprono da soli.',
     dentro: 'Vai, vai. Cammina e non voltarti.',
@@ -79,8 +79,8 @@ export const STORIA = {
   item: 'Ingresso',
   postoGiusto: 'Siediti',
   postoSbagliato: 'Fila {fila}, posto {posto}',
-  nonTuo: 'Non è il tuo posto: l\'ingresso dice fila {fila}, posto {posto}.',
-  arrivoHint: 'Hai l\'ingresso in tasca: fila {fila}, posto {posto}. Le file sono scritte ai lati.',
+  nonTuo: 'Non è il tuo posto: il tuo è fila {fila}, posto {posto}.',
+  arrivoHint: 'Trova il tuo posto: fila {fila}, posto {posto}. Le file sono scritte ai lati.',
   uscitaLabel: 'Esci dal cinema',
   ritorno: 'Sei di nuovo al circolo. Cronico ti guarda come se niente fosse.',
   cronicoDopo: 'Bello, eh? Il cinema c\'è sempre stato, solo che non lo trova nessuno. La prossima volta ti porto più lontano.',

@@ -1,7 +1,7 @@
 // "La storia": Cronico ti consegna il biglietto in mano. Tre tempi:
 //   tendi  Cronico fa il gesto e il biglietto è nella sua mano (segue l'osso della mano destra); la tua mano sale
 //   vola   il biglietto passa dalla sua mano alla tua (stesso attacco della sigaretta, così non c'è salto)
-//   leggi  lo tieni davanti agli occhi e si legge (fila e posto); poi la mano si abbassa e il biglietto va in tasca
+//   leggi  lo tieni davanti agli occhi e si legge (solo il nome del circolo); poi la mano si abbassa e il biglietto va in tasca
 // Senza mani in prima persona (hands.glb mancante) si salta tutto: finisce subito.
 import * as THREE from 'three';
 import { ArmIK } from '../ik.js';
@@ -22,12 +22,11 @@ function disegna(cfg) {
   // strappo a destra
   g.strokeStyle = 'rgba(255,225,0,.55)'; g.lineWidth = 4; g.setLineDash([10, 12]); g.beginPath(); g.moveTo(790, 40); g.lineTo(790, 472); g.stroke(); g.setLineDash([]);
   g.fillStyle = '#ffe100'; g.textBaseline = 'alphabetic';
-  g.font = '600 46px Oswald, Impact, sans-serif'; g.fillText(cfg.sopra.toUpperCase(), 64, 104);
-  g.fillStyle = 'rgba(244,242,250,.7)'; g.font = '500 40px Oswald, Impact, sans-serif'; g.fillText('INGRESSO · UNA PERSONA', 64, 160);
-  g.fillStyle = '#ff17e4'; g.font = '700 150px Oswald, Impact, sans-serif'; g.fillText(`FILA ${cfg.fila}`, 60, 320);
-  g.fillStyle = '#f4f2fa'; g.font = '700 120px Oswald, Impact, sans-serif'; g.fillText(`POSTO ${cfg.posto}`, 64, 450);
+  g.font = '600 46px Oswald, Impact, sans-serif'; g.fillText('INGRESSO', 64, 104);
+  g.fillStyle = '#ff17e4'; g.font = '700 170px Oswald, Impact, sans-serif'; g.fillText('CIRCOLO', 60, 275);
+  g.fillStyle = '#f4f2fa'; g.fillText('VIZIOSO', 60, 440);
   g.save(); g.translate(905, 256); g.rotate(-Math.PI / 2); g.fillStyle = '#ffe100'; g.font = '700 70px Oswald, Impact, sans-serif'; g.textAlign = 'center';
-  g.fillText(`${cfg.fila}${cfg.posto}`, 0, 22); g.restore();
+  g.fillText('INGRESSO', 0, 22); g.restore();
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 4;
