@@ -3,7 +3,7 @@
 // configurazione del lotto) parte quello al posto del battito e il metronomo si abbassa.
 // Il tempo di gioco è l'orologio audio (ctx.currentTime): le note si disegnano e si giudicano su quello.
 
-import { sbloccaAudio, riprovaAlTocco, audioMuto, suAudioMuto, uscita } from '../../audiosession.js';
+import { sbloccaAudio, riprovaAlTocco, audioMuto, suAudioMuto, uscita, chiudiUscita } from '../../audiosession.js';
 
 export class Ritmo {
   constructor(cfg) {
@@ -34,9 +34,11 @@ export class Ritmo {
 
   async inizia() {
     if (!this.ctx) return;
+    if (this.chiuso) return;
     sbloccaAudio(this.ctx);
     riprovaAlTocco(this.ctx);
     await Promise.race([this.ctx.resume(), new Promise((r) => setTimeout(r, 800))]);   // su iPhone resume() può non tornare mai
+    if (this.chiuso) return;                            // chiuso mentre aspettava: niente suoni dopo la chiusura
     this.t0 = this.ctx.currentTime + 0.25 + 4 * this.beatDur;      // quattro quarti di conto alla rovescia
     this.prossimo = -4;
     if (this.cfg.audio) this._avviaFile();
@@ -124,9 +126,12 @@ export class Ritmo {
   riprendi() { return this.ctx?.resume(); }
 
   ferma() {
+    this.chiuso = true;
     clearInterval(this.timer);
     this.spegni?.();
     try { this.fonte?.stop(); } catch { /* già fermo */ }
+    if (this.master) this.master.gain.value = 0;
+    if (this.ctx) chiudiUscita(this.ctx);              // prima l'elemento audio, poi il contesto
     if (this.ctx && this.ctx.state !== 'closed') this.ctx.close().catch(() => {});   // si può fermare due volte (fine partita, poi Esci)
   }
 }

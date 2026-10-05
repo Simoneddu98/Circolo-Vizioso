@@ -44,6 +44,7 @@ export function suAudioMuto(fn) { ascoltatori.add(fn); return () => ascoltatori.
 export function impostaMuto(v) {
   muto = !!v;
   try { localStorage.setItem(MUTO_KEY, muto ? '1' : '0'); } catch { /* ok */ }
+  for (const el of elementi.values()) el.muted = muto;
   for (const f of ascoltatori) f(muto);
 }
 
@@ -88,7 +89,15 @@ export function creaTastoAudio() {
 // ------------------------------------------------------------------ uscita audio
 
 const iOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-const uscite = new WeakMap();
+const uscite = new WeakMap(), elementi = new Map();   // contesto -> elemento audio che lo suona (solo iPhone)
+
+// Da chiamare prima di ctx.close(): un elemento che suona un flusso chiuso, su iPhone, ripete in loop l'ultimo pezzo
+export function chiudiUscita(ctx) {
+  const el = elementi.get(ctx);
+  if (!el) return;
+  elementi.delete(ctx); uscite.delete(ctx);
+  try { el.muted = true; el.pause(); el.srcObject = null; } catch { /* ok */ }
+}
 
 // Nodo a cui collegare i suoni al posto di ctx.destination. Su iPhone il Web Audio segue l'interruttore silenzioso, un
 // <audio> no: il suono passa da un MediaStream riprodotto da un elemento audio, e quindi si sente comunque.
@@ -99,7 +108,8 @@ export function uscita(ctx) {
     try {
       const dest = ctx.createMediaStreamDestination();
       const el = new Audio();
-      el.srcObject = dest.stream; el.setAttribute('playsinline', '');
+      el.srcObject = dest.stream; el.setAttribute('playsinline', ''); el.muted = muto;
+      elementi.set(ctx, el);
       el.play()?.catch(() => {});
       riprovaMedia(el);
       u = dest;
