@@ -137,12 +137,14 @@ export const STORIA = {
   lyuce: {
     posto: [2.75, 0.15],                    // dove resta ad aspettarti, accanto al biliardo
     nodo: 'storia_bb',
+    nodoPresto: 'storia_presto',            // se Black Box è ancora chiuso: Lyuce ti parla della scatola chiusa
     chiama: 'Sono rimasta io. Vieni, siediti un attimo con i pensieri.',
     vai: 'Vai. La scatola è sul biliardo, in mezzo alla sala. Con calma.',
     dopo: 'Visto? Ognuno ci mette dentro un pezzo di mezzo. Nessuno lo stesso.',
   },
   bbLogo: './assets/titoli/blackbox.png',
   apriScatola: 'Apri la scatola nera',
+  scatolaChiusa: { label: 'La scatola nera', toast: 'È chiusa. Dentro c\'è il pezzo che manca tra l\'inizio e la fine. Arriva presto.' },
   ritornoTutti: 'La porta si riapre: rientrano tutti, come ogni sera.',
   // capitolo 4: rientrano tutti dalla porta d'ingresso; Kappa va ad aspettarti alla porta nuova, dove prima c'era il
   // tavolino con le sigarette (accanto al tavolo da carte), e da lì si esce in strada

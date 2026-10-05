@@ -552,6 +552,11 @@ export const CONFIG = {
         // "La storia": Cronico ti aspetta alla porta d'ingresso
         storia_biglietto: { text: 'Ohi, benvenuto al Circolo Vizioso! Io sono Cronico, il padrone di casa. Stasera si fa qualcosa di diverso: c\'è un posto che al circolo conoscono in pochi. Tieni, il tuo ingresso.',
           options: [{ text: 'Un ingresso per cosa?', next: 'storia_biglietto2' }, { text: 'Grazie. Dove si va?', action: 'serata:biglietto' }] },
+        // "La storia" ferma dopo il cinema (Black Box ancora chiuso): Lyuce parla della scatola nera sul biliardo
+        storia_presto: { text: 'Hai visto la scatola sul biliardo? Nera, chiusa, nessuno la tocca. Sai come comincia una storia, sai come finisce. Il mezzo, invece, manca.',
+          options: [{ text: 'E dentro cosa c\'è?', next: 'storia_presto2' }, { text: 'A dopo.', action: 'end' }] },
+        storia_presto2: { text: 'Il pezzo mancante. Non si apre ancora: arriva presto. Quando succede, lo capisci: lo dicono tutti.',
+          options: [{ text: 'Aspetto.', action: 'end' }] },
         storia_biglietto2: { text: 'Per un posto che non trovi sulle mappe. Si entra da quella porta qui accanto. Ti accompagno, ma poi vai avanti da solo.',
           options: [{ text: 'Ci sto.', action: 'serata:biglietto' }] },
         // Brano 1: Cronico ti porta davanti al maxischermo

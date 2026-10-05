@@ -122,7 +122,7 @@ export class Racconto {
     if (this.inStrada) this._leaveStrada();
     this._stopIdee();
     if (this.esodo.walkers.length) this.esodo.ritorno();
-    if (this.bbox) this.bbox.visible = false;
+    if (this.bbox) this.bbox.visible = this.progress.goal === 'presto';      // chiusa sul biliardo, in attesa dell'uscita
     if (ctx.smoking.holding) ctx.smoking.putOut(ctx);
     ctx.player.collisions = ctx.collisions;
     if (ctx.player.seated) ctx.player.stand();
@@ -187,6 +187,7 @@ export class Racconto {
   }
 
   startNode(npc) {
+    if (this.story && this.progress.goal === 'presto' && npc.userData.npc_name === 'Lyuce' && this.stage === 'idle') return this.cfg.lyuce.nodoPresto;
     if (!this.story || !['vaAllaPorta', 'aspetta'].includes(this.stage)) return null;
     const goal = this.progress.goal, name = npc.userData.npc_name;
     if (goal === 'cronico' && name === 'Cronico') { this.stage = 'talk'; return this.cfg.cronico.nodo; }
@@ -815,6 +816,7 @@ export class Racconto {
       this.stage = 'idle';                                       // capitolo 2: Rafka va ad aspettarti da qualche parte
       this.wait = 6;
       ctx.ui.toast(this.cfg.ritorno, 5);
+      if (this.fermata && this.bbox) this.bbox.visible = true;     // la scatola nera, chiusa, sul biliardo
       const cr = this._npc('Cronico');
       if (cr) setTimeout(() => this._say('Cronico', this.fermata ? this.cfg.cronicoPresto : this.cfg.cronicoDopo, 6), 1800);
       this._chiediCodice();
@@ -859,8 +861,12 @@ export class Racconto {
     ctx.scene.add(g);
     ctx.interactions.register('storia_bbox', {
       range: 2.6,
-      label: () => (this.story && this.progress.goal === 'scatola' && this.stage === 'scatola' ? this.cfg.apriScatola : null),
-      action: () => { if (this.stage === 'scatola') this._startIdee(); },
+      label: () => (this.story && this.progress.goal === 'scatola' && this.stage === 'scatola' ? this.cfg.apriScatola
+        : this.story && this.progress.goal === 'presto' && this.bbox?.visible ? this.cfg.scatolaChiusa.label : null),
+      action: () => {
+        if (this.stage === 'scatola') this._startIdee();
+        else if (this.progress.goal === 'presto') this.ctx.ui.toast(this.cfg.scatolaChiusa.toast, 5);
+      },
     });
     ctx.interactions.addTarget(g, 'storia_bbox');
     return g;
