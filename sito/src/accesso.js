@@ -1,6 +1,6 @@
 // Chi può giocare a cosa, e quando. Una sola tabella (`SBLOCCHI`): ogni contenuto ancora da uscire è "chiuso" finché non
 // arriva la sua data (o finché non lo apri a mano). La MODALITÀ PROVA li apre tutti, solo su questo dispositivo: si accende
-// con ?prova=1 nel link (?prova=0 la spegne) o toccando cinque volte il logo nella schermata iniziale, e si ricorda.
+// con ?prova=1 nel link (?prova=0 la spegne) o toccando cinque volte il logo nella schermata iniziale (anche dal telefono), e si ricorda.
 // È un blocco "di cortesia": su un sito statico non esiste protezione vera, chi guarda il codice può aggirarlo.
 
 export const SBLOCCHI = {
@@ -31,14 +31,23 @@ export function aperto(id, adesso = Date.now()) {
   return s.da === null || adesso >= Date.parse(s.da);
 }
 
-// Cinque tocchi sul logo (entro 3 secondi) accendono o spengono la prova; un'etichetta lo mostra
+// Cinque tocchi sul logo (al massimo 3 secondi tra un tocco e l'altro) accendono o spengono la prova; un'etichetta lo mostra.
+// Si contano i pointerdown e non i click: sul telefono i tocchi veloci diventano "doppio tocco" e il browser se li
+// mangia (niente click). Il logo non si ingrandisce, non si seleziona e non apre il menu dell'immagine.
 export function legaProvaAlLogo(el, onChange) {
   if (!el) return;
+  el.style.touchAction = 'manipulation';
+  el.style.userSelect = el.style.webkitUserSelect = 'none';
+  el.style.webkitTouchCallout = 'none';
+  el.style.webkitTapHighlightColor = 'transparent';
+  el.querySelectorAll('img').forEach((img) => { img.draggable = false; img.style.pointerEvents = 'none'; });
+  el.addEventListener('contextmenu', (e) => e.preventDefault());
   let n = 0, t = 0;
-  el.addEventListener('click', () => {
+  el.addEventListener('pointerdown', (e) => {
+    if (e.button > 0) return;
     const ora = Date.now();
     n = ora - t > 3000 ? 1 : n + 1; t = ora;
-    if (n >= 5) { n = 0; impostaProva(!prova); onChange?.(prova); }
+    if (n >= 5) { n = 0; impostaProva(!prova); onChange?.(prova); navigator.vibrate?.(60); }
   });
 }
 
