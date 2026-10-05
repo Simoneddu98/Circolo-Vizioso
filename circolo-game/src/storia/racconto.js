@@ -14,6 +14,7 @@ import { createScatola } from './scatola.js';
 import { Strada } from './strada.js';
 import { Auto } from './auto.js';
 import { Ostacoli } from './ostacoli.js';
+import { Consegna } from './biglietto.js';
 import { yawTo, pitchTo } from '../player.js';
 
 export class Racconto {
@@ -49,6 +50,7 @@ export class Racconto {
     // capitolo 4: la porta nuova accanto al tavolo da carte (si prepara in begin(), solo in questa modalità) e la strada
     this.portaEst = null;
     this.strada = new Strada(ctx, this.cfg.strada);
+    this.consegna = new Consegna(ctx, this.cfg.consegna);
     this.auto = new Auto(ctx, this.cfg.auto, this.strada);
     this.inStrada = false;
     for (const src of [this.cfg.logo, this.cfg.fumoLogo, this.cfg.bbLogo]) new Image().src = src;
@@ -102,6 +104,7 @@ export class Racconto {
     const ctx = this.ctx;
     clearTimeout(this.titleT);
     this._stopFilm();
+    this.consegna?.cancel();
     this.ov.clear(); this.ov.showBar(null); this.ov.big(null); this.ov.fade(false);
     this._setFree(false);
     document.body.classList.remove('srt-on');
@@ -153,6 +156,7 @@ export class Racconto {
     this.ctx.player.collisions = this.ctx.collisions;            // di nuovo le collisioni del circolo
     this.ctx.porta?.close();
     this._stopFilm();
+    this.consegna?.cancel();
     this._stopFumo();
     this._stopIdee();
     if (this.esodo.walkers.length) this.esodo.ritorno();
@@ -192,10 +196,21 @@ export class Racconto {
     if (what === 'biglietto') {                                  // Cronico ti dà il biglietto e ti porta alla porta
       this.progress.complete('cronico');
       const B = this.cfg.biglietto;
-      this.ctx.ui.addItem('biglietto');
-      this.ctx.ui.toast(this.cfg.cronico.biglietto.replace('{fila}', B.fila).replace('{posto}', B.posto), 5);
-      this._say('Cronico', this.cfg.cronico.alla_porta, 3);
-      this.stage = 'idle';
+      const dopo = () => {                                       // il biglietto è in tasca: Cronico ti porta alla porta
+        this._setFree(false);
+        this.ctx.ui.addItem('biglietto');
+        this.ctx.ui.toast(this.cfg.cronico.biglietto.replace('{fila}', B.fila).replace('{posto}', B.posto), 5);
+        this._say('Cronico', this.cfg.cronico.alla_porta, 3);
+        this.stage = 'idle';
+      };
+      const cronico = this._npc('Cronico');
+      this.stage = 'consegna';
+      this.freeze = true;                                        // si guarda Cronico: niente movimento
+      this.ctx.interactions.suspended = true;                    // niente "E — Parla" durante la consegna
+      this.ctx.interactions.setModal(null);
+      this.ctx.player.clearInput();
+      if (cronico) { const p = this.ctx.player; p.yaw = yawTo(p.position, cronico.position); p.pitch = -0.08; }
+      this.consegna.start(cronico, { ...this.cfg.consegna, fila: B.fila, posto: B.posto }, dopo);
     }
     if (what === 'scatola') this._titoloBlackBox();               // Lyuce: "vai a vedere la scatola"
     if (what === 'strada') {                                     // Kappa: "apri la porta, ti seguo"
@@ -254,6 +269,7 @@ export class Racconto {
       if (p.x > s.x - 0.1 && Math.abs(p.z - s.z) < 0.6) this._attraversa();
     }
     this.food2.update(dt);
+    if (this.stage === 'consegna') { this.consegna.update(dt); return; }
     if (this.stage === 'aperta2') {                              // porta accanto alla TV aperta: ci si entra camminando
       const s = this.portaTv.soglia, p = ctx.player.position;
       if (Math.hypot(p.x - s.x, p.z - s.z) < this.cfg.ingresso) this._enterStanzetta();

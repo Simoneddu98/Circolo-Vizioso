@@ -59,6 +59,20 @@ export const STORIA = {
     arrivo: [4.6, 6.9],                     // dove ti ritrovi entrando (davanti alla porta, di spalle)
   },
   biglietto: { fila: 'F', posto: 7 },
+  // il biglietto che Cronico ti mette in mano (src/storia/biglietto.js); pos/rot sono nell'attacco della mano (come la sigaretta)
+  consegna: {
+    clip: null,                             // nessun gesto: il braccio destro si tende con l'IK (src/ik.js)
+    braccio: { avanti: 0.5, giu: 0.12, gomitoFuori: 0.3 },   // metri dalla spalla: quanto avanti e quanto in basso rispetto ad essa
+    sopra: 'Circolo Vizioso', titolo: 'Cinema',
+    tendi: 1.0,                             // secondi: lui tende il biglietto, la tua mano sale
+    vola: 0.55,                             // secondi: dalla sua mano alla tua
+    leggi: 2.6,                             // secondi: lo tieni davanti agli occhi
+    alzaMano: 0.0,                          // metri sopra l'osso della mano di Cronico
+    arco: 0.06,                             // piccolo arco in volo
+    pos: [0.062, 0.01, 0], rot: [0, 0, -0.12],   // posizione e rotazione nell'attacco della mano (l'asse X è lungo il biglietto pizzicato)
+    ingrandisci: 1.7,                       // il biglietto nella mano di Cronico è più grande, così da lontano si vede
+    lettura: { pose: { pos: [0.02, -0.08, -0.30], rot: [0.55, 0.10, -0.15] }, durata: 0.6 },
+  },
   item: 'Biglietto',
   postoGiusto: 'Siediti',
   postoSbagliato: 'Fila {fila}, posto {posto}',
