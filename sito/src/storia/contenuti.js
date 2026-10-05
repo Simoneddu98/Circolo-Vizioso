@@ -7,9 +7,8 @@ import { ASSET_VERSION } from '../version.js';
 export const STORIA = {
   storageKey: 'circolo.progress.storia.v1',
   passi: [
-    { goal: 'nicola', text: 'Parla con Nicola al bancone', locked: 'Prima parla con Nicola al bancone' },
-    { goal: 'presentazioni', text: 'Presentati a tutti ({n}/5): Cronico, Rafka, Kappa, Zugo, Lyuce', locked: 'Prima conosci tutti' },
-    { goal: 'porta', text: 'Cronico ti aspetta alla porta d\'ingresso', locked: 'Più tardi: adesso c\'è la storia' },
+    { goal: 'cronico', text: 'Parla con Cronico: ti aspetta qui all\'ingresso', locked: 'Prima parla con Cronico' },
+    { goal: 'porta', text: 'Segui Cronico e apri la porta d\'ingresso', locked: 'Più tardi: adesso c\'è la storia' },
     { goal: 'biglietto', text: 'Trova il tuo posto: fila {fila}, posto {posto}', locked: 'Più tardi' },
     { goal: 'film', text: 'Goditi il film', locked: 'Più tardi' },
     { goal: 'uscita', text: 'Esci dal cinema: le tende rosse in fondo alla sala', locked: 'Più tardi' },
@@ -31,16 +30,17 @@ export const STORIA = {
     { goal: 'casa', text: 'Scendi (E) ed entra a casa: il portone con l\'insegna CASA e la colonna di luce', locked: 'Più tardi' },
     { goal: 'continua', text: 'Fine del quarto capitolo. Casa... è il circolo. Gira e gioca' },
   ],
-  requires: { minigame: 'idee', smoke: 'nicola' },
+  requires: { minigame: 'idee', smoke: 'cronico' },
   ui: { label: 'La storia', sub: 'Sperimentale: capitolo 1, il cinema' },
-  presentazioni: { Cronico: 'benvenuto', Rafka: 'rafka_ciao', Kappa: 'kappa_ciao', Zugo: 'zucco_ciao', Lyuce: 'lyuce_ciao' },
-  presentazioniCoda: 'Fatti un giro e conosci tutti: poi Cronico ti porta in un posto.',
-  attesa: 4,                                // secondi dopo l'ultima presentazione
 
   cronico: {
     porta: [-3.05, 3.35],                   // dove aspetta, accanto alla porta (coordinate del circolo)
-    nodo: 'storia_invito',
+    nodo: 'storia_biglietto',
     chiama: 'Ohi! Vieni qua, alla porta. Ti faccio vedere una cosa.',
+    attesaAuto: 4,                          // secondi prima che il dialogo si apra da solo
+    daTe: 'Ohi, tu! Vieni qui, che ho una cosa per te.',
+    biglietto: 'Hai ricevuto un biglietto: fila {fila}, posto {posto}',
+    alla_porta: 'Seguimi. Si entra da qui.',
     apri: 'Apri tu. Io resto qui: certe cose si guardano da soli.',
     dentro: 'Vai, vai. Cammina e non voltarti.',
   },

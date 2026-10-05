@@ -31,9 +31,13 @@ import { isTouchDevice, TouchControls } from './touch.js';
 import { Serata } from './serata/director.js';
 import { Racconto } from './storia/racconto.js';
 import { setupPorta } from './porta.js';
+import { Plus } from './plus.js';
+import { creaPlusUI } from './plusui.js';
 
 const DEBUG = new URLSearchParams(location.search).get('debug') === '1';
 const ui = new UI(CONFIG);
+const plus = new Plus(CONFIG.plus);                       // giochi plus con codice
+creaPlusUI(plus);
 const progress = new Progress(CONFIG, ui);
 const wallet = new Wallet(CONFIG, () => broke());
 const canvas = document.getElementById('scene');
