@@ -15,7 +15,6 @@ import { Strada } from './strada.js';
 import { Auto } from './auto.js';
 import { Ostacoli } from './ostacoli.js';
 import { yawTo, pitchTo } from '../player.js';
-import { saltaPresentazioni } from '../serata/director.js';
 
 export class Racconto {
   constructor(ctx, serata) {
@@ -53,7 +52,6 @@ export class Racconto {
     this.auto = new Auto(ctx, this.cfg.auto, this.strada);
     this.inStrada = false;
     for (const src of [this.cfg.logo, this.cfg.fumoLogo, this.cfg.bbLogo]) new Image().src = src;
-    this._wrapBarista();
     this._targets();
     if (new URLSearchParams(location.search).get('debug') === '1') window.__storia = this;   // per le prove
   }
@@ -66,19 +64,16 @@ export class Racconto {
   begin() {
     this.mode = 'racconto';
     this.progress.useSteps(this.steps, this.cfg.requires, this.cfg.storageKey);
-    if (this.ctx.config.prova?.attiva) saltaPresentazioni(this.ctx, this.cfg.presentazioni);   // PROVA: niente giro iniziale
+    // niente giro iniziale: i personaggi sono già in giro e Cronico ti aspetta con il biglietto
+    for (const n of ['nicola_ciao', 'benvenuto']) this.ctx.dialogue.seen.add(n);
+    if (this.progress.done.has('nicola') || this.progress.done.has('porta')) this.progress.done.add('cronico');   // salvataggi di prima
     this._preparaEst();
     clearTimeout(this.precaricaT);
     this.precaricaT = setTimeout(() => this._precarica(), 800);    // la strada e la macchina si caricano in sottofondo
     this.stage = 'idle';
     this.wait = 1.5;
-    if (this.progress.goal === 'nicola') {
-      const n = this._npc('Nicola');
-      if (n) {
-        this.ctx.player.yaw = yawTo(this.ctx.player.position, n.getWorldPosition(new THREE.Vector3()));
-        setTimeout(() => { this.ctx.npcs.say(n, 'Ohi, tu! Vieni al bancone, che ti spiego come funziona.'); this.ctx.npcs.lastTime = this.ctx.npcs.clock + 6; }, 900);
-      }
-    }
+    if (this.progress.isDone('cronico')) this.ctx.ui.addItem('biglietto');
+    if (this.progress.goal === 'cronico') this._cronicoTiAspetta();
     // a metà di un capitolo (ricaricando la pagina) si riparte dall'inizio del capitolo
     if (['biglietto', 'film', 'uscita'].includes(this.progress.goal)) { for (const g of ['porta', 'biglietto', 'film']) this.progress.done.delete(g); this.progress.ui.renderGoals(); }
     if (['stanzetta', 'fumo', 'uscita2'].includes(this.progress.goal)) { for (const g of ['rafka', 'stanzetta', 'fumo']) this.progress.done.delete(g); this.progress.ui.renderGoals(); }
@@ -175,16 +170,14 @@ export class Racconto {
   // ------------------------------------------------------------------ servizi chiamati da dialoghi e main
 
   decorate(npc, text, node = null) {
-    if (node && node !== 'benvenuto' && this.story && !this.progress.isDone('presentazioni') && Object.values(this.cfg.presentazioni).includes(node)) {
-      return `${text} ${this.cfg.presentazioniCoda}`;
-    }
-    return text;
+    const B = this.cfg.biglietto;
+    return text.replace('{fila}', B.fila).replace('{posto}', B.posto);
   }
 
   startNode(npc) {
     if (!this.story || !['vaAllaPorta', 'aspetta'].includes(this.stage)) return null;
     const goal = this.progress.goal, name = npc.userData.npc_name;
-    if (goal === 'porta' && name === 'Cronico') { this.stage = 'talk'; return this.cfg.cronico.nodo; }
+    if (goal === 'cronico' && name === 'Cronico') { this.stage = 'talk'; return this.cfg.cronico.nodo; }
     if (goal === 'rafka' && name === 'Rafka') { this.stage = 'talk'; return this.cfg.rafka.nodo; }
     if (goal === 'lyuce' && name === 'Lyuce') { this.stage = 'talk'; return this.cfg.lyuce.nodo; }
     if (goal === 'kappa' && name === 'Kappa') { this.stage = 'talk'; return this.cfg.kappa.nodo; }
@@ -193,7 +186,14 @@ export class Racconto {
 
   action(what) {
     if (this.stage !== 'talk') return;
-    if (what === 'segui') { this.stage = 'porta'; this._say('Cronico', this.cfg.cronico.apri, 5); }
+    if (what === 'biglietto') {                                  // Cronico ti dà il biglietto e ti porta alla porta
+      this.progress.complete('cronico');
+      const B = this.cfg.biglietto;
+      this.ctx.ui.addItem('biglietto');
+      this.ctx.ui.toast(this.cfg.cronico.biglietto.replace('{fila}', B.fila).replace('{posto}', B.posto), 5);
+      this._say('Cronico', this.cfg.cronico.alla_porta, 3);
+      this.stage = 'idle';
+    }
     if (what === 'scatola') this._titoloBlackBox();               // Lyuce: "vai a vedere la scatola"
     if (what === 'strada') {                                     // Kappa: "apri la porta, ti seguo"
       this.progress.complete('kappa');
@@ -281,14 +281,13 @@ export class Racconto {
     }
     if (this.wait > 0) { this.wait -= dt; return; }
     const goal = this.progress.goal;
-    if (goal === 'presentazioni') {
-      const need = Object.entries(this.cfg.presentazioni);
-      const met = need.filter(([, node]) => ctx.dialogue.seen.has(node)).length;
-      if (met !== this.progress.counts.presentazioni) this.progress.setCount('presentazioni', met);
-      if (met >= need.length && !ctx.dialogue.active) {
-        this.metT = (this.metT ?? 0) + dt;
-        if (this.metT >= this.cfg.attesa) { this.metT = 0; this.progress.complete('presentazioni'); }
-      }
+    if (goal === 'cronico') {                                    // aspetta con il biglietto; se non gli parli ti chiama lui
+      if (this.stage === 'vaAllaPorta') this._walk(dt);
+      else if (this.stage === 'aspetta') {
+        this._aspetta();
+        this.attesaT = (this.attesaT ?? 0) + dt;
+        if (this.attesaT > this.cfg.cronico.attesaAuto && !ctx.dialogue.active) { this.attesaT = -1e9; this._parlaCon('Cronico'); }
+      } else if (this.stage === 'talk' && !ctx.dialogue.active) this.stage = 'aspetta';
     } else if (goal === 'esodo') {
       if (this.stage === 'esodoAttesa') {                        // si apre la porta d'ingresso e se ne vanno tutti
         ctx.porta?.open();
@@ -332,6 +331,19 @@ export class Racconto {
     this.ctx.npcs.lastTime = this.ctx.npcs.clock + dur;
   }
 
+  // all'inizio Cronico resta dov'è, girato verso di te: il dialogo si apre da solo dopo qualche secondo
+  _cronicoTiAspetta() {
+    const n = this._npc('Cronico');
+    if (!n) { this.progress.complete('cronico'); return; }
+    this.attesaT = 0;
+    this._mandaA('Cronico', [n.position.x, n.position.z], this.cfg.cronico.daTe, 'cronico');
+    this.called = true;
+    this.ctx.player.yaw = yawTo(this.ctx.player.position, n.position);
+    this.ctx.player.pitch = -0.04;
+  }
+
+  _parlaCon(name) { const n = this._npc(name); if (n) this.ctx.dialogue.open(n); }
+
   _cronicoAllaPorta() { this._mandaA('Cronico', this.cfg.cronico.porta, this.cfg.cronico.chiama, 'porta'); }
 
   // Rafka va ad aspettarti nel punto del circolo più lontano da te; l'obiettivo dice dove
@@ -367,6 +379,7 @@ export class Racconto {
       const u = npc.userData;
       if (u.idle_clip) ctx.npcs.setLoop(npc, u.stand_clip ?? u.idle_clip, 1, 0.3);
       this.stage = 'aspetta';
+      if (this.progress.goal === 'porta') { this.stage = 'porta'; this._say('Cronico', this.cfg.cronico.apri, 5); }   // la porta si apre da sé
       return;
     }
     if (d < this.bestD - 0.05) { this.bestD = d; this.stuckT = 0; } else this.stuckT += dt;
@@ -1265,21 +1278,5 @@ export class Racconto {
       if (k.userData.idle_clip) ctx.npcs.setLoop(k, k.userData.idle_clip, 1, 0.3);
       this.kappaFuori = null;
     }
-  }
-
-  // ------------------------------------------------------------------ Nicola: prima ti spiega, poi serve da bere
-
-  _wrapBarista() {
-    const ctx = this.ctx;
-    const h = ctx.interactions.handlers.get('serve_drink');
-    if (!h) return;
-    const label = h.label, act = h.action;
-    const first = () => this.story && this.progress.goal === 'nicola';
-    h.label = (t, c) => (first() ? `${ctx.config.interaction.labels.talk} Nicola` : label.call(h, t, c));
-    h.action = (t, c) => {
-      if (!first()) { act.call(h, t, c); return; }
-      const n = ctx.npcs.npcs.find((o) => o.userData.npc_action === 'serve');
-      if (n) ctx.dialogue.open(n, 'nicola_ciao');
-    };
   }
 }
