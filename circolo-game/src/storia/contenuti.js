@@ -191,7 +191,8 @@ export const STORIA = {
     telefono: { avanti: 2, nebbia: [12, 46], lontano: 60, portaleQualita: 0.85 },   // sui telefoni: meno strada da disegnare
     arrivoHint: 'Sei fuori. Prenditi una boccata d\'aria: la tua macchina è parcheggiata più avanti.',
     locale: { porta: [-6.4, -9.0], altezza: 3.3, insegna: 'BAR' },   // il portone con i gradini, marciapiede nord
-    casa: 28,                               // il tratto (dritto) dove c'è casa, alla fine del percorso (≈1,1 km)
+    casa: 76,                               // il tratto (dritto: 76 % 16 = 12, come l'altro) dove c'è casa, alla fine del percorso (≈3 km, un minuto e mezzo)
+    tramonto: { cielo: 0xf2a870, sole: 0xff9a52, luce: 0.85 },   // il cielo vira piano verso il tramonto lungo il percorso
     casaLabel: 'Apri la porta di casa',
   },
   ctvLogo: './assets/titoli/cometiva.png',
@@ -232,6 +233,12 @@ export const STORIA = {
       [21, 16, 1.2, 'barile'],
       [24, 20, -1.3, 'transenna'],
     ],
+    // pensieri ad alta voce lungo il percorso (soglie in % del tragitto)
+    tappe: {
+      25: 'Un quarto di strada. Il circolo sembra già lontano.',
+      50: 'Metà strada. Strano: non ricordo di aver mai fatto questa strada.',
+      75: 'Si sta facendo sera. Quasi arrivato.',
+    },
     casa: 'Casa. ...Ma questo è il circolo?',
     rientro: 'Bentornato. Lo sapevi anche tu: casa è qui. Da qualunque porta entri, finisci sempre qui.',
   },
@@ -283,3 +290,23 @@ export const STORIA = {
     durata: 60,
   },
 };
+
+// Ostacoli del percorso lungo (casa a 3 km): quelli scritti a mano arrivano al tratto 24, poi si continua con un generatore
+// a seme fisso (stesso percorso a ogni partita). Più si va avanti più sono fitti; ogni tanto una coppia da slalom. Mai due
+// ostacoli a meno di 12 m, e di traverso sempre dentro la carreggiata, così c'è sempre un passaggio.
+function generaOstacoli(da, a) {
+  let x = 20261003;
+  const r = () => { x = (x + 0x6D2B79F5) | 0; let t = Math.imul(x ^ (x >>> 15), 1 | x); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const out = [], tipi = ['cono', 'barile', 'transenna'];
+  for (let seg = da; seg <= a; seg++) {
+    const k = (seg - da) / (a - da);                       // 0 → 1 lungo il percorso
+    if (r() > 0.55 + 0.4 * k) continue;                    // alcuni tratti restano liberi
+    const lato = r() < 0.5 ? -1 : 1;
+    const d = lato * (0.7 + r() * 0.75), s = 8 + r() * 24;
+    const tipo = tipi[Math.floor(r() * 3)];
+    out.push([seg, +s.toFixed(1), +d.toFixed(2), tipo]);
+    if (tipo === 'cono' && r() < 0.6) out.push([seg, +(s + 1.6).toFixed(1), +(d - lato * 0.55).toFixed(2), 'cono']);   // due coni in diagonale
+  }
+  return out;
+}
+STORIA.auto.ostacoli.push(...generaOstacoli(26, STORIA.strada.casa - 2));

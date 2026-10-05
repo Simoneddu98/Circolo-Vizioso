@@ -1230,6 +1230,10 @@ export class Racconto {
       const fine = S.cfg.casa * 40 + S.cfg.porta[0] + 20, fatto = S.seg * 40 + this.auto.s;
       const n = Math.max(0, Math.min(100, Math.round((100 * fatto) / fine)));
       if (n !== this.progress.counts.guida) this.progress.setCount('guida', n);
+      S.tinta(n / 100);
+      for (const [soglia, testo] of Object.entries(A.tappe ?? {})) {                 // a un quarto, a metà, a tre quarti
+        if (n >= +soglia && !(this.tappeFatte ??= new Set()).has(soglia)) { this.tappeFatte.add(soglia); this._say('Tu', testo, 5); }
+      }
       // la frenata comincia in tempo per fermarsi davanti al portone (spazio di frenata v²/2a)
       const frena = (this.auto.v * this.auto.v) / (2 * A.frenata) + 2;
       if (fine - fatto < frena && fatto - fine < 12) {
@@ -1290,7 +1294,7 @@ export class Racconto {
     if (this.auto.driving) { this.auto.driving = false; ctx.player.seat = null; }
     this._cruscotto(false);
     this.ostacoli?.reset(); this.ostacoli?.mostra(false);
-    this.oltreDetto = false;
+    this.oltreDetto = false; this.tappeFatte = null;
     ctx.interactions.suspended = false;
     this.auto.driving = false;                                   // la macchina torna al suo parcheggio
     this.auto.parcheggia();

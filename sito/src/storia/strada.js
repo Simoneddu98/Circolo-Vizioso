@@ -18,6 +18,8 @@
 // telecamera messa nel punto corrispondente (dietro la porta della strada, sulla facciata) e la si mostra nel vano della
 // porta, con le coordinate dello schermo. Passata la soglia si è in strada, senza dissolvenze.
 import * as THREE from 'three';
+
+const _tc = new THREE.Color();
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { creaPorta, caricaPorta } from '../porta.js';
@@ -171,8 +173,10 @@ export class Strada {
       // vetri "a trasmissione": costringono a ridisegnare tutta la scena una seconda volta. Vetro trasparente semplice
       if (m.material.transmission > 0) { m.material.transmission = 0; m.material.transparent = true; m.material.opacity = 0.35; }
     });
-    g.add(new THREE.HemisphereLight(C.cielo, 0x3a3026, C.luce));
+    this.hemi = new THREE.HemisphereLight(C.cielo, 0x3a3026, C.luce);
+    g.add(this.hemi);
     const sun = new THREE.DirectionalLight(0xffe2bc, C.sole);
+    this.sun = sun;
     sun.position.set(-12, 20, 8);
     g.add(sun, sun.target);
     // copie del tratto, ognuna con i suoi materiali piegabili
@@ -387,7 +391,18 @@ export class Strada {
     }
   }
 
-  show(v) { this.group.visible = v; this._ambiente(v); }
+  // k da 0 (giorno) a 1 (tramonto): cielo, nebbia e luci virano piano verso i colori di cfg.tramonto
+  tinta(k) {
+    const T = this.cfg.tramonto, C = this.cfg;
+    if (!T || !this.cielo) return;
+    this.cielo.set(C.cielo).lerp(_tc.set(T.cielo), k);
+    this.nebbia?.color.copy(this.cielo);
+    this.hemi?.color.copy(this.cielo);
+    if (this.hemi) this.hemi.intensity = C.luce + (T.luce - C.luce) * k;
+    this.sun?.color.set(0xffe2bc).lerp(_tc.set(T.sole), k);
+  }
+
+  show(v) { this.group.visible = v; this._ambiente(v); if (v) this.tinta(0); }
 
   // shader e texture pronti prima che servano (niente scatti la prima volta che si vede la strada)
   async prepara(extra = []) {
