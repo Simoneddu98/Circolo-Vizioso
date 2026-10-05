@@ -66,7 +66,10 @@ export class Racconto {
     this.progress.useSteps(this.steps, this.cfg.requires, this.cfg.storageKey);
     // niente giro iniziale: i personaggi sono già in giro e Cronico ti aspetta con il biglietto
     for (const n of ['nicola_ciao', 'benvenuto']) this.ctx.dialogue.seen.add(n);
-    if (this.progress.done.has('nicola') || this.progress.done.has('porta')) this.progress.done.add('cronico');   // salvataggi di prima
+    // salvataggi di prima: Cronico si salta solo se la storia era già oltre l'ingresso (porta o passi successivi).
+    // Chi aveva fatto solo Nicola e le presentazioni ricomincia da Cronico, che gli dà il biglietto.
+    const dallaPorta = this.progress.steps.slice(this.progress.steps.findIndex((s) => s.goal === 'porta')).map((s) => s.goal);
+    if (dallaPorta.some((g) => this.progress.done.has(g))) this.progress.done.add('cronico');
     this._preparaEst();
     clearTimeout(this.precaricaT);
     this.precaricaT = setTimeout(() => this._precarica(), 800);    // la strada e la macchina si caricano in sottofondo
