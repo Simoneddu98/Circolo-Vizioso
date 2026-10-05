@@ -3,7 +3,7 @@
 // configurazione del lotto) parte quello al posto del battito e il metronomo si abbassa.
 // Il tempo di gioco è l'orologio audio (ctx.currentTime): le note si disegnano e si giudicano su quello.
 
-import { sbloccaAudio, riprovaAlTocco } from '../../audiosession.js';
+import { sbloccaAudio, riprovaAlTocco, audioMuto, suAudioMuto } from '../../audiosession.js';
 
 export class Ritmo {
   constructor(cfg) {
@@ -22,7 +22,7 @@ export class Ritmo {
       const d = this.rumore.getChannelData(0);
       for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
       this.master = this.ctx.createGain();
-      this.master.gain.value = cfg.muto ? 0 : 0.9;           // muto: l'orologio audio corre lo stesso (per le prove)
+      this.master.gain.value = cfg.muto || audioMuto() ? 0 : 0.9; this.spegni = suAudioMuto((m) => { this.master.gain.value = cfg.muto || m ? 0 : 0.9; });          // muto: l'orologio audio corre lo stesso (per le prove)
       this.master.connect(this.ctx.destination);
     }
   }
@@ -125,6 +125,7 @@ export class Ritmo {
 
   ferma() {
     clearInterval(this.timer);
+    this.spegni?.();
     try { this.fonte?.stop(); } catch { /* già fermo */ }
     if (this.ctx && this.ctx.state !== 'closed') this.ctx.close().catch(() => {});   // si può fermare due volte (fine partita, poi Esci)
   }

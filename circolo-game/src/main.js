@@ -33,11 +33,13 @@ import { Racconto } from './storia/racconto.js';
 import { setupPorta } from './porta.js';
 import { Plus } from './plus.js';
 import { creaPlusUI } from './plusui.js';
+import { creaTastoAudio } from './audiosession.js';
 
 const DEBUG = new URLSearchParams(location.search).get('debug') === '1';
 const ui = new UI(CONFIG);
 const plus = new Plus(CONFIG.plus);                       // giochi plus con codice
 const plusUI = creaPlusUI(plus);
+creaTastoAudio();
 if (DEBUG) { window.__plus = plus; window.__plusUI = plusUI; }   // per le prove
 const progress = new Progress(CONFIG, ui);
 const wallet = new Wallet(CONFIG, () => broke());
