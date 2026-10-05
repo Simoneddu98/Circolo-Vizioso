@@ -37,7 +37,8 @@ import { creaPlusUI } from './plusui.js';
 const DEBUG = new URLSearchParams(location.search).get('debug') === '1';
 const ui = new UI(CONFIG);
 const plus = new Plus(CONFIG.plus);                       // giochi plus con codice
-creaPlusUI(plus);
+const plusUI = creaPlusUI(plus);
+if (DEBUG) { window.__plus = plus; window.__plusUI = plusUI; }   // per le prove
 const progress = new Progress(CONFIG, ui);
 const wallet = new Wallet(CONFIG, () => broke());
 const canvas = document.getElementById('scene');

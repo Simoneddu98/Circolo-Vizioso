@@ -549,9 +549,9 @@ export const CONFIG = {
         storia: { text: 'Il circolo l\'ha aperto mio nonno nel sessantotto. Il biliardo è quello originale; il maxischermo no, quello l\'abbiamo preso per i mondiali. Da allora qui è sempre la stessa sera. Ed è una bella sera.',
           options: [{ text: 'A dopo.', action: 'end' }] },
         // "La storia": Cronico ti aspetta alla porta d'ingresso
-        storia_biglietto: { text: 'Ohi, benvenuto al Circolo Vizioso! Io sono Cronico, il padrone di casa. Stasera niente partita e niente bancone: c\'è un posto che al circolo conoscono in pochi. Tieni, il tuo biglietto: fila {fila}, posto {posto}.',
+        storia_biglietto: { text: 'Ohi, benvenuto al Circolo Vizioso! Io sono Cronico, il padrone di casa. Stasera si fa qualcosa di diverso: c\'è un posto che al circolo conoscono in pochi. Tieni, il tuo biglietto: fila {fila}, posto {posto}.',
           options: [{ text: 'Un biglietto per cosa?', next: 'storia_biglietto2' }, { text: 'Grazie. Dove si va?', action: 'serata:biglietto' }] },
-        storia_biglietto2: { text: 'Per un cinema che non trovi sulle mappe. Si entra da quella porta qui accanto. Ti accompagno, ma poi ti siedi da solo.',
+        storia_biglietto2: { text: 'Per un posto che non trovi sulle mappe. Si entra da quella porta qui accanto. Ti accompagno, ma poi vai avanti da solo.',
           options: [{ text: 'Ci sto.', action: 'serata:biglietto' }] },
         // Brano 1: Cronico ti porta davanti al maxischermo
         cinema_invito: { text: 'Eccoti! Allora, stasera niente partita: si fa cinema. Siediti davanti al maxischermo: domande facili, film d\'amore e qualcosa di più... caldo. Rispondi veloce, che i punti si sommano fino a fine serata.',
@@ -1007,8 +1007,9 @@ export const CONFIG = {
     url: 'https://tlzzijdkkhynyaxwxcyg.supabase.co',
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRsenppamRra2h5bnlheHd4Y3lnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyMTkxNDksImV4cCI6MjEwNjc5NTE0OX0.kRTBHOTZk0nQ3-NiqWDR9JfsFTkVhlh-Gy190I-nwS0',
     lotti: {                                // un lotto per ogni gioco plus; l'id è quello della tabella public.lotti
-      'jukebox-cinema': { nome: 'Jukebox: Cinema' },
-      'jukebox-blackbox': { nome: 'Jukebox: Black Box' },
+      // gioco: 'jukebox' = gioco a ritmo (src/plus/jukebox/). bpm e seme dello spartito; audio: file del brano (null = metronomo)
+      'jukebox-cinema': { nome: 'Jukebox: Cinema', gioco: 'jukebox', bpm: 113, seed: 1103, audio: null, audioOffset: 0 },
+      'jukebox-blackbox': { nome: 'Jukebox: Black Box' },                // il gioco arriva con il secondo singolo
     },
   },
 

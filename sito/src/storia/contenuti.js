@@ -31,7 +31,7 @@ export const STORIA = {
     { goal: 'continua', text: 'Fine del quarto capitolo. Casa... è il circolo. Gira e gioca' },
   ],
   requires: { minigame: 'idee', smoke: 'cronico' },
-  ui: { label: 'La storia', sub: 'Sperimentale: capitolo 1, il cinema' },
+  ui: { label: 'La storia', sub: 'Sperimentale: la storia' },
 
   cronico: {
     porta: [-3.05, 3.35],                   // dove aspetta, accanto alla porta (coordinate del circolo)
@@ -41,7 +41,7 @@ export const STORIA = {
     daTe: 'Ohi, tu! Vieni qui, che ho una cosa per te.',
     biglietto: 'Hai ricevuto un biglietto: fila {fila}, posto {posto}',
     alla_porta: 'Seguimi. Si entra da qui.',
-    apri: 'Apri tu. Io resto qui: certe cose si guardano da soli.',
+    apri: 'Apri tu. Io resto qui: certe cose si scoprono da soli.',
     dentro: 'Vai, vai. Cammina e non voltarti.',
   },
   portaLabel: 'Apri la porta',
@@ -63,15 +63,18 @@ export const STORIA = {
   consegna: {
     clip: null,                             // nessun gesto: il braccio destro si tende con l'IK (src/ik.js)
     braccio: { avanti: 0.5, giu: 0.12, gomitoFuori: 0.3 },   // metri dalla spalla: quanto avanti e quanto in basso rispetto ad essa
-    sopra: 'Circolo Vizioso', titolo: 'Cinema',
+    sopra: 'Circolo Vizioso',
     tendi: 1.0,                             // secondi: lui tende il biglietto, la tua mano sale
     vola: 0.55,                             // secondi: dalla sua mano alla tua
     leggi: 2.6,                             // secondi: lo tieni davanti agli occhi
     alzaMano: 0.0,                          // metri sopra l'osso della mano di Cronico
     arco: 0.06,                             // piccolo arco in volo
-    pos: [0.062, 0.01, 0], rot: [0, 0, -0.12],   // posizione e rotazione nell'attacco della mano (l'asse X è lungo il biglietto pizzicato)
+    // Il biglietto è tenuto per il bordo lungo, tra pollice e indice: il piano passa per l'asse del pizzico e il resto pende
+    // dal lato aperto della mano. Valori misurati sulla geometria della mano (nessun punto della mano dentro il biglietto).
+    pos: [0.05, 0, -0.025], rot: [-1.5708, 0.05, 0],
     ingrandisci: 1.7,                       // il biglietto nella mano di Cronico è più grande, così da lontano si vede
-    lettura: { pose: { pos: [0.02, -0.08, -0.30], rot: [0.55, 0.10, -0.15] }, durata: 0.6 },
+    // polso girato perché la faccia del biglietto guardi verso di te, col testo dritto
+    lettura: { pose: { pos: [-0.0331, -0.11, -0.306], rot: [1.9208, -0.2249, 0] }, durata: 0.6 },
   },
   item: 'Biglietto',
   postoGiusto: 'Siediti',

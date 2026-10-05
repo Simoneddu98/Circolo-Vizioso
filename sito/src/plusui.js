@@ -6,6 +6,9 @@ const CSS = `
     font: 600 15px var(--display, sans-serif); letter-spacing: .08em; text-transform: uppercase; padding: 2px 0; cursor: pointer; }
   #plus-open:hover { color: #fff; border-bottom-color: #fff; }
   #plus-sbloccati { margin: 10px 0 0; font: 15px var(--body, sans-serif); color: #7be08f; }
+  #plus-giochi { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+  #plus-giochi button { padding: 10px 18px; font: 600 16px var(--display, sans-serif); letter-spacing: .06em; text-transform: uppercase; cursor: pointer;
+    border-radius: 8px; border: 2px solid #ffe100; background: linear-gradient(180deg, #c93cf0, #7a1fa0); color: #fff; }
   #plus-box { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: rgba(0,0,0,.72); padding: 16px; }
   #plus-box[hidden] { display: none; }
   #plus-box .card { width: min(440px, 100%); background: #14091c; border: 2px solid rgba(217,170,69,.7); border-radius: 10px; padding: 20px 20px 16px;
@@ -26,7 +29,7 @@ const CSS = `
 export function creaPlusUI(plus, { testi, onSbloccato } = {}) {
   if (!plus.attivo) return null;                       // senza collegamento al database il pulsante non compare
   const T = { apri: 'Ho un codice', titolo: 'Gioco plus', testo: 'Scrivi il codice che hai ricevuto. Vale per un solo dispositivo.',
-    segnaposto: 'XXXXX-XXXXX', conferma: 'Sblocca', chiudi: 'Chiudi', controllo: 'Controllo…', ok: 'Sbloccato: {nome}', sbloccati: 'Sbloccati: {elenco}', ...testi };
+    segnaposto: 'XXXXX-XXXXX', gioca: 'Gioca', conferma: 'Sblocca', chiudi: 'Chiudi', controllo: 'Controllo…', ok: 'Sbloccato: {nome}', sbloccati: 'Sbloccati: {elenco}', ...testi };
   const s = document.createElement('style');
   s.textContent = CSS;
   document.head.appendChild(s);
@@ -36,8 +39,11 @@ export function creaPlusUI(plus, { testi, onSbloccato } = {}) {
   apri.id = 'plus-open'; apri.type = 'button'; apri.textContent = T.apri;
   const elenco = document.createElement('p');
   elenco.id = 'plus-sbloccati';
+  const giochi = document.createElement('div');
+  giochi.id = 'plus-giochi';
   anchor?.after(apri);
   apri.after(elenco);
+  elenco.after(giochi);
 
   const box = document.createElement('div');
   box.id = 'plus-box'; box.hidden = true;
@@ -50,9 +56,21 @@ export function creaPlusUI(plus, { testi, onSbloccato } = {}) {
   q('h2').textContent = T.titolo; q('p').textContent = T.testo; q('input').placeholder = T.segnaposto;
   q('.no').textContent = T.chiudi; q('.si').textContent = T.conferma;
 
-  const aggiorna = () => {
-    elenco.textContent = plus.sbloccati.length ? T.sbloccati.replace('{elenco}', plus.sbloccati.map((l) => plus.nome(l)).join(', ')) : '';
+  const gioca = async (lotto) => {                      // il gioco si carica solo quando serve
+    const { apriJukebox } = await import('./plus/jukebox/view.js');
+    const debug = new URLSearchParams(location.search);
+    const j = apriJukebox({ ...plus.cfg.lotti[lotto], id: lotto }, { nome: plus.nome(lotto), auto: debug.get('debug') === '1' && debug.get('autoplay') === '1', muto: debug.get('debug') === '1' && debug.get('mute') === '1' ? true : undefined, onExit: aggiorna });
+    if (debug.get('debug') === '1') window.__jukebox = j;
   };
+  function aggiorna() {
+    elenco.textContent = plus.sbloccati.length ? T.sbloccati.replace('{elenco}', plus.sbloccati.map((l) => plus.nome(l)).join(', ')) : '';
+    giochi.replaceChildren(...plus.sbloccati.filter((l) => plus.cfg.lotti?.[l]?.gioco === 'jukebox').map((l) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = `${T.gioca}: ${plus.nome(l)}`;
+      b.addEventListener('click', () => gioca(l));
+      return b;
+    }));
+  }
   const chiudi = () => { box.hidden = true; };
   const mostra = (testo, tipo = '') => { const e = q('.esito'); e.textContent = testo; e.className = `esito ${tipo}`; };
 
@@ -70,9 +88,10 @@ export function creaPlusUI(plus, { testi, onSbloccato } = {}) {
     mostra(T.ok.replace('{nome}', plus.nome(r.lotto)), 'ok');
     aggiorna();
     onSbloccato?.(r.lotto);
+    setTimeout(chiudi, 1100);                           // si chiude da solo: sotto compare il pulsante per giocare
   });
 
   aggiorna();
   plus.riconferma().then(aggiorna);                     // un codice sganciato o rifiutato sparisce dall'elenco
-  return { aggiorna };
+  return { aggiorna, gioca };
 }

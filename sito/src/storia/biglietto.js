@@ -22,9 +22,10 @@ function disegna(cfg) {
   // strappo a destra
   g.strokeStyle = 'rgba(255,225,0,.55)'; g.lineWidth = 4; g.setLineDash([10, 12]); g.beginPath(); g.moveTo(790, 40); g.lineTo(790, 472); g.stroke(); g.setLineDash([]);
   g.fillStyle = '#ffe100'; g.textBaseline = 'alphabetic';
-  g.font = '600 44px Oswald, Impact, sans-serif'; g.fillText(cfg.sopra.toUpperCase(), 64, 100);
-  g.fillStyle = '#ff17e4'; g.font = '700 190px Oswald, Impact, sans-serif'; g.fillText(cfg.titolo.toUpperCase(), 60, 290);
-  g.fillStyle = '#f4f2fa'; g.font = '600 74px Oswald, Impact, sans-serif'; g.fillText(`FILA ${cfg.fila}   ·   POSTO ${cfg.posto}`, 64, 420);
+  g.font = '600 46px Oswald, Impact, sans-serif'; g.fillText(cfg.sopra.toUpperCase(), 64, 104);
+  g.fillStyle = 'rgba(244,242,250,.7)'; g.font = '500 40px Oswald, Impact, sans-serif'; g.fillText('INGRESSO · UNA PERSONA', 64, 160);
+  g.fillStyle = '#ff17e4'; g.font = '700 150px Oswald, Impact, sans-serif'; g.fillText(`FILA ${cfg.fila}`, 60, 320);
+  g.fillStyle = '#f4f2fa'; g.font = '700 120px Oswald, Impact, sans-serif'; g.fillText(`POSTO ${cfg.posto}`, 64, 450);
   g.save(); g.translate(905, 256); g.rotate(-Math.PI / 2); g.fillStyle = '#ffe100'; g.font = '700 70px Oswald, Impact, sans-serif'; g.textAlign = 'center';
   g.fillText(`${cfg.fila}${cfg.posto}`, 0, 22); g.restore();
   const t = new THREE.CanvasTexture(c);
