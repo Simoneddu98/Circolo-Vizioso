@@ -1,6 +1,6 @@
 // Utilità comuni ai minigiochi: lettura dei marcatori del glb, suoni sintetizzati, statistiche in localStorage.
 import * as THREE from 'three';
-import { sbloccaAudio, riprovaAlTocco, audioMuto } from '../audiosession.js';
+import { sbloccaAudio, riprovaAlTocco, audioMuto, uscita } from '../audiosession.js';
 
 // Camere e spot sono empty esportati da Blender: la camera Blender guarda lungo -Z locale con l'alto su +Y;
 // dopo la conversione Y-up del glTF quegli assi diventano -Y (sguardo) e -Z (alto). Questa rotazione li riporta
@@ -63,7 +63,7 @@ export function sfx({ freq = 1800, dur = 0.05, vol = 0.3, noise = 0.6, type = 't
   const g = a.createGain();
   g.gain.setValueAtTime(Math.min(1, vol), t);
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  g.connect(a.destination);
+  g.connect(uscita(a));
   const o = a.createOscillator();
   o.type = type;
   o.frequency.setValueAtTime(freq, t);
@@ -92,7 +92,7 @@ export function jingle(notes, step = 0.12, vol = 0.18) {
     const o = a.createOscillator(); o.type = 'square'; o.frequency.value = f;
     const g = a.createGain();
     g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + step * 0.95);
-    o.connect(g).connect(a.destination); o.start(t); o.stop(t + step);
+    o.connect(g).connect(uscita(a)); o.start(t); o.stop(t + step);
   });
 }
 

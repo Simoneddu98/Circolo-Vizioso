@@ -3,7 +3,7 @@
 // configurazione del lotto) parte quello al posto del battito e il metronomo si abbassa.
 // Il tempo di gioco è l'orologio audio (ctx.currentTime): le note si disegnano e si giudicano su quello.
 
-import { sbloccaAudio, riprovaAlTocco, audioMuto, suAudioMuto } from '../../audiosession.js';
+import { sbloccaAudio, riprovaAlTocco, audioMuto, suAudioMuto, uscita } from '../../audiosession.js';
 
 export class Ritmo {
   constructor(cfg) {
@@ -23,7 +23,7 @@ export class Ritmo {
       for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
       this.master = this.ctx.createGain();
       this.master.gain.value = cfg.muto || audioMuto() ? 0 : 0.9; this.spegni = suAudioMuto((m) => { this.master.gain.value = cfg.muto || m ? 0 : 0.9; });          // muto: l'orologio audio corre lo stesso (per le prove)
-      this.master.connect(this.ctx.destination);
+      this.master.connect(uscita(this.ctx));
     }
   }
 

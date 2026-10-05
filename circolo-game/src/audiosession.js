@@ -71,4 +71,46 @@ export function creaTastoAudio() {
   suAudioMuto(disegna);
   disegna();
   document.body.appendChild(b);
+  // la card dei soldi sta in alto a destra: il tasto si mette alla sua sinistra, alla stessa altezza
+  const metti = () => {
+    const w = document.getElementById('wallet')?.getBoundingClientRect();
+    const ok = w && w.width > 0 && w.left < innerWidth;
+    b.style.right = ok ? `${Math.round(innerWidth - w.left + 8)}px` : '';
+    b.style.top = ok ? `${Math.max(8, Math.round(w.top + (w.height - 42) / 2))}px` : '';
+  };
+  const w = document.getElementById('wallet');
+  if (w && globalThis.ResizeObserver) new ResizeObserver(metti).observe(w);
+  addEventListener('resize', metti);
+  setInterval(metti, 1000);                       // il portafoglio compare dopo la partenza del gioco
+  metti();
+}
+
+// ------------------------------------------------------------------ uscita audio
+
+const iOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const uscite = new WeakMap();
+
+// Nodo a cui collegare i suoni al posto di ctx.destination. Su iPhone il Web Audio segue l'interruttore silenzioso, un
+// <audio> no: il suono passa da un MediaStream riprodotto da un elemento audio, e quindi si sente comunque.
+export function uscita(ctx) {
+  if (!iOS || !ctx.createMediaStreamDestination) return ctx.destination;
+  let u = uscite.get(ctx);
+  if (!u) {
+    try {
+      const dest = ctx.createMediaStreamDestination();
+      const el = new Audio();
+      el.srcObject = dest.stream; el.setAttribute('playsinline', '');
+      el.play()?.catch(() => {});
+      riprovaMedia(el);
+      u = dest;
+    } catch { u = ctx.destination; }
+    uscite.set(ctx, u);
+  }
+  return u;
+}
+
+function riprovaMedia(el) {
+  const f = () => { el.play()?.then(off).catch(() => {}); };
+  const off = () => { for (const e of ['pointerdown', 'touchend']) removeEventListener(e, f, true); };
+  for (const e of ['pointerdown', 'touchend']) addEventListener(e, f, true);
 }
