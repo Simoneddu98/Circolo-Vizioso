@@ -1,6 +1,6 @@
 // Chi può giocare a cosa, e quando. Una sola tabella (`SBLOCCHI`): ogni contenuto ancora da uscire è "chiuso" finché non
 // arriva la sua data (o finché non lo apri a mano). La MODALITÀ PROVA li apre tutti, solo su questo dispositivo: si accende
-// con ?prova=1 nel link (?prova=0 la spegne) o toccando cinque volte il logo nella schermata iniziale (anche dal telefono), e si ricorda.
+// con ?prova=1 nel link (?prova=0 la spegne) o toccando cinque volte il logo nella schermata iniziale (o tenendolo premuto 2 secondi), e si ricorda.
 // È un blocco "di cortesia": su un sito statico non esiste protezione vera, chi guarda il codice può aggirarlo.
 
 export const SBLOCCHI = {
@@ -31,24 +31,33 @@ export function aperto(id, adesso = Date.now()) {
   return s.da === null || adesso >= Date.parse(s.da);
 }
 
-// Cinque tocchi sul logo (al massimo 3 secondi tra un tocco e l'altro) accendono o spengono la prova; un'etichetta lo mostra.
-// Si contano i pointerdown e non i click: sul telefono i tocchi veloci diventano "doppio tocco" e il browser se li
-// mangia (niente click). Il logo non si ingrandisce, non si seleziona e non apre il menu dell'immagine.
+// Sul logo della schermata iniziale la prova si accende o si spegne in due modi: cinque tocchi (al massimo 3 secondi tra
+// un tocco e l'altro) oppure tenendo il dito (o il mouse) premuto 2 secondi. Un'etichetta PROVA lo mostra.
+// Sul telefono i tocchi veloci diventano "doppio tocco" e il click si perde: si contano pointerdown e touchstart (lo
+// stesso tocco arriva da tutti e due e si conta una volta sola). Il logo non zooma, non si seleziona e non apre il menu
+// dell'immagine; la pressione lunga funziona anche dalla web app aggiunta alla schermata Home, dove ?prova=1 non si può usare.
 export function legaProvaAlLogo(el, onChange) {
   if (!el) return;
   el.style.touchAction = 'manipulation';
   el.style.userSelect = el.style.webkitUserSelect = 'none';
   el.style.webkitTouchCallout = 'none';
   el.style.webkitTapHighlightColor = 'transparent';
-  el.querySelectorAll('img').forEach((img) => { img.draggable = false; img.style.pointerEvents = 'none'; });
+  el.querySelectorAll('img').forEach((img) => { img.draggable = false; img.style.webkitTouchCallout = 'none'; });
   el.addEventListener('contextmenu', (e) => e.preventDefault());
-  let n = 0, t = 0;
-  el.addEventListener('pointerdown', (e) => {
-    if (e.button > 0) return;
+  const cambia = () => { impostaProva(!prova); onChange?.(prova); navigator.vibrate?.(60); };
+  let n = 0, t = 0, lungo = 0;
+  const giu = () => {
     const ora = Date.now();
+    if (ora - t < 80) return;                                   // stesso tocco: pointerdown e touchstart
     n = ora - t > 3000 ? 1 : n + 1; t = ora;
-    if (n >= 5) { n = 0; impostaProva(!prova); onChange?.(prova); navigator.vibrate?.(60); }
-  });
+    clearTimeout(lungo);
+    if (n >= 5) { n = 0; cambia(); return; }
+    lungo = setTimeout(() => { n = 0; cambia(); }, 2000);       // pressione lunga
+  };
+  const su = () => clearTimeout(lungo);
+  el.addEventListener('pointerdown', (e) => { if (!(e.button > 0)) giu(); });
+  el.addEventListener('touchstart', giu, { passive: true });
+  for (const ev of ['pointerup', 'pointercancel', 'pointerleave', 'touchend', 'touchcancel', 'touchmove']) el.addEventListener(ev, su, { passive: true });
 }
 
 export function mostraEtichettaProva() {

@@ -10,7 +10,7 @@ const v = (path) => `${path}?v=${ASSET_VERSION}`;
 export const CONFIG = {
   // PROVA: per provare i giochi senza rifare ogni volta Nicola e le presentazioni. Quando è accesa serata e storia partono già
   // dopo le presentazioni e nel menu di pausa (Esc) ci sono i pulsanti per saltare a ogni gioco, e si aprono anche i contenuti
-  // ancora chiusi (src/accesso.js). Si accende con ?prova=1 o con cinque tocchi sul logo, solo su questo dispositivo.
+  // ancora chiusi (src/accesso.js). Si accende con ?prova=1, con cinque tocchi sul logo o tenendolo premuto 2 secondi, solo su questo dispositivo.
   prova: { get attiva() { return inProva(); } },
 
   assets: {
