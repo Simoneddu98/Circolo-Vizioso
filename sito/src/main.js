@@ -193,6 +193,9 @@ async function load() {
 
   window.circolo = { register: (type, handler) => interactions.register(type, handler), scene, CONFIG };
   if (DEBUG) setupDebug(root);
+  // shader pronti prima di entrare (in parallelo dove il browser lo permette): niente scatti la prima volta che si guarda
+  // un oggetto nuovo
+  renderer.compileAsync?.(scene, camera).catch(() => {});
   state = 'start';
   ui.ready();
   applicaAccesso();
@@ -433,11 +436,39 @@ window.addEventListener('keyup', (e) => {
   player.onKey(e.code, false);
 });
 window.addEventListener('blur', () => player.clearInput());
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
+// Misura della vista: si controlla a ogni fotogramma (costa niente). Sul telefono l'evento resize arriva spesso prima che la
+// pagina abbia le misure nuove (rotazione, barra dell'indirizzo, browser interno di Instagram) e la scena restava stirata;
+// con la pagina a misura zero (nascosta, in caricamento) le proporzioni diventavano NaN e il mirino provava tutti i triangoli
+const view = { w: 0, h: 0, pr: 0 };
+function fitView() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (!w || !h) return false;
+  const pr = Math.min(window.devicePixelRatio, CONFIG.render.maxPixelRatio) * quality.scale;
+  if (w === view.w && h === view.h && pr === view.pr) return true;
+  view.w = w; view.h = h; view.pr = pr;
+  renderer.setPixelRatio(pr);
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight, false);
-});
+  return true;
+}
+
+// Qualità adattiva: se i fotogrammi non stanno al passo si abbassa la risoluzione di rendering (a scalini), e la si
+// rialza quando c'è margine. Conta solo mentre si gioca e la pagina è visibile (caricamenti e menu non fanno testo)
+const quality = { scale: 1, acc: 0, frames: 0, good: 0, cfg: CONFIG.render.adattiva };
+function adaptQuality(dt) {
+  const q = quality, c = q.cfg;
+  if (!c || state !== 'playing' || document.hidden || dt > 0.5) return;   // oltre mezzo secondo: scheda ripresa, non lentezza
+  q.acc += dt; q.frames++;
+  if (q.acc < c.finestra) return;
+  const fps = q.frames / q.acc;
+  q.acc = 0; q.frames = 0;
+  if (fps < c.fpsBasso && q.scale > c.minimo) {
+    q.scale = Math.max(c.minimo, +(q.scale * c.passoGiu).toFixed(3)); q.good = 0;
+  } else if (fps > c.fpsAlto && q.scale < 1) {
+    if (++q.good >= c.finestreBuone) { q.scale = Math.min(1, +(q.scale * c.passoSu).toFixed(3)); q.good = 0; }
+  } else q.good = 0;
+}
 
 // ------------------------------------------------------------------ ciclo principale
 
@@ -477,8 +508,11 @@ function draw() {
 }
 
 function frame(now) {
-  const dt = Math.min((now - clock.last) / 1000, 0.1);
+  const raw = (now - clock.last) / 1000;
+  const dt = Math.min(raw, 0.1);
   clock.last = now;
+  if (!fitView()) { requestAnimationFrame(frame); return; }   // vista a misura zero: si aspetta
+  adaptQuality(raw);
   tick(dt);
   draw();
   stats.frames++; stats.acc += dt;
@@ -579,6 +613,7 @@ function setupDebug() {
     get foosDemo() { return foosDemo; }, get dialogue() { return dialogue; }, get routines() { return routines; },
     get bar() { return barOrder; }, wallet, broke: () => broke(), get camerawork() { return camerawork; },
     // avanza la simulazione di s secondi a passo fisso e disegna un frame (test con la scheda in background)
+    quality, adaptQuality, fitView,                     // qualità adattiva e misura della vista, per le prove
     advance(s, step = 1 / 60) { for (let t = 0; t < s; t += step) tick(step); draw(); return true; },
   });
 }

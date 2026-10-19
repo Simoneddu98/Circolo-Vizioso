@@ -1047,6 +1047,9 @@ export const CONFIG = {
 
   render: {
     maxPixelRatio: 1.5,
+    // qualità adattiva (src/main.js): ogni `finestra` secondi si guarda la media; sotto `fpsBasso` la risoluzione scende
+    // di `passoGiu` (fino a `minimo` della risoluzione piena), sopra `fpsAlto` per `finestreBuone` finestre di fila risale
+    adattiva: { finestra: 2, fpsBasso: 42, fpsAlto: 56, finestreBuone: 3, passoGiu: 0.85, passoSu: 1.1, minimo: 0.6 },
     exposure: 1.0,
     lightScale: 0.0036,                     // i watt di Blender arrivano come migliaia di candele: li riportiamo in scala
     lightMultipliers: { LGT_Neon: 0.6 },    // correzione per famiglia (prefisso del nome)

@@ -86,6 +86,8 @@ export class InteractionSystem {
     for (const t of this.targets) if (t.enabled && visible(t.object)) meshes.push(...t.meshes);
     if (!meshes.length) return null;
     this.raycaster.setFromCamera(this.center, this.ctx.camera);
+    // camera senza proporzioni valide (vista a misura zero): un raggio NaN "colpisce" ogni triangolo della scena
+    if (!Number.isFinite(this.raycaster.ray.direction.x)) return null;
     // three.js guarda la distanza massima del raggio solo dopo aver provato i triangoli: si scartano prima i pezzi
     // troppo lontani (la sfera che li contiene è oltre la portata)
     const eye = this.raycaster.ray.origin, far = this.raycaster.far;
