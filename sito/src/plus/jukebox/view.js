@@ -52,7 +52,7 @@ export function apriJukebox(cfg, { nome = 'Jukebox', auto = false, muto = auto, 
 
   let stato = 'pronto', ritmo = null, partita = null, raf = 0, W = 0, H = 0, dpr = 1;
   const premuti = new Array(LANES).fill(-1);          // tempo (brano) fino a cui la pad è accesa
-  let giudizio = null, avviso = null;
+  let giudizio = null, avviso = null, sfondo = null;
   const anelli = [];
 
   function misura() {
@@ -190,12 +190,17 @@ export function apriJukebox(cfg, { nome = 'Jukebox', auto = false, muto = auto, 
     const fase = ((t / bd) % 1 + 1) % 1, battito = Math.exp(-fase * 4);
     const { x0, w, lw } = area(), hy = hitY(), ty = topY();
     // sfondo e lo "schermo" del cinema in alto che pulsa
-    const bg = g.createLinearGradient(0, 0, 0, H);
-    bg.addColorStop(0, '#12061d'); bg.addColorStop(1, '#07030c');
-    g.fillStyle = bg; g.fillRect(0, 0, W, H);
-    const gl = g.createRadialGradient(W / 2, 0, 10, W / 2, 0, H * 0.7);
-    gl.addColorStop(0, `rgba(255,23,228,${0.18 + 0.22 * battito})`); gl.addColorStop(1, 'rgba(255,23,228,0)');
-    g.fillStyle = gl; g.fillRect(0, 0, W, H);
+    if (!sfondo || sfondo.W !== W || sfondo.H !== H) {            // i gradienti si rifanno solo se cambia la misura
+      const bg = g.createLinearGradient(0, 0, 0, H);
+      bg.addColorStop(0, '#12061d'); bg.addColorStop(1, '#07030c');
+      const gl = g.createRadialGradient(W / 2, 0, 10, W / 2, 0, H * 0.7);
+      gl.addColorStop(0, 'rgba(255,23,228,1)'); gl.addColorStop(1, 'rgba(255,23,228,0)');
+      sfondo = { W, H, bg, gl };
+    }
+    g.fillStyle = sfondo.bg; g.fillRect(0, 0, W, H);
+    g.globalAlpha = 0.18 + 0.22 * battito;                         // il bagliore pulsa con l'opacità, non con un gradiente nuovo
+    g.fillStyle = sfondo.gl; g.fillRect(0, 0, W, H);
+    g.globalAlpha = 1;
     // pellicola ai lati
     for (const sx of [x0 - 34, x0 + w + 12]) {
       g.fillStyle = 'rgba(255,255,255,.05)'; g.fillRect(sx, 0, 22, H);

@@ -46,9 +46,14 @@ export class Serata {
     this.scores = this._load();
     this.food = new Food(ctx, ctx.config.assets.food);
     ctx.npcs.decorate = (npc, text) => this.decorate(npc, text);
-    // titoli dei brani e logo finale: scaricati subito, così compaiono senza attese
-    this.preload = [...Object.values(this.cfg.brani).map((b) => b.titoloImg), './assets/logo.webp'].filter(Boolean)
-      .map((src) => { const i = new Image(); i.src = src; return i; });
+    // titoli dei brani e logo finale (≈1 MB): scaricati a bassa priorità qualche secondo dopo l'inizio, quando il circolo è già
+    // caricato, e comunque molto prima che servano; sul telefono non rubano banda al caricamento
+    this.preload = [];
+    setTimeout(() => {
+      for (const src of [...Object.values(this.cfg.brani).map((b) => b.titoloImg), './assets/logo.webp'].filter(Boolean)) {
+        const i = new Image(); i.fetchPriority = 'low'; i.decoding = 'async'; i.src = src; this.preload.push(i);
+      }
+    }, 8000);
     this._wrapBarista();
     this._makeBox();
     this._makeSeat();

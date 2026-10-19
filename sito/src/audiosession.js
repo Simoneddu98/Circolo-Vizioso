@@ -79,10 +79,16 @@ export function creaTastoAudio() {
     b.style.right = ok ? `${Math.round(innerWidth - w.left + 8)}px` : '';
     b.style.top = ok ? `${Math.max(8, Math.round(w.top + (w.height - 42) / 2))}px` : '';
   };
-  const w = document.getElementById('wallet');
-  if (w && globalThis.ResizeObserver) new ResizeObserver(metti).observe(w);
+  // il portafoglio nasce dopo questo tasto: si aspetta (pochi fotogrammi) e poi si osserva solo lui, niente controlli a intervalli
+  const lega = (n = 0) => {
+    const w = document.getElementById('wallet');
+    if (!w) { if (n < 600) requestAnimationFrame(() => lega(n + 1)); return; }
+    if (globalThis.ResizeObserver) new ResizeObserver(metti).observe(w);
+    new MutationObserver(metti).observe(w, { attributes: true, attributeFilter: ['hidden', 'style', 'class'] });
+    metti();
+  };
   addEventListener('resize', metti);
-  setInterval(metti, 1000);                       // il portafoglio compare dopo la partenza del gioco
+  lega();
   metti();
 }
 

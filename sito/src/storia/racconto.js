@@ -58,7 +58,7 @@ export class Racconto {
     this.consegna = new Consegna(ctx, this.cfg.consegna);
     this.auto = new Auto(ctx, this.cfg.auto, this.strada);
     this.inStrada = false;
-    for (const src of [this.cfg.logo, this.cfg.fumoLogo, this.cfg.bbLogo]) new Image().src = src;
+    new Image().src = this.cfg.logo;                               // gli altri titoli (fumo, black box) si caricano più avanti
     this._targets();
     if (new URLSearchParams(location.search).get('debug') === '1') window.__storia = this;   // per le prove
   }
@@ -79,7 +79,7 @@ export class Racconto {
     if (dallaPorta.some((g) => this.progress.done.has(g))) this.progress.done.add('cronico');
     this._preparaEst();
     clearTimeout(this.precaricaT);
-    this.precaricaT = setTimeout(() => this._precarica(), 800);    // la strada e la macchina si caricano in sottofondo
+    if (!this.fermata) this._precaricaQuando();                    // strada e macchina (≈5 MB) si caricano solo a metà storia
     this.stage = 'idle';
     this.wait = 1.5;
     if (this.progress.isDone('cronico')) this.ctx.ui.addItem('biglietto');
@@ -958,10 +958,19 @@ export class Racconto {
     ctx.interactions.addTarget(this.portaEst.group, 'storia_portaest');
   }
 
+  // Strada e macchina pesano circa 5 MB e servono solo nel capitolo 4: sul telefono caricarle subito rallenta il cinema e
+  // occupa memoria per niente. Partono quando si esce dalla stanzetta (fine del capitolo 2), o subito se si riparte da dopo.
+  _precaricaQuando() {
+    if (this.precaricata) return;
+    if (this.progress.isDone('uscita2')) this.precaricaT = setTimeout(() => this._precarica(), 800);
+    else this.precaricaT = setTimeout(() => this._precaricaQuando(), 2000);
+  }
+
   // strada e macchina in sottofondo, poi shader e texture pronti: quando si apre la porta non si aspetta niente
   async _precarica() {
     if (this.precaricata) return;
     this.precaricata = true;
+    for (const src of [this.cfg.fumoLogo, this.cfg.bbLogo]) new Image().src = src;
     await this.strada.load();
     await this.auto.load();
     this._targetsStrada();

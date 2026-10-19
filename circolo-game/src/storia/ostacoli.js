@@ -13,31 +13,45 @@ function strisce(c1, c2, n = 4) {
   return t;
 }
 
-function forma(tipo) {
-  const g = new THREE.Group();
+// Geometrie, materiali e texture si creano una volta sola per tipo e si condividono (sono 50 e passa: prima ognuno si
+// portava dietro la sua texture da disegnare su canvas, e sul telefono pesava).
+const _cache = {};
+function risorse(tipo) {
+  if (_cache[tipo]) return _cache[tipo];
+  const nero = new THREE.MeshStandardMaterial({ color: 0x1b1b1b, roughness: 0.8 });
   if (tipo === 'cono') {
-    const m = new THREE.MeshStandardMaterial({ map: strisce('#ff5a12', '#f4f1ea', 2), roughness: 0.6 });
-    const c = new THREE.Mesh(new THREE.ConeGeometry(0.17, 0.62, 16, 1, true), m); c.position.y = 0.33;
-    const b = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.04, 0.42), new THREE.MeshStandardMaterial({ color: 0x1b1b1b, roughness: 0.8 }));
-    b.position.y = 0.02;
+    return (_cache[tipo] = { m: new THREE.MeshStandardMaterial({ map: strisce('#ff5a12', '#f4f1ea', 2), roughness: 0.6 }), nero,
+      c: new THREE.ConeGeometry(0.17, 0.62, 16, 1, true), b: new THREE.BoxGeometry(0.42, 0.04, 0.42) });
+  }
+  if (tipo === 'barile') {
+    return (_cache[tipo] = { m: new THREE.MeshStandardMaterial({ map: strisce('#ff6a1a', '#f4f1ea', 3), roughness: 0.5 }),
+      c: new THREE.CylinderGeometry(0.29, 0.31, 0.95, 18) });
+  }
+  const t = strisce('#d51c1c', '#f4f1ea', 5); t.wrapS = THREE.RepeatWrapping;
+  return (_cache[tipo] = { m: new THREE.MeshStandardMaterial({ map: t, roughness: 0.5 }),
+    gm: new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.7 }),
+    asse: new THREE.BoxGeometry(0.06, 0.32, 1.8), palo: new THREE.BoxGeometry(0.05, 0.95, 0.05), piede: new THREE.BoxGeometry(0.5, 0.05, 0.08) });
+}
+
+function forma(tipo) {
+  const g = new THREE.Group(), R = risorse(tipo);
+  if (tipo === 'cono') {
+    const c = new THREE.Mesh(R.c, R.m); c.position.y = 0.33;
+    const b = new THREE.Mesh(R.b, R.nero); b.position.y = 0.02;
     g.add(c, b);
   } else if (tipo === 'barile') {
-    const m = new THREE.MeshStandardMaterial({ map: strisce('#ff6a1a', '#f4f1ea', 3), roughness: 0.5 });
-    const c = new THREE.Mesh(new THREE.CylinderGeometry(0.29, 0.31, 0.95, 18), m); c.position.y = 0.475;
+    const c = new THREE.Mesh(R.c, R.m); c.position.y = 0.475;
     g.add(c);
   } else {                                                       // transenna: lungo il traverso della via
-    const t = strisce('#d51c1c', '#f4f1ea', 5); t.wrapS = THREE.RepeatWrapping;
-    const m = new THREE.MeshStandardMaterial({ map: t, roughness: 0.5 });
-    const asse = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.32, 1.8), m); asse.position.y = 0.82;   // z locale = di traverso
-    const gm = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.7 });
+    const asse = new THREE.Mesh(R.asse, R.m); asse.position.y = 0.82;   // z locale = di traverso
     for (const z of [-0.8, 0.8]) {
-      const p = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.95, 0.05), gm); p.position.set(0, 0.475, z);
-      const f = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.05, 0.08), gm); f.position.set(0, 0.025, z);
+      const p = new THREE.Mesh(R.palo, R.gm); p.position.set(0, 0.475, z);
+      const f = new THREE.Mesh(R.piede, R.gm); f.position.set(0, 0.025, z);
       g.add(p, f);
     }
     g.add(asse);
   }
-  g.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
+  g.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; o.matrixAutoUpdate = true; } });
   return g;
 }
 
